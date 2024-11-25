@@ -9,6 +9,7 @@ The official repository introducing MaskPose and BBox-Mask-Pose methods.
   <a href="https://arxiv.org/abs/2307.06737">ArXiv</a>
 
   <br/>
+  <br/>
   <img src="images/004806_BMP.gif" alt="BBox-Mask-Pose loop">
 </h4>
 
