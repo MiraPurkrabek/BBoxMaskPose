@@ -5,7 +5,7 @@
 The official repository introducing MaskPose and BBox-Mask-Pose methods.
 
 <h4 align="center">
-  <a href="https://mirapurkrabek.github.io/RePoGen-paper/">Project webpage</a> |
+  <a href="https://mirapurkrabek.github.io/BBox-Mask-Pose/">Project webpage</a> |
   <a href="https://arxiv.org/abs/2307.06737">ArXiv</a>
 
   <br/>
@@ -61,7 +61,7 @@ Please read carefully the [terms and conditions](./LICENSE) and any accompanying
 
 ## Acknowledgements
 
-The code combines MMDetection (LINK), MMPose (LINK) and ViTPose (LINK).
+The code combines [MMDetection](https://github.com/open-mmlab/mmdetection), [MMPose 2.0](https://github.com/open-mmlab/mmpose) and [ViTPose](https://github.com/ViTAE-Transformer/ViTPose).
 
 ## Citation and Contact
 
