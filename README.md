@@ -17,7 +17,6 @@ The official repository introducing MaskPose and BBox-Mask-Pose methods.
 ## Table of Contents
 - [Description](#description)
 - [News](#news)
-- [Roadmap](#roadmap)
 - [Installation](#installation)
 - [Results \& Weights](#results--weights)
   - [Pose](#pose)
@@ -29,17 +28,22 @@ The official repository introducing MaskPose and BBox-Mask-Pose methods.
 
 ## Description
 
+This repository provides the code and model weights for the paper *Detection, Segmentation, and Pose Estimation for Multiple Bodies: Closing the Virtuous Circle*.
+
+The code is a modified version of [MMPose 2.0](https://github.com/open-mmlab/mmpose) with the following key changes:
+- Support for multi-dataset training of ViTPose, previously implemented in the official ViTPose repository but absent in MMPose.
+- Added `MaskBackground` data augmentation to train MaskPose.
+- Includes weights for MaskPose and RTMDet to reproduce BBox-Mask-Pose results from the paper.
+
+Note: The code has not undergone extensive cross-platform testing and may contain bugs. If you encounter issues, please report them via the repository's issue tracker.
+
+If you use this work, kindly cite it using the reference provided below.
+
 ## News
 
+- 02 Dec 2024: The code is available
 - 23 Nov 2024: The [project website](https://MiraPurkrabek.github.io/BBox-Mask-Pose) is on
 
-## Roadmap
-
-- [x] Update README with full explanation
-- [ ] Upload MaskPose code
-- [ ] Upload MaskPose weights
-- [ ] Upload RTMDet weights
-- [ ] Delete this roadmap
 
 ## Installation
   
@@ -68,12 +72,12 @@ We provide trained weights for both MaskPose (introduced in the paper) and ViTPo
 
 | Model      | Datasets      | COCO AP | OCHuman AP | weights | notes                                             |
 | ---------- | ------------- | ------- | ---------- | ------- | ------------------------------------------------- |
-| ViTPose-b  | COCO+AIC+MPII | 76.3    | 42.5       | LINK    | multi-dataset training compatible with MMPose 2.0 |
-| MaskPose-b | COCO+AIC+MPII | 76.4    | 45.3       | LINK    |                                                   |
+| ViTPose-b  | COCO+AIC+MPII | 76.3    | 42.5       | [download](https://drive.google.com/file/d/1Y6kSpl-RkdYtv9vsCogZpQW1RWyPKzwS/view?usp=sharing)    | multi-dataset training compatible with MMPose 2.0 |
+| MaskPose-b | COCO+AIC+MPII | 76.4    | 45.3       | [download](https://drive.google.com/file/d/1aq8eVxDH8yMIDiH66neXQXE6_lCWfGb0/view?usp=sharing)    |                                                   |
 
 ### Detection
 
-To run BBox-Mask-Pose loop, you also need to adapt a detector. We fine-tuned RTMDet-l with mask-out data augmentation as shown in the paper. Weights of the fine-tuned model (compatible with MMDetection config) is LINK. 
+To run BBox-Mask-Pose loop, you also need to adapt a detector. We fine-tuned RTMDet-l with mask-out data augmentation as shown in the paper. Weights of the fine-tuned model (compatible with MMDetection config) is [here](https://drive.google.com/file/d/1edMVlIgxT0E3lAYtgKipjWhfOmMfFepR/view?usp=sharing). 
 
 
 ## Licence
