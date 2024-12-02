@@ -1,5 +1,4 @@
 <!-- omit in toc -->
-
 # Detection, Pose Estimation and Segmentation for Multiple Bodies: Closing the Virtuous Circle
 
 The official repository introducing MaskPose and BBox-Mask-Pose methods.
@@ -15,24 +14,35 @@ The official repository introducing MaskPose and BBox-Mask-Pose methods.
 
 <!-- omit in toc -->
 ## Table of Contents
-- [Detection, Pose Estimation and Segmentation for Multiple Bodies: Closing the Virtuous Circle](#detection-pose-estimation-and-segmentation-for-multiple-bodies-closing-the-virtuous-circle)
-  - [Description](#description)
-  - [News](#news)
-  - [Installation](#installation)
-  - [Results \& Weights](#results--weights)
-    - [Pose](#pose)
-    - [Detection](#detection)
-  - [Licence](#licence)
-  - [Acknowledgements](#acknowledgements)
-  - [Citation and Contact](#citation-and-contact)
+- [Description](#description)
+- [News](#news)
+- [Roadmap](#roadmap)
+- [Installation](#installation)
+- [Results \& Weights](#results--weights)
+  - [Pose](#pose)
+  - [Detection](#detection)
+- [Licence](#licence)
+- [Acknowledgements](#acknowledgements)
+- [Citation and Contact](#citation-and-contact)
+
 
 ## Description
 
 ## News
 
-- 23 Nov 2024: The code wil lbe released soon
+- 23 Nov 2024: The [project website](https://MiraPurkrabek.github.io/BBox-Mask-Pose) is on
+
+## Roadmap
+
+- [ ] Update README with full explanation
+- [ ] Upload MaskPose code
+- [ ] Upload MaskPose weights
+- [ ] Upload RTMDet weights
+- [ ] Delete this roadmap
 
 ## Installation
+
+TDB
 
 ## Results & Weights
 
