@@ -43,16 +43,18 @@ The official repository introducing MaskPose and BBox-Mask-Pose methods.
 
 ## Installation
   
-The code builds on [MMPose](https://github.com/open-mmlab/mmpose). If you want only inference, you can install it simply with:
+The code builds on [MMPose](https://github.com/open-mmlab/mmpose). Install its dependencies simply with:
 
 ```console
-pip install -U openmim
-mim install mmpose
+pip install mmengine
+mim install "mmcv>=2.0.1"
+mim install "mmdet>=3.1.0"
 ```
 
 And then install our code using 
 
-```
+```console
+pip install -r requirements.txt
 pip install -e .
 ```
 
