@@ -35,36 +35,43 @@ The official repository introducing MaskPose and BBox-Mask-Pose methods.
 
 ## Roadmap
 
-- [ ] Update README with full explanation
+- [x] Update README with full explanation
 - [ ] Upload MaskPose code
 - [ ] Upload MaskPose weights
 - [ ] Upload RTMDet weights
 - [ ] Delete this roadmap
 
 ## Installation
+  
+The code builds on [MMPose](https://github.com/open-mmlab/mmpose). If you want only inference, you can install it simply with:
 
-TDB
+```console
+pip install -U openmim
+mim install mmpose
+```
+
+And then install our code using 
+
+```
+pip install -e .
+```
 
 ## Results & Weights
 
 ### Pose
 
-Results on COCO val and OCHuman val of different Human Pose Estimation (HPE) methods. We provide trained weights for both MaskPose (introeuced in the paper) and ViTPose trained in the multi-dataset setup. Multi-dataset ViTPose is not new but their weights are not compatible with popular MMPose 2.0 codebase. We retrained theme in the MMPose 2.0 environment. 
+Results on COCO val and OCHuman val of different Human Pose Estimation (HPE) methods. All results are with detection from [RTMDet-l](https://github.com/open-mmlab/mmdetection/tree/main/configs/rtmdet) from MMDetection.
+
+We provide trained weights for both MaskPose (introduced in the paper) and ViTPose trained in the multi-dataset setup. Multi-dataset ViTPose is not new but their weights are not compatible with popular MMPose 2.0 codebase. We retrained theme in the MMPose 2.0 environment. 
 
 | Model      | Datasets      | COCO AP | OCHuman AP | weights | notes                                             |
 | ---------- | ------------- | ------- | ---------- | ------- | ------------------------------------------------- |
-| ViTPose-b  | COCO          | 0.90    | 0.92       | ---     | weights from MMPose repo                          |
-| ViTPose-b  | COCO+AIC+MPII | 0.90    | 0.92       | LINK    | multi-dataset training compatible with MMPose 2.0 |
-| MaskPose-b | COCO+AIC+MPII | 0.90    | 0.92       | LINK    |                                                   |
+| ViTPose-b  | COCO+AIC+MPII | 76.3    | 42.5       | LINK    | multi-dataset training compatible with MMPose 2.0 |
+| MaskPose-b | COCO+AIC+MPII | 76.4    | 45.3       | LINK    |                                                   |
 
 ### Detection
 
-We provide weights of the RTMDet-l trained on masked-out instances. It is compatible with RTMDet configs in MMDetection.
-
-| Model                | Datasets | COCO AP | OCHuman AP | weights | notes                                            |
-| -------------------- | -------- | ------- | ---------- | ------- | ------------------------------------------------ |
-| RTMDet-l-ins         | COCO     | 0.90    | 0.92       | ---     |                                                  |
-| RTMDet-l-ins-maskout | COCO     | 0.90    | 0.92       | LINK    | Fine-tuned weights ignoring masked-out instances |
+To run BBox-Mask-Pose loop, you also need to adapt a detector. We fine-tuned RTMDet-l with mask-out data augmentation as shown in the paper. Weights of the fine-tuned model (compatible with MMDetection config) is LINK. 
 
 
 ## Licence
