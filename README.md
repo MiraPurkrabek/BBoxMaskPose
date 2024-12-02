@@ -5,7 +5,8 @@ The official repository introducing MaskPose and BBox-Mask-Pose methods.
 
 <h4 align="center">
   <a href="https://mirapurkrabek.github.io/BBox-Mask-Pose/">Project webpage</a> |
-  <a href="https://arxiv.org/abs/2307.06737">ArXiv</a>
+  <a href="https://arxiv.org/abs/2307.06737">ArXiv</a> | 
+  <a href="https://youtu.be/U05yUP4b2LQ">Video</a>
 
   <br/>
   <br/>
