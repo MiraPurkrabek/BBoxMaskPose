@@ -7,8 +7,12 @@ The official repository introducing MaskPose and BBox-Mask-Pose methods.
   <a href="https://mirapurkrabek.github.io/BBox-Mask-Pose/">Project webpage</a> |
   <a href="https://arxiv.org/abs/2307.06737">ArXiv</a> | 
   <a href="https://youtu.be/U05yUP4b2LQ">Video</a>
-
+  
   <br/>
+  
+  [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/detection-pose-estimation-and-segmentation/2d-human-pose-estimation-on-ochuman)](https://paperswithcode.com/sota/2d-human-pose-estimation-on-ochuman?p=detection-pose-estimation-and-segmentation)
+  [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/detection-pose-estimation-and-segmentation/human-instance-segmentation-on-ochuman)](https://paperswithcode.com/sota/human-instance-segmentation-on-ochuman?p=detection-pose-estimation-and-segmentation)
+
   <br/>
   <img src="images/004806_BMP.gif" alt="BBox-Mask-Pose loop">
 </h4>
