@@ -10,8 +10,8 @@ The official repository introducing MaskPose and BBox-Mask-Pose methods.
   
   <br/>
   
-  [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/detection-pose-estimation-and-segmentation/2d-human-pose-estimation-on-ochuman)](https://paperswithcode.com/sota/2d-human-pose-estimation-on-ochuman?p=detection-pose-estimation-and-segmentation)
-  [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/detection-pose-estimation-and-segmentation/human-instance-segmentation-on-ochuman)](https://paperswithcode.com/sota/human-instance-segmentation-on-ochuman?p=detection-pose-estimation-and-segmentation)
+  [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/detection-pose-estimation-and-segmentation-1/2d-human-pose-estimation-on-ochuman)](https://paperswithcode.com/sota/2d-human-pose-estimation-on-ochuman?p=detection-pose-estimation-and-segmentation-1)
+  [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/detection-pose-estimation-and-segmentation-1/human-instance-segmentation-on-ochuman)](https://paperswithcode.com/sota/human-instance-segmentation-on-ochuman?p=detection-pose-estimation-and-segmentation-1)
 
   <br/>
   <img src="images/004806_BMP.gif" alt="BBox-Mask-Pose loop">
