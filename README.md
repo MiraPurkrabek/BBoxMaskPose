@@ -99,5 +99,13 @@ The code was implemented by [Miroslav Purkrábek]([htt]https://mirapurkrabek.git
 For questions, please use the Issues of Discussion.
 
 ```
-BibTeX will be here once submitted to ArXiv 
-``````
+@misc{purkrabek2024BBoxMaskPose,
+        title={Detection, Pose Estimation and Segmentation for Multiple Bodies: Closing the Virtuous Circle}, 
+        author={Miroslav Purkrabek and Jiri Matas},
+        year={2024},
+        eprint={2412.01562},
+        archivePrefix={arXiv},
+        primaryClass={cs.CV},
+        url={https://arxiv.org/abs/2412.01562}, 
+  }
+```
