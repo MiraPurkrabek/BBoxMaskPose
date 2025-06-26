@@ -99,13 +99,11 @@ The code was implemented by [Miroslav Purkrábek]([htt]https://mirapurkrabek.git
 For questions, please use the Issues of Discussion.
 
 ```
-@misc{purkrabek2024BBoxMaskPose,
-        title={Detection, Pose Estimation and Segmentation for Multiple Bodies: Closing the Virtuous Circle}, 
-        author={Miroslav Purkrabek and Jiri Matas},
-        year={2024},
-        eprint={2412.01562},
-        archivePrefix={arXiv},
-        primaryClass={cs.CV},
-        url={https://arxiv.org/abs/2412.01562}, 
-  }
+@InProceedings{Purkrabek2025ICCV,
+  author={Purkrabek, Miroslav and Matas, Jiri},
+  title={Detection, Pose Estimation and Segmentation for Multiple Bodies: Closing the Virtuous Circle}, 
+  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
+  year={2025},
+  month={October},
+}
 ```
