@@ -1,0 +1,25 @@
+# CITATION.cff file for Detection, Pose Estimation and Segmentation for Multiple Bodies: Closing the Virtuous Circle
+# This file provides metadata for the software and its preferred citation format.
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: Purkrabek
+  given-names: Miroslav
+- family-names: Matas
+  given-names: Jiri
+title: "Detection, Pose Estimation and Segmentation for Multiple Bodies: Closing the Virtuous Circle"
+version: 1.0.0
+date-released: 2025-06-20
+preferred-citation:
+  type: conference-paper
+  authors:
+  - family-names: Purkrabek
+    given-names: Miroslav
+  - family-names: Matas
+    given-names: Jiri
+  collection-title: "Proceedings of the IEEE/CVF International Conference on Computer Vision"
+  month: 10
+  start: 1 # First page number
+  end: 8 # Last page number
+  title: "Detection, Pose Estimation and Segmentation for Multiple Bodies: Closing the Virtuous Circle"
+  year: 2025
