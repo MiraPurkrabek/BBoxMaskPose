@@ -1,100 +1,138 @@
-<!-- omit in toc -->
-# Detection, Pose Estimation and Segmentation for Multiple Bodies: Closing the Virtuous Circle
+</h1><div id="toc">
+  <ul align="center" style="list-style: none; padding: 0; margin: 0;">
+    <summary>
+      <h1 style="margin-bottom: 0.0em;">
+        Detection, Pose Estimation and Segmentation for Multiple Bodies: Closing the Virtuous Circle
+      </h1>
+    </summary>
+  </ul>
+</div>
+</h1><div id="toc">
+  <ul align="center" style="list-style: none; padding: 0; margin: 0;">
+    <summary>
+      <h2 style="margin-bottom: 0.2em;">
+        ICCV 2025
+      </h2>
+    </summary>
+  </ul>
+</div>
 
-The official repository introducing MaskPose and BBox-Mask-Pose methods.
+<div align="center">
+  <img src="images/004806_BMP.gif" alt="BBox-Mask-Pose loop" height="500px">
 
-<h4 align="center">
-  <a href="https://mirapurkrabek.github.io/BBox-Mask-Pose/">Project webpage</a> |
-  <a href="https://arxiv.org/abs/2307.06737">ArXiv</a> | 
-  <a href="https://youtu.be/U05yUP4b2LQ">Video</a>
+  [![Paper](https://img.shields.io/badge/Paper-ICCV%202025-blue)](https://arxiv.org/abs/2412.02254) &nbsp;&nbsp;&nbsp;
+  [![Website](https://img.shields.io/badge/Website-BBoxMaskPose-green)](https://mirapurkrabek.github.io/BBox-Mask-Pose/) &nbsp;&nbsp;&nbsp;
+  [![License](https://img.shields.io/badge/License-GPL%203.0-orange.svg)](LICENSE) &nbsp;&nbsp;&nbsp;
+  [![Video](https://img.shields.io/badge/Video-YouTube-red?logo=youtube)](https://youtu.be/U05yUP4b2LQ)
   
-  <br/>
+
+  Papers with code:
+
+  [![2D Pose AP on OCHuman: 42.5](https://img.shields.io/badge/OCHuman-2D_Pose:_49.2_AP-blue)](https://paperswithcode.com/sota/2d-human-pose-estimation-on-ochuman?p=detection-pose-estimation-and-segmentation-1) &nbsp;&nbsp;
+  [![Human Instance Segmentation AP on OCHuman: 34.0](https://img.shields.io/badge/OCHuman-Human_Instance_Segmentation:_34.0_AP-blue)](https://paperswithcode.com/sota/human-instance-segmentation-on-ochuman?p=detection-pose-estimation-and-segmentation-1)  
+
+</div>
+
+
+## 📋 Overview
+
+The BBox-Mask-Pose (BMP) method integrates detection, pose estimation, and segmentation into a self-improving loop by conditioning these tasks on each other. This approach enhances all three tasks simultaneously. Using segmentation masks instead of bounding boxes improves performance in crowded scenarios, making top-down methods competitive with bottom-up approaches.
+
+Key contributions:
+1. **MaskPose**: a pose estimation model conditioned by segmentation masks instead of bounding boxes, boosting performance in dense scenes without adding parameters
+    - Download pre-trained weights below
+2. **BBox-MaskPose (BMP)**: method linking bounding boxes, segmentation masks, and poses to simultaneously address multi-body detection, segmentation and pose estimation
+    - Try the demo!
+3. Fine-tuned RTMDet adapted for itterative detection (ignoring 'holes')
+    - Download pre-trained weights below
+5. Support for multi-dataset training of ViTPose, previously implemented in the official ViTPose repository but absent in MMPose.
+
+For more details, please visit our [project website](https://mirapurkrabek.github.io/BBox-Mask-Pose/).
+
+
+## 📢 News
+
+- **Jul 2025**: Version 1.1 with easy-to-run image demo released
+- **Jun 2025**: Paper accepted to ICCV 2025! 🎉
+- **Dec 2024**: The code is available
+- **Nov 2024**: The [project website](https://MiraPurkrabek.github.io/BBox-Mask-Pose) is on
+
+
+## 🚀 Installation
   
-  [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/detection-pose-estimation-and-segmentation-1/2d-human-pose-estimation-on-ochuman)](https://paperswithcode.com/sota/2d-human-pose-estimation-on-ochuman?p=detection-pose-estimation-and-segmentation-1)
-  [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/detection-pose-estimation-and-segmentation-1/human-instance-segmentation-on-ochuman)](https://paperswithcode.com/sota/human-instance-segmentation-on-ochuman?p=detection-pose-estimation-and-segmentation-1)
+This project is built on top of [MMPose](https://github.com/open-mmlab/mmpose) and [SAM 2.1](https://github.com/facebookresearch/sam2).
+Please refer to the [MMPose installation guide](https://mmpose.readthedocs.io/en/latest/installation.html) or [SAM installation guide](https://github.com/facebookresearch/sam2/blob/main/INSTALL.md) for detailed setup instructions.
 
-  <br/>
-  <img src="images/004806_BMP.gif" alt="BBox-Mask-Pose loop">
-</h4>
+Basic installation steps:
+```bash
+# Clone the repository
+git clone https://github.com/mirapurkrabek/BBoxMaskPose.git BBoxMaskPose/
+cd BBoxMaskPose
 
-<!-- omit in toc -->
-## Table of Contents
-- [Description](#description)
-- [News](#news)
-- [Installation](#installation)
-- [Results \& Weights](#results--weights)
-  - [Pose](#pose)
-  - [Detection](#detection)
-- [Licence](#licence)
-- [Acknowledgements](#acknowledgements)
-- [Citation and Contact](#citation-and-contact)
+# Install your version of torch, torchvision, OpenCV and NumPy
+pip install torch==2.1.2+cu121 torchvision==0.16.2+cu121 --extra-index-url https://download.pytorch.org/whl/cu121
+pip install numpy==1.25.1 opencv-python==4.9.0.80
 
+# Install MMLibrary
+pip install -U openmim
+mim install mmengine "mmcv==2.1.0" "mmdet==3.3.0" "mmpretrain==1.2.0"
 
-## Description
-
-This repository provides the code and model weights for the paper *Detection, Segmentation, and Pose Estimation for Multiple Bodies: Closing the Virtuous Circle*.
-
-The code is a modified version of [MMPose 2.0](https://github.com/open-mmlab/mmpose) with the following key changes:
-- Support for multi-dataset training of ViTPose, previously implemented in the official ViTPose repository but absent in MMPose.
-- Added `MaskBackground` data augmentation to train MaskPose.
-- Includes weights for MaskPose and RTMDet to reproduce BBox-Mask-Pose results from the paper.
-
-Note: The code has not undergone extensive cross-platform testing and may contain bugs. If you encounter issues, please report them via the repository's issue tracker.
-
-If you use this work, kindly cite it using the reference provided below.
-
-## News
-
-- 02 Dec 2024: The code is available
-- 23 Nov 2024: The [project website](https://MiraPurkrabek.github.io/BBox-Mask-Pose) is on
-
-
-## Installation
-  
-The code builds on [MMPose](https://github.com/open-mmlab/mmpose). Install its dependencies simply with:
-
-```console
-pip install mmengine
-mim install "mmcv>=2.0.1"
-mim install "mmdet>=3.1.0"
-```
-
-And then install our code using 
-
-```console
+# Install dependencies
 pip install -r requirements.txt
 pip install -e .
 ```
 
-## Results & Weights
+## 🎮 Demo
 
-### Pose
+Step 1: Download SAM2 weights using the [enclosed script](models/SAM/download_ckpts.sh).
 
-Results on COCO val and OCHuman val of different Human Pose Estimation (HPE) methods. All results are with detection from [RTMDet-l](https://github.com/open-mmlab/mmdetection/tree/main/configs/rtmdet) from MMDetection.
+Step 2: Run the full BBox-Mask-Pose pipeline on an input image:
 
-We provide trained weights for both MaskPose (introduced in the paper) and ViTPose trained in the multi-dataset setup. Multi-dataset ViTPose is not new but their weights are not compatible with popular MMPose 2.0 codebase. We retrained theme in the MMPose 2.0 environment. 
+```bash
+python demo/bmp_demo.py configs/bmp_D3.yaml data/004806.jpg
+```
 
-| Model      | Datasets      | COCO AP | OCHuman AP | weights | notes                                             |
-| ---------- | ------------- | ------- | ---------- | ------- | ------------------------------------------------- |
-| ViTPose-b  | COCO+AIC+MPII | 76.3    | 42.5       | [download](https://drive.google.com/file/d/1Y6kSpl-RkdYtv9vsCogZpQW1RWyPKzwS/view?usp=sharing)    | multi-dataset training compatible with MMPose 2.0 |
-| MaskPose-b | COCO+AIC+MPII | 76.4    | 45.3       | [download](https://drive.google.com/file/d/1aq8eVxDH8yMIDiH66neXQXE6_lCWfGb0/view?usp=sharing)    |                                                   |
+It will take an image 004806.jpg from OCHuman and run (1) detector, (2) pose estimator and (3) SAM2 refinement. 
+Details are in the cofiguration file [bmp_D3.yaml](configs/bmp_D3.yaml).
 
-### Detection
+Options:
+- `configs/bmp_D3.yaml`: BMP configuration file
+- `data/004806.jpg`: Input image
+- `--device`: (Optional) Inference device (default: `cuda:0`)
+- `--output-root`: (Optional) Directory to save outputs (default: `demo/outputs`)
+- `--create-gif`: (Optional) Generate an animated GIF of all iterations (default `False`)
 
-To run BBox-Mask-Pose loop, you also need to adapt a detector. We fine-tuned RTMDet-l with mask-out data augmentation as shown in the paper. Weights of the fine-tuned model (compatible with MMDetection config) is [here](https://drive.google.com/file/d/1edMVlIgxT0E3lAYtgKipjWhfOmMfFepR/view?usp=sharing). 
+After running, outputs are in `outputs/004806/`. The expected output should look like this:
+<div align="center">
+  <a href="images/004806_mask.jpg" target="_blank">
+    <img src="images/004806_mask.jpg" alt="Detection results" width="200" />
+  </a>
+  &nbsp&nbsp&nbsp&nbsp
+  <a href="images/004806_pose.jpg" target="_blank">
+    <img src="images/004806_pose.jpg" alt="Pose results" width="200" style="margin-right:10px;" />
+  </a>
+</div>
 
 
-## Licence
+## 📦 Pre-trained Models
 
-Please read carefully the [terms and conditions](./LICENSE) and any accompanying documentation before you download and/or use the RePoGen model, data and software, (the "Model & Software"). By downloading and/or using the Model & Software (including downloading, cloning, installing, and any other use of this github repository), you acknowledge that you have read these terms and conditions, understand them, and agree to be bound by them. If you do not agree with these terms and conditions, you must not download and/or use the Model & Software. Any infringement of the terms of this agreement will automatically terminate your rights under this [License](./LICENSE).
+Pre-trained models are available on [VRG Hugging Face 🤗](https://huggingface.co/vrg-prague/BBoxMaskPose/).
+To run the demo, you only need do download SAM weights with [enclosed script](models/SAM/download_ckpts.sh).
+Our detector and pose estimator will be downloaded during the runtime.
 
-## Acknowledgements
+If you want to download our weights yourself, here are the links to our HuggingFace:
+- ViTPose-b trained on COCO+MPII+AIC -- [download weights](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/ViTPose-b-multi_mmpose20.pth)
+- MaskPose-b -- [download weights](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose-b.pth)
+- Fine-tuned RTMDet-L -- [download weights](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/rtmdet-ins-l-mask.pth)
 
-The code combines [MMDetection](https://github.com/open-mmlab/mmdetection), [MMPose 2.0](https://github.com/open-mmlab/mmpose) and [ViTPose](https://github.com/ViTAE-Transformer/ViTPose).
+## 🙏 Acknowledgments
 
-## Citation and Contact
+The code combines [MMDetection](https://github.com/open-mmlab/mmdetection), [MMPose 2.0](https://github.com/open-mmlab/mmpose), [ViTPose](https://github.com/ViTAE-Transformer/ViTPose) and [SAM 2.1](https://github.com/facebookresearch/sam2).
+
+## 📝 Citation
 
 The code was implemented by [Miroslav Purkrábek]([htt]https://mirapurkrabek.github.io/).
+If you use this work, kindly cite it using the reference provided below.
 
 For questions, please use the Issues of Discussion.
 

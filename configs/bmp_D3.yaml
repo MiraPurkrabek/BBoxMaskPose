@@ -1,0 +1,37 @@
+# BBoxMaskPose Hyperparameters from Experiment D3.
+# For details, see the paper: https://arxiv.org/abs/2412.01562, Tab 8. in the supplementary.
+
+# This configuration is good for the BMP loop as was used for most of the experiments.
+detector:
+  det_config: 'mmpose/configs/mmdet/rtmdet/rtmdet-ins_l_8xb32-300e_coco.py'
+  det_checkpoint: 'https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/rtmdet-ins-l-mask.pth'
+
+  # Detectors D and D' could be different. 
+  det_prime_config: null
+  det_prime_checkpoint: null
+  
+pose_estimator:
+  pose_config: 'mmpose/configs/MaskPose/ViTb-multi_mask.py'
+  pose_checkpoint: 'https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose-b.pth'
+  
+sam2:
+  sam2_config: 'configs/samurai/sam2.1_hiera_b+.yaml'   # Use SAMURAI as it has img_size 1024 (SAM-2.1 has 512)
+  sam2_checkpoint: 'models/SAM/sam2.1_hiera_base_plus.pt'
+  prompting:
+    batch: False
+    use_bbox: False
+    num_pos_keypoints: 6  
+    num_pos_keypoints_if_crowd: 6
+    num_neg_keypoints: 0
+    confidence_thr: 0.3
+    visibility_thr: 0.3
+    selection_method: 'distance+confidence'
+    extend_bbox: False
+    pose_mask_consistency: False
+    crowd_by_max_iou: False  # Determine if the instance is in the multi-body scenario. If yes, use different amount of keypoints and NO BBOX. If no, use bbox according to 'use_bbox' argument.
+    crop: False
+    exclusive_masks: True
+    ignore_small_bboxes: False
+
+num_bmp_iters: 2
+oks_nms_thr: 0.8

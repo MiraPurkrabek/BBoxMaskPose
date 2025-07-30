@@ -39,7 +39,6 @@ class MultiDatasetEvaluator(Evaluator):
             dataset_name = dataset_meta['dataset_name']
             metrics_dict[dataset_name] = metric
         self.metrics_dict = metrics_dict
-        # breakpoint()
 
     @property
     def dataset_meta(self) -> Optional[dict]:

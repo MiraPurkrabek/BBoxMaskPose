@@ -19,7 +19,7 @@ def readme():
     return content
 
 
-version_file = 'mmpose/version.py'
+version_file = 'version.py'
 
 
 def get_version():
@@ -178,28 +178,24 @@ def add_mim_extension():
 if __name__ == '__main__':
     add_mim_extension()
     setup(
-        name='mmpose',
+        name='bbox-mask-pose',
         version=get_version(),
-        description='OpenMMLab Pose Estimation Toolbox and Benchmark.',
-        author='MMPose Contributors',
-        author_email='openmmlab@gmail.com',
-        keywords='computer vision, pose estimation',
+        description='BBoxMaskPose framework for itterative detection, segmentation and pose estimation.',
+        author='Miroslav Purkrabek',
+        author_email='mira.purkrabek@gmail.com',
+        keywords='computer vision, pose estimation, detection, segmentation, research, iccv 2025',
         long_description=readme(),
         long_description_content_type='text/markdown',
         packages=find_packages(exclude=('configs', 'tools', 'demo')),
         include_package_data=True,
-        package_data={'mmpose.ops': ['*/*.so']},
+        package_data={'mmpose.ops': ['*/*.so'], 'sam2': ['*.so'], 'sam2.*': ['*.so']},
         classifiers=[
             'Development Status :: 4 - Beta',
-            'License :: OSI Approved :: Apache Software License',
             'Operating System :: OS Independent',
             'Programming Language :: Python :: 3',
-            'Programming Language :: Python :: 3.7',
-            'Programming Language :: Python :: 3.8',
-            'Programming Language :: Python :: 3.9',
         ],
-        url='https://github.com/open-mmlab/mmpose',
-        license='Apache License 2.0',
+        url='https://github.com/MiraPurkrabek/BBoxMaskPose/',
+        license='General Public License 3.0',
         python_requires='>=3.7',
         install_requires=parse_requirements('requirements/runtime.txt'),
         extras_require={
@@ -207,5 +203,6 @@ if __name__ == '__main__':
             'tests': parse_requirements('requirements/tests.txt'),
             'optional': parse_requirements('requirements/optional.txt'),
             'mim': parse_requirements('requirements/mminstall.txt'),
+            'sam2_extras': parse_requirements('requirements/sam2_extras.txt'),
         },
         zip_safe=False)
