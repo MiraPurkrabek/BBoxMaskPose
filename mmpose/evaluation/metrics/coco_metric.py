@@ -25,7 +25,7 @@ import os
 import matplotlib.pyplot as plt
 from matplotlib import rc
 
-from xtcocotools.mask import mask as maskUtils
+from xtcocotools.mask import _mask as maskUtils
 
 
 @METRICS.register_module()

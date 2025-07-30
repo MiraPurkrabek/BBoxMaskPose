@@ -82,25 +82,19 @@ class LoadImage(LoadImageFromFile):
                 results['img'] = img
                 
                 # Update bbox
-                # print("Bbox before padding:", results['bbox'])
                 bbox = np.array(results['bbox']).flatten()
                 bbox[:2] += np.array([x_pad[0], y_pad[0]])
                 bbox[2:] += np.array([x_pad[0], y_pad[0]])
                 results['bbox'] = bbox.reshape(np.array(results['bbox']).shape)
-                # print("Bbox after padding:", results['bbox'], x_pad, y_pad)
 
                 # Update keypoints
-                # print("Keypoints before padding:", results['keypoints'])
                 kpts = np.array(results['keypoints']).reshape(-1, 2)
                 kpts[:, :2] += np.array([x_pad[0], y_pad[0]])
                 results['keypoints'] = kpts.reshape(np.array(results['keypoints']).shape)
-                # print("Keypoints after padding:", results['keypoints'], x_pad, y_pad)
 
                 # Update img_shape and ori_shape
-                # print("Img shape before padding:", results['img_shape'], results['ori_shape'])
                 results['img_shape'] = img.shape[:2]
                 results['ori_shape'] = img.shape[:2]
-                # print("Img shape after padding:", results['img_shape'], results['ori_shape'])
 
         except Exception as e:
             e = type(e)(

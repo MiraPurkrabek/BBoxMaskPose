@@ -1,38 +1,21 @@
-# Copyright (c) OpenMMLab. All rights reserved.
-from mmengine.config import read_base
-
-with read_base():
-    from mmpose.configs._base_.default_runtime import *
-
-from mmengine.dataset import DefaultSampler
-from mmengine.model import PretrainedInit
-from mmengine.optim import LinearLR, MultiStepLR
-from torch.optim import Adam
-
-from mmpose.codecs import UDPHeatmap
-from mmpose.datasets import (CocoDataset, GenerateTarget, GetBBoxCenterScale,
-                             LoadImage, PackPoseInputs, RandomFlip,
-                             RandomHalfBody, TopdownAffine)
-from mmpose.datasets.transforms.common_transforms import RandomBBoxTransform
-from mmpose.evaluation import CocoMetric
-from mmpose.models import (HeatmapHead, HRNet, KeypointMSELoss,
-                           PoseDataPreprocessor, TopdownPoseEstimator)
+_base_ = ['../../../_base_/default_runtime.py']
 
 # runtime
-train_cfg.update(max_epochs=210, val_interval=10)
+train_cfg = dict(max_epochs=210, val_interval=10)
 
 # optimizer
 optim_wrapper = dict(optimizer=dict(
-    type=Adam,
+    type='Adam',
     lr=5e-4,
 ))
 
 # learning policy
 param_scheduler = [
-    dict(type=LinearLR, begin=0, end=500, start_factor=0.001,
-         by_epoch=False),  # warm-up
     dict(
-        type=MultiStepLR,
+        type='LinearLR', begin=0, end=500, start_factor=0.001,
+        by_epoch=False),  # warm-up
+    dict(
+        type='MultiStepLR',
         begin=0,
         end=210,
         milestones=[170, 200],
@@ -44,22 +27,22 @@ param_scheduler = [
 auto_scale_lr = dict(base_batch_size=512)
 
 # hooks
-default_hooks.update(checkpoint=dict(save_best='coco/AP', rule='greater'))
+default_hooks = dict(checkpoint=dict(save_best='coco/AP', rule='greater'))
 
 # codec settings
 codec = dict(
-    type=UDPHeatmap, input_size=(192, 256), heatmap_size=(48, 64), sigma=2)
+    type='UDPHeatmap', input_size=(192, 256), heatmap_size=(48, 64), sigma=2)
 
 # model settings
 model = dict(
-    type=TopdownPoseEstimator,
+    type='TopdownPoseEstimator',
     data_preprocessor=dict(
-        type=PoseDataPreprocessor,
+        type='PoseDataPreprocessor',
         mean=[123.675, 116.28, 103.53],
         std=[58.395, 57.12, 57.375],
         bgr_to_rgb=True),
     backbone=dict(
-        type=HRNet,
+        type='HRNet',
         in_channels=3,
         extra=dict(
             stage1=dict(
@@ -87,16 +70,16 @@ model = dict(
                 num_blocks=(4, 4, 4, 4),
                 num_channels=(48, 96, 192, 384))),
         init_cfg=dict(
-            type=PretrainedInit,
+            type='Pretrained',
             checkpoint='https://download.openmmlab.com/mmpose/'
             'pretrain_models/hrnet_w48-8ef0771d.pth'),
     ),
     head=dict(
-        type=HeatmapHead,
+        type='HeatmapHead',
         in_channels=48,
         out_channels=17,
         deconv_out_channels=None,
-        loss=dict(type=KeypointMSELoss, use_target_weight=True),
+        loss=dict(type='KeypointMSELoss', use_target_weight=True),
         decoder=codec),
     test_cfg=dict(
         flip_test=True,
@@ -105,28 +88,26 @@ model = dict(
     ))
 
 # base dataset settings
-dataset_type = CocoDataset
+dataset_type = 'CocoDataset'
 data_mode = 'topdown'
 data_root = 'data/coco/'
 
-backend_args = dict(backend='local')
-
 # pipelines
 train_pipeline = [
-    dict(type=LoadImage, backend_args=backend_args),
-    dict(type=GetBBoxCenterScale),
-    dict(type=RandomFlip, direction='horizontal'),
-    dict(type=RandomHalfBody),
-    dict(type=RandomBBoxTransform),
-    dict(type=TopdownAffine, input_size=codec['input_size'], use_udp=True),
-    dict(type=GenerateTarget, encoder=codec),
-    dict(type=PackPoseInputs)
+    dict(type='LoadImage'),
+    dict(type='GetBBoxCenterScale'),
+    dict(type='RandomFlip', direction='horizontal'),
+    dict(type='RandomHalfBody'),
+    dict(type='RandomBBoxTransform'),
+    dict(type='TopdownAffine', input_size=codec['input_size'], use_udp=True),
+    dict(type='GenerateTarget', encoder=codec),
+    dict(type='PackPoseInputs')
 ]
 val_pipeline = [
-    dict(type=LoadImage, backend_args=backend_args),
-    dict(type=GetBBoxCenterScale),
-    dict(type=TopdownAffine, input_size=codec['input_size'], use_udp=True),
-    dict(type=PackPoseInputs)
+    dict(type='LoadImage'),
+    dict(type='GetBBoxCenterScale'),
+    dict(type='TopdownAffine', input_size=codec['input_size'], use_udp=True),
+    dict(type='PackPoseInputs')
 ]
 
 # data loaders
@@ -134,7 +115,7 @@ train_dataloader = dict(
     batch_size=32,
     num_workers=2,
     persistent_workers=True,
-    sampler=dict(type=DefaultSampler, shuffle=True),
+    sampler=dict(type='DefaultSampler', shuffle=True),
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
@@ -148,7 +129,7 @@ val_dataloader = dict(
     num_workers=2,
     persistent_workers=True,
     drop_last=False,
-    sampler=dict(type=DefaultSampler, shuffle=False, round_up=False),
+    sampler=dict(type='DefaultSampler', shuffle=False, round_up=False),
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
@@ -164,6 +145,6 @@ test_dataloader = val_dataloader
 
 # evaluators
 val_evaluator = dict(
-    type=CocoMetric,
+    type='CocoMetric',
     ann_file=data_root + 'annotations/person_keypoints_val2017.json')
 test_evaluator = val_evaluator

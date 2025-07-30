@@ -138,4 +138,5 @@ docs/**/modelzoo.md
 *.JPG
 *.PNG
 *.JPEG
-
+*.gif
+*.GIF

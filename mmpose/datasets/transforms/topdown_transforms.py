@@ -92,24 +92,10 @@ class TopdownAffine(BaseTransform):
         bbox_xyxy = results['bbox_xyxy_wrt_input'].flatten()
         bbox_xyxy[:2] = np.maximum(bbox_xyxy[:2], 0)
         bbox_xyxy[2:4] = np.minimum(bbox_xyxy[2:4], [img_w, img_h])
-        # bbox_xyxy[2] = np.minimum(bbox_xyxy[2], img_w)
-        # bbox_xyxy[3] = np.minimum(bbox_xyxy[3], img_h)
         x0, y0, x1, y1 = bbox_xyxy[:4].astype(int)
         bbox_mask = np.zeros((img_h, img_w), dtype=np.uint8)
         bbox_mask[y0:y1, x0:x1] = 1
-        # bbox_img = np.tile(bbox_mask[:, :, None], (1, 1, 3))
-        # img = results['img']
-        # bbox_img = bbox_img * 255
-        # transparent = cv2.addWeighted(img, 0.5, bbox_img, 0.5, 0)
-        # cv2.imwrite("transparent.jpg", transparent)
-        # breakpoint()
 
-        
-        # assert x0 >= 0 and x0 < img_w, f'{x0} {img_w}'
-        # assert x1 >= 0 and x1 < img_w, f'{x1} {img_w}'
-        # assert y0 >= 0 and y0 < img_h, f'{y0} {img_h}'
-        # assert y1 >= 0 and y1 < img_h, f'{y1} {img_h}'
-        # assert bbox_mask.any(), 'bbox_mask is empty'
 
         # Take the bbox wrt the input
         bbox_xyxy_wrt_input = results.get('bbox_xyxy_wrt_input', None)

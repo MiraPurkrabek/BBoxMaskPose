@@ -24,7 +24,7 @@ class YOLOXPoseAnnotationProcessor(BaseAnnotationProcessor):
     This processor expands bounding boxes and converts category IDs to labels.
 
     Args:
-        expand_bbox (bool, optional): Whether to expand the bounding box
+        extend_bbox (bool, optional): Whether to expand the bounding box
             to include all keypoints. Defaults to False.
         input_size (tuple, optional): The size of the input image for the
             model, formatted as (h, w). This argument is necessary for the
@@ -49,10 +49,10 @@ class YOLOXPoseAnnotationProcessor(BaseAnnotationProcessor):
     )
 
     def __init__(self,
-                 expand_bbox: bool = False,
+                 extend_bbox: bool = False,
                  input_size: Optional[Tuple] = None):
         super().__init__()
-        self.expand_bbox = expand_bbox
+        self.extend_bbox = extend_bbox
 
     def encode(self,
                keypoints: Optional[np.ndarray] = None,
@@ -76,7 +76,7 @@ class YOLOXPoseAnnotationProcessor(BaseAnnotationProcessor):
         """
         results = {}
 
-        if self.expand_bbox and bbox is not None:
+        if self.extend_bbox and bbox is not None:
             # Handle keypoints visibility
             if keypoints_visible.ndim == 3:
                 keypoints_visible = keypoints_visible[..., 0]

@@ -1,29 +1,25 @@
-# Copyright (c) OpenMMLab. All rights reserved.
-from mmengine.hooks import (CheckpointHook, DistSamplerSeedHook, IterTimerHook,
-                            LoggerHook, ParamSchedulerHook, SyncBuffersHook)
-from mmengine.runner import LogProcessor
-from mmengine.visualization import LocalVisBackend
-
-from mmpose.engine.hooks import PoseVisualizationHook
-from mmpose.visualization import PoseLocalVisualizer
-
-default_scope = None
+default_scope = 'mmpose'
 
 # hooks
 default_hooks = dict(
-    timer=dict(type=IterTimerHook),
-    logger=dict(type=LoggerHook, interval=50),
-    param_scheduler=dict(type=ParamSchedulerHook),
-    checkpoint=dict(type=CheckpointHook, interval=10),
-    sampler_seed=dict(type=DistSamplerSeedHook),
-    visualization=dict(type=PoseVisualizationHook, enable=False),
-)
+    timer=dict(type='IterTimerHook'),
+    logger=dict(type='LoggerHook', interval=50),
+    param_scheduler=dict(type='ParamSchedulerHook'),
+    checkpoint=dict(type='CheckpointHook', interval=10),
+    sampler_seed=dict(type='DistSamplerSeedHook'),
+    visualization=dict(type='PoseVisualizationHook', enable=False),
+    badcase=dict(
+        type='BadCaseAnalysisHook',
+        enable=False,
+        out_dir='badcase',
+        metric_type='loss',
+        badcase_thr=5))
 
 # custom hooks
 custom_hooks = [
     # Synchronize model buffers such as running_mean and running_var in BN
     # at the end of each epoch
-    dict(type=SyncBuffersHook)
+    dict(type='SyncBuffersHook')
 ]
 
 # multi-processing backend
@@ -34,13 +30,17 @@ env_cfg = dict(
 )
 
 # visualizer
-vis_backends = [dict(type=LocalVisBackend)]
+vis_backends = [
+    dict(type='LocalVisBackend'),
+    dict(type='TensorboardVisBackend'),
+    # dict(type='WandbVisBackend'),
+]
 visualizer = dict(
-    type=PoseLocalVisualizer, vis_backends=vis_backends, name='visualizer')
+    type='PoseLocalVisualizer', vis_backends=vis_backends, name='visualizer')
 
 # logger
 log_processor = dict(
-    type=LogProcessor, window_size=50, by_epoch=True, num_digits=6)
+    type='LogProcessor', window_size=50, by_epoch=True, num_digits=6)
 log_level = 'INFO'
 load_from = None
 resume = False

@@ -18,6 +18,7 @@ from mmpose.models.builder import build_pose_estimator
 from mmpose.structures import PoseDataSample
 from mmpose.structures.bbox import bbox_xywh2xyxy
 
+import cv2
 
 def dataset_meta_from_config(config: Config,
                              dataset_mode: str = 'train') -> Optional[dict]:
@@ -134,6 +135,7 @@ def init_model(config: Union[str, Path, Config],
 def inference_topdown(model: nn.Module,
                       img: Union[np.ndarray, str],
                       bboxes: Optional[Union[List, np.ndarray]] = None,
+                      masks: Optional[Union[List, np.ndarray]] = None,
                       bbox_format: str = 'xyxy') -> List[PoseDataSample]:
     """Inference image with a top-down pose estimator.
 
@@ -175,14 +177,29 @@ def inference_topdown(model: nn.Module,
         if bbox_format == 'xywh':
             bboxes = bbox_xywh2xyxy(bboxes)
 
+    if masks is None or len(masks) == 0:
+        masks = np.zeros((bboxes.shape[0], img.shape[0], img.shape[1]),
+                         dtype=np.uint8)
+    
+    # Masks are expected in polygon format
+    poly_masks = []
+    for mask in masks:
+        if np.sum(mask) == 0:
+            poly_masks.append(None)
+        else:
+            contours, _ = cv2.findContours((mask*255).astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            polygons = [contour.flatten() for contour in contours if len(contour) > 3]
+            poly_masks.append(polygons if polygons else None)
+
     # construct batch data samples
     data_list = []
-    for bbox in bboxes:
+    for bbox, pmask in zip(bboxes, poly_masks):
         if isinstance(img, str):
             data_info = dict(img_path=img)
         else:
             data_info = dict(img=img)
         data_info['bbox'] = bbox[None]  # shape (1, 4)
+        data_info['segmentation'] = pmask 
         data_info['bbox_score'] = np.ones(1, dtype=np.float32)  # shape (1,)
         data_info.update(model.dataset_meta)
         data_list.append(pipeline(data_info))
