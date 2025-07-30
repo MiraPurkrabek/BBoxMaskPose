@@ -233,6 +233,6 @@ dataset_info = dict(
     sigmas=[
         0.026, 0.025, 0.025, 0.035, 0.035, 0.079, 0.079, 0.072, 0.072, 0.062,
         0.062, 0.107, 0.107, 0.087, 0.087, 0.089, 0.089, 
-        0.079, 0.079, 0.79, # Thorax and neck has the same as shoulders
+        0.079, 0.079, 0.079, # Thorax and neck has the same as shoulders
         0.035, # Top of head has the same as ears
     ])
