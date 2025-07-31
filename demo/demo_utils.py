@@ -340,7 +340,6 @@ def create_GIF(
         return
     black_img = np.zeros_like(last_img)
     cv2.imwrite(os.path.join(dirname, "black_image.jpg"), black_img)
-    # gif_images.append(os.path.join(dirname, "black_image.jpg"))
 
     gif_images = []
     for iter in range(bmp_x):
@@ -356,7 +355,6 @@ def create_GIF(
                 print_log("{} does not exist, skipping.".format(img_file), logger="current", level=logging.WARNING)
                 continue
             gif_images.append(img_file)
-            # gif_images.append(cv2.imread(img_file))
 
     if len(gif_images) == 0:
         print_log("No images found for GIF creation.", logger="current", level=logging.WARNING)
@@ -372,6 +370,22 @@ def create_GIF(
 
     # Create a GIF from the images
     gif_output_path = os.path.join(output_root, "{}_bmp_{}x.gif".format(img_name_wo_ext, bmp_x))
+
+    # 0. Make sure images exist and are divisible by 2
+    for img in gif_images:
+        if not os.path.exists(img):
+            print_log("Image {} does not exist, skipping GIF creation.".format(img), logger="current", level=logging.WARNING)
+            return
+        # Check if image dimensions are divisible by 2
+        img_data = cv2.imread(img)
+        if img_data.shape[1] % 2 != 0 or img_data.shape[0] % 2 != 0:
+            print_log(
+                "Image {} dimensions are not divisible by 2, resizing.".format(img),
+                logger="current",
+                level=logging.WARNING,
+            )
+            resized_img = cv2.resize(img_data, (img_data.shape[1] // 2 * 2, img_data.shape[0] // 2 * 2))
+            cv2.imwrite(img, resized_img)
 
     # 1. inputs
     in_args = []
@@ -469,6 +483,7 @@ def create_GIF(
     # Clean up temporary files
     os.remove(mp4)
     os.remove(palette)
+    os.remove(os.path.join(dirname, "black_image.jpg"))
 
     print_log(f"GIF saved as '{gif_output_path}'", logger="current")
 
@@ -487,7 +502,7 @@ def _update_bbox_by_mask(
     Returns:
         List[int]: Updated [x, y, w, h] bounding box.
     """
-    if mask_poly is None:
+    if mask_poly is None or len(mask_poly) == 0:
         return bbox
 
     mask_rle = Mask.frPyObjects(mask_poly, image_shape[0], image_shape[1])

@@ -431,7 +431,10 @@ def _process_image_single(
     for kpts in new_keypoints:
         conf_mask = kpts[:, 2] < sam_args.confidence_thr
         kpts[conf_mask, :] = 0
+    n_new_dets = len(new_dets.bboxes)
+    n_old_dets = 0
     if old_dets is not None:
+        n_old_dets = len(old_dets.bboxes)
         old_keypoints = old_dets.keypoints.copy()
         for kpts in old_keypoints:
             conf_mask = kpts[:, 2] < sam_args.confidence_thr
@@ -444,7 +447,7 @@ def _process_image_single(
     max_ious = _get_max_ious(all_bboxes)
 
     gt_bboxes = []
-    new_dets.refined_masks = np.zeros_like(new_dets.pred_masks)
+    new_dets.refined_masks = np.zeros((n_new_dets, image.shape[0], image.shape[1]), dtype=np.uint8)
     new_dets.sam_scores = np.zeros_like(new_dets.bbox_scores)
     new_dets.sam_kpts = np.zeros((len(new_dets.bboxes), sam_args.num_pos_keypoints, 3), dtype=np.float32)
     for instance_idx in range(len(new_dets.bboxes)):
@@ -460,9 +463,9 @@ def _process_image_single(
         this_kpts = new_keypoints[instance_idx].reshape(1, -1, 3)
         other_kpts = None
         if old_dets is not None:
-            other_kpts = old_keypoints.copy().reshape(-1, 3)
+            other_kpts = old_keypoints.copy().reshape(n_old_dets, -1, 3)
         if len(new_keypoints) > 1:
-            other_new_kpts = np.concatenate(new_keypoints[:instance_idx] + new_keypoints[instance_idx + 1 :], axis=0)
+            other_new_kpts = np.concatenate([new_keypoints[:instance_idx],  new_keypoints[instance_idx + 1 :]], axis=0)
             other_kpts = (
                 np.concatenate([other_kpts, other_new_kpts], axis=0) if other_kpts is not None else other_new_kpts
             )
