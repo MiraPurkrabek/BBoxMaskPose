@@ -52,6 +52,7 @@ For more details, please visit our [project website](https://mirapurkrabek.githu
 
 ## 📢 News
 
+- **Aug 2025**: [HuggingFace Image Demo](https://huggingface.co/spaces/purkrmir/BBoxMaskPose-demo) is out! 🎮
 - **Jul 2025**: Version 1.1 with easy-to-run image demo released
 - **Jun 2025**: Paper accepted to ICCV 2025! 🎉
 - **Dec 2024**: The code is available
