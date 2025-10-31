@@ -19,7 +19,8 @@ preferred-citation:
     given-names: Jiri
   collection-title: "Proceedings of the IEEE/CVF International Conference on Computer Vision"
   month: 10
-  start: 1 # First page number
-  end: 8 # Last page number
+  start: 9004 # First page number
+  end: 9013 # Last page number
   title: "Detection, Pose Estimation and Segmentation for Multiple Bodies: Closing the Virtuous Circle"
   year: 2025
+

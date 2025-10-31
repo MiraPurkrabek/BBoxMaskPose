@@ -139,10 +139,11 @@ For questions, please use the Issues of Discussion.
 
 ```
 @InProceedings{Purkrabek2025ICCV,
-  author={Purkrabek, Miroslav and Matas, Jiri},
-  title={Detection, Pose Estimation and Segmentation for Multiple Bodies: Closing the Virtuous Circle}, 
-  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
-  year={2025},
-  month={October},
+    author    = {Purkrabek, Miroslav and Matas, Jiri},
+    title     = {Detection, Pose Estimation and Segmentation for Multiple Bodies: Closing the Virtuous Circle},
+    booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+    month     = {October},
+    year      = {2025},
+    pages     = {9004-9013}
 }
 ```
