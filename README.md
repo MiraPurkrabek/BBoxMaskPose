@@ -33,6 +33,12 @@
 
 </div>
 
+> [!IMPORTANT]
+> The new version of <b>BBox-Mask-Pose (BMPv2)</b> is now available on [<b>arXiv</b>](https://arxiv.org/abs/2601.15200v1).
+> BMPv2 significantly improves performance; see the quantitative results reported in the preprint.
+> One of the key contributions is <b>PMPose</b>, a new top-down pose estimation model, that is already strong on standard benchmarks and in crowded scenes.
+> The code will be added to the <code>BMP-v2</code> branch in the following weeks and gradually merged into <code>main</code> as well as to the online demo.
+
 
 ## 📋 Overview
 
