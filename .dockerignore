@@ -1,0 +1,77 @@
+# ==============================================================================
+# BBoxMaskPose .dockerignore
+# Files to exclude from Docker build context
+# ==============================================================================
+
+# Git
+.git
+.gitignore
+.github
+
+# Python virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Model weights (will be downloaded during build)
+models/SAM/*.pt
+*.pth
+
+# Output files
+outputs/
+demo/outputs/
+
+# Test files
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Documentation build
+docs/_build/
+site/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+*.log.*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Large media files (download separately)
+*.mp4
+*.avi
+*.mov
+
+# Keep sample images for testing
+!demo/data/004806.jpg
+!images/*.gif
