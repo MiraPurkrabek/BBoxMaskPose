@@ -40,7 +40,7 @@
 > The code will be added to the <code>BMP-v2</code> branch in the following weeks and gradually merged into <code>main</code> as well as to the online demo.
 
 
-## 📋 Overview
+## Overview
 
 The BBox-Mask-Pose (BMP) method integrates detection, pose estimation, and segmentation into a self-improving loop by conditioning these tasks on each other. This approach enhances all three tasks simultaneously. Using segmentation masks instead of bounding boxes improves performance in crowded scenarios, making top-down methods competitive with bottom-up approaches.
 
@@ -56,16 +56,66 @@ Key contributions:
 For more details, please visit our [project website](https://mirapurkrabek.github.io/BBox-Mask-Pose/).
 
 
-## 📢 News
+## News
 
-- **Aug 2025**: [HuggingFace Image Demo](https://huggingface.co/spaces/purkrmir/BBoxMaskPose-demo) is out! 🎮
+- **Aug 2025**: [HuggingFace Image Demo](https://huggingface.co/spaces/purkrmir/BBoxMaskPose-demo) is available
 - **Jul 2025**: Version 1.1 with easy-to-run image demo released
-- **Jun 2025**: Paper accepted to ICCV 2025! 🎉
+- **Jun 2025**: Paper accepted to ICCV 2025
 - **Dec 2024**: The code is available
-- **Nov 2024**: The [project website](https://MiraPurkrabek.github.io/BBox-Mask-Pose) is on
+- **Nov 2024**: The [project website](https://MiraPurkrabek.github.io/BBox-Mask-Pose) is live
 
 
-## 🚀 Installation
+## Installation
+
+### Docker Installation (Recommended)
+
+Docker provides the fastest and most reliable way to get started, eliminating dependency conflicts.
+
+**Prerequisites:**
+- Docker Engine 19.03 or later
+- NVIDIA Container Toolkit ([installation guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html))
+- NVIDIA GPU with CUDA 12.1 support
+
+**Build and Run:**
+```bash
+# Clone the repository
+git clone https://github.com/mirapurkrabek/BBoxMaskPose.git
+cd BBoxMaskPose
+
+# Build the Docker image (approximately 15 minutes on first build)
+docker-compose build
+
+# Run on the sample image
+docker-compose up
+```
+
+**Processing Custom Images:**
+```bash
+# Process a single image
+docker run --gpus all \
+  -v $(pwd)/your_images:/app/input \
+  -v $(pwd)/outputs:/app/outputs \
+  bboxmaskpose:latest \
+  python demo/bmp_demo.py configs/bmp_D3.yaml /app/input/your_image.jpg --output-root /app/outputs
+
+# Interactive shell for debugging
+docker run --gpus all -it bboxmaskpose:latest bash
+```
+
+**Tested Configuration:**
+
+| Component | Version |
+|-----------|--------|
+| PyTorch | 2.4.0+cu121 |
+| CUDA | 12.1 |
+| mmcv | 2.2.0 (pre-built) |
+| mmdet | 3.2.0 |
+| mmengine | 0.10.7 |
+| Python | 3.11/3.12 |
+
+---
+
+### Manual Installation
   
 This project is built on top of [MMPose](https://github.com/open-mmlab/mmpose) and [SAM 2.1](https://github.com/facebookresearch/sam2).
 Please refer to the [MMPose installation guide](https://mmpose.readthedocs.io/en/latest/installation.html) or [SAM installation guide](https://github.com/facebookresearch/sam2/blob/main/INSTALL.md) for detailed setup instructions.
@@ -76,67 +126,95 @@ Basic installation steps:
 git clone https://github.com/mirapurkrabek/BBoxMaskPose.git BBoxMaskPose/
 cd BBoxMaskPose
 
-# Install your version of torch, torchvision, OpenCV and NumPy
-pip install torch==2.1.2+cu121 torchvision==0.16.2+cu121 --extra-index-url https://download.pytorch.org/whl/cu121
-pip install numpy==1.25.1 opencv-python==4.9.0.80
+# Install PyTorch with CUDA support
+pip install torch==2.4.0+cu121 torchvision==0.19.0+cu121 --index-url https://download.pytorch.org/whl/cu121
 
-# Install MMLibrary
+# Install OpenMMLab libraries
 pip install -U openmim
-mim install mmengine "mmcv==2.1.0" "mmdet==3.3.0" "mmpretrain==1.2.0"
+mim install mmengine "mmcv>=2.0.0,<2.2.0" "mmdet==3.2.0" "mmpretrain==1.2.0"
 
-# Install dependencies
+# Install project dependencies
 pip install -r requirements.txt
 pip install -e .
 ```
 
-## 🎮 Demo
+> **Note**: For Python 3.12 users, some packages (e.g., chumpy) may have compatibility issues. The Docker installation handles these automatically.
 
-Step 1: Download SAM2 weights using the [enclosed script](models/SAM/download_ckpts.sh).
+## Demo
 
-Step 2: Run the full BBox-Mask-Pose pipeline on an input image:
+**Step 1:** Download SAM2 weights using the [enclosed script](models/SAM/download_ckpts.sh).
+
+**Step 2:** Run the full BBox-Mask-Pose pipeline on an input image:
 
 ```bash
-python demo/bmp_demo.py configs/bmp_D3.yaml data/004806.jpg
+python demo/bmp_demo.py configs/bmp_D3.yaml demo/data/004806.jpg
 ```
 
-It will take an image 004806.jpg from OCHuman and run (1) detector, (2) pose estimator and (3) SAM2 refinement. 
-Details are in the cofiguration file [bmp_D3.yaml](configs/bmp_D3.yaml).
+The pipeline executes the following stages:
+1. **Detection**: RTMDet-L identifies person bounding boxes
+2. **Pose Estimation**: MaskPose estimates 17 COCO keypoints per person
+3. **Segmentation**: SAM2 generates instance masks using pose keypoints as prompts
+4. **Iteration**: The loop repeats, using masks to find additional occluded persons
 
-Options:
-- `configs/bmp_D3.yaml`: BMP configuration file
-- `data/004806.jpg`: Input image
-- `--device`: (Optional) Inference device (default: `cuda:0`)
-- `--output-root`: (Optional) Directory to save outputs (default: `demo/outputs`)
-- `--create-gif`: (Optional) Generate an animated GIF of all iterations (default `False`)
+**Command Line Options:**
 
-After running, outputs are in `outputs/004806/`. The expected output should look like this:
+| Option | Description | Default |
+|--------|-------------|---------|
+| `configs/bmp_D3.yaml` | BMP configuration file | Required |
+| `input_image` | Path to input image | Required |
+| `--device` | Inference device | `cuda:0` |
+| `--output-root` | Output directory | `demo/outputs` |
+| `--create-gif` | Generate iteration GIF | `False` |
+
+**Output Structure:**
+
+After running, outputs are saved in `outputs/<image_name>/`:
+
+```
+outputs/004806/
+├── 004806_iter1_Detector_(out).jpg    # Detection results
+├── 004806_iter1_MaskPose_(in).jpg     # Cropped input to pose estimator
+├── 004806_iter1_MaskPose_(out).jpg    # Pose estimation output
+├── 004806_iter1_SAM_Masks.jpg         # SAM segmentation masks
+├── 004806_iter1_Final_Poses.jpg       # Final pose overlay
+├── 004806_iter2_...                   # Second iteration outputs
+└── ...
+```
+
 <div align="center">
   <a href="images/004806_mask.jpg" target="_blank">
-    <img src="images/004806_mask.jpg" alt="Detection results" width="200" />
+    <img src="images/004806_mask.jpg" alt="Segmentation masks" width="200" />
   </a>
-  &nbsp&nbsp&nbsp&nbsp
+  &nbsp;&nbsp;&nbsp;&nbsp;
   <a href="images/004806_pose.jpg" target="_blank">
-    <img src="images/004806_pose.jpg" alt="Pose results" width="200" style="margin-right:10px;" />
+    <img src="images/004806_pose.jpg" alt="Pose estimation" width="200" />
   </a>
 </div>
 
 
-## 📦 Pre-trained Models
+## Pre-trained Models
 
-Pre-trained models are available on [VRG Hugging Face 🤗](https://huggingface.co/vrg-prague/BBoxMaskPose/).
-To run the demo, you only need do download SAM weights with [enclosed script](models/SAM/download_ckpts.sh).
-Our detector and pose estimator will be downloaded during the runtime.
+Pre-trained models are available on [VRG Hugging Face](https://huggingface.co/vrg-prague/BBoxMaskPose/).
+To run the demo, you only need to download SAM weights with the [enclosed script](models/SAM/download_ckpts.sh).
+The detector and pose estimator weights are downloaded automatically during runtime.
 
-If you want to download our weights yourself, here are the links to our HuggingFace:
-- ViTPose-b trained on COCO+MPII+AIC -- [download weights](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/ViTPose-b-multi_mmpose20.pth)
-- MaskPose-b -- [download weights](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose-b.pth)
-- Fine-tuned RTMDet-L -- [download weights](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/rtmdet-ins-l-mask.pth)
+**Manual Download:**
 
-## 🙏 Acknowledgments
+| Model | Description | Link |
+|-------|-------------|------|
+| ViTPose-b | Multi-dataset (COCO+MPII+AIC) | [download](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/ViTPose-b-multi_mmpose20.pth) |
+| MaskPose-b | Mask-conditioned pose estimator | [download](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose-b.pth) |
+| RTMDet-L | Fine-tuned detector | [download](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/rtmdet-ins-l-mask.pth) |
 
-The code combines [MMDetection](https://github.com/open-mmlab/mmdetection), [MMPose 2.0](https://github.com/open-mmlab/mmpose), [ViTPose](https://github.com/ViTAE-Transformer/ViTPose) and [SAM 2.1](https://github.com/facebookresearch/sam2).
+## Acknowledgments
 
-## 📝 Citation
+This project builds upon:
+- [MMDetection](https://github.com/open-mmlab/mmdetection) - Object detection framework
+- [MMPose 2.0](https://github.com/open-mmlab/mmpose) - Pose estimation framework
+- [ViTPose](https://github.com/ViTAE-Transformer/ViTPose) - Vision Transformer for pose estimation
+- [SAM 2.1](https://github.com/facebookresearch/sam2) - Segment Anything Model
+
+## Citation
 
 The code was implemented by [Miroslav Purkrábek]([htt]https://mirapurkrabek.github.io/).
 If you use this work, kindly cite it using the reference provided below.
