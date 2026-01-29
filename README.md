@@ -66,6 +66,24 @@ For more details, please visit our [project website](https://mirapurkrabek.githu
 
 
 ## 🚀 Installation
+
+### Docker Installation (Recommended)
+
+The fastest way to get started with GPU support:
+
+```bash
+# Clone and build
+git clone https://github.com/mirapurkrabek/BBoxMaskPose.git
+cd BBoxMaskPose
+docker-compose build
+
+# Run the demo
+docker-compose up
+```
+
+Requires: Docker Engine 19.03+, [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html), NVIDIA GPU with CUDA 12.1 support.
+
+### Manual Installation
   
 This project is built on top of [MMPose](https://github.com/open-mmlab/mmpose) and [SAM 2.1](https://github.com/facebookresearch/sam2).
 Please refer to the [MMPose installation guide](https://mmpose.readthedocs.io/en/latest/installation.html) or [SAM installation guide](https://github.com/facebookresearch/sam2/blob/main/INSTALL.md) for detailed setup instructions.
