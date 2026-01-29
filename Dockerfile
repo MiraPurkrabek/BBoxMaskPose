@@ -84,6 +84,10 @@ RUN pip install --no-cache-dir git+https://github.com/jin-s13/xtcocoapi.git
 # Copy project files
 COPY . /app/
 
+# Skip chumpy installation (incompatible with Python 3.11, not needed for demo)
+# The original requirements file is preserved for manual installations
+RUN sed -i 's/^chumpy/#chumpy/' /app/requirements/runtime.txt
+
 # Install the project in editable mode
 RUN pip install --no-cache-dir -e .
 
