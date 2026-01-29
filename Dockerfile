@@ -72,8 +72,7 @@ RUN pip install --no-cache-dir \
     iopath \
     platformdirs \
     sparsemax \
-    loguru \
-    pycocotools
+    loguru
 
 # Install xtcocotools from source for extended COCO API functionality
 RUN pip install --no-cache-dir git+https://github.com/jin-s13/xtcocoapi.git
