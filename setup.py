@@ -186,9 +186,13 @@ if __name__ == '__main__':
         keywords='computer vision, pose estimation, detection, segmentation, research, iccv 2025',
         long_description=readme(),
         long_description_content_type='text/markdown',
-        packages=find_packages(exclude=('configs', 'tools', 'demo')),
+        packages=find_packages(exclude=('configs', 'tools', 'demo', 'demos')),
         include_package_data=True,
-        package_data={'mmpose.ops': ['*/*.so'], 'sam2': ['*.so'], 'sam2.*': ['*.so']},
+        package_data={
+            'mmpose.ops': ['*/*.so'],
+            'bboxmaskpose.sam2': ['*.so'],
+            'bboxmaskpose.sam2.*': ['*.so'],
+        },
         classifiers=[
             'Development Status :: 4 - Beta',
             'Operating System :: OS Independent',

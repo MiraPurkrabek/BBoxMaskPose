@@ -1,4 +1,4 @@
-TRAIN_ROOT = "/datagrid/personal/purkrmir/data/AnimalPose/"
+TRAIN_ROOT = "path/to/AnimalPose/"
 
 BATCH_SIZE = 64
 

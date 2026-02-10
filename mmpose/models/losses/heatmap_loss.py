@@ -609,8 +609,7 @@ class OKSHeatmapLoss(nn.Module):
             Tensor: The calculated loss.
         """
 
-        assert target.max() <= 1, 'target should be normalized'
-        assert target.min() >= 0, 'target should be normalized'
+        target = torch.clamp(target, 0, 1)
 
         B, K, H, W = output.shape
 
