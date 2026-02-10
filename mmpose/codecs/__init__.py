@@ -9,6 +9,7 @@ from .integral_regression_label import IntegralRegressionLabel
 from .megvii_heatmap import MegviiHeatmap
 from .motionbert_label import MotionBERTLabel
 from .msra_heatmap import MSRAHeatmap
+from .oks_argmax_heatmap import OKSArgMaxHeatmap
 from .regression_label import RegressionLabel
 from .simcc_label import SimCCLabel
 from .spr import SPR
@@ -21,5 +22,5 @@ __all__ = [
     'SimCCLabel', 'IntegralRegressionLabel', 'AssociativeEmbedding', 'SPR',
     'DecoupledHeatmap', 'VideoPoseLifting', 'ImagePoseLifting',
     'MotionBERTLabel', 'YOLOXPoseAnnotationProcessor', 'EDPoseLabel',
-    'Hand3DHeatmap', 'OneHotHeatmap'
+    'Hand3DHeatmap', 'OKSArgMaxHeatmap', 'OneHotHeatmap'
 ]

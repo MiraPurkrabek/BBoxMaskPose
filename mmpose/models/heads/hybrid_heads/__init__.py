@@ -3,7 +3,8 @@ from .dekr_head import DEKRHead
 from .rtmo_head import RTMOHead
 from .vis_head import VisPredictHead
 from .yoloxpose_head import YOLOXPoseHead
+from .multi_head import MultiHead
 from .poseid_head import PoseIDHead
 from .calibration_head import CalibrationHead
 
-__all__ = ['DEKRHead', 'VisPredictHead', 'YOLOXPoseHead', 'RTMOHead', 'PoseIDHead', 'CalibrationHead']
+__all__ = ['DEKRHead', 'VisPredictHead', 'YOLOXPoseHead', 'RTMOHead', 'MultiHead', 'PoseIDHead', 'CalibrationHead']

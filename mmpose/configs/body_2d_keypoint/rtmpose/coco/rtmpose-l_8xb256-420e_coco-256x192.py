@@ -99,7 +99,7 @@ model = dict(
 # base dataset settings
 dataset_type = 'CocoDataset'
 data_mode = 'topdown'
-data_root = "/datagrid/personal/purkrmir/data/COCO/original/"
+data_root = "path/to/COCO/"
 
 backend_args = dict(backend='local')
 # backend_args = dict(

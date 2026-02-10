@@ -91,7 +91,7 @@ model = dict(
 # base dataset settings
 dataset_type = 'AnimalPoseDataset'
 data_mode = 'topdown'
-data_root = "/datagrid/personal/purkrmir/data/AnimalPose/"
+data_root = "path/to/AnimalPose/"
 
 # pipelines
 train_pipeline = [

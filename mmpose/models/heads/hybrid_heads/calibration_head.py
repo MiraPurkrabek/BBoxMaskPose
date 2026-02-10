@@ -165,7 +165,6 @@ class CalibrationHead(BaseHead):
         self.loss_vis_folder = "work_dirs/loss_vis_{:05d}".format(unique_hash)
         self.interval = 50
         shutil.rmtree(self.loss_vis_folder, ignore_errors=True)
-        print("Will save heatmap visualizations to folder '{:s}'".format(self.loss_vis_folder))
         
         self._build_heatmap_head(
             in_channels=in_channels,
@@ -899,30 +898,7 @@ class CalibrationHead(BaseHead):
         # probability_loss = self.probability_loss_module(dt_probs, gt_probs, gt_annotated)
         # visibility_loss  = self.visibility_loss_module(dt_vis, gt_vis, annotated_in)
         # oks_loss         = self.oks_loss_module(dt_oks, gt_oks, annotated_in)
-        # error_loss       = self.error_loss_module(dt_errs, gt_errs, annotated_in)
-
-        # Visualize some heatmaps
-        for i in range(0, B):
-            # continue
-            if self.num_iters % self.interval == 0:
-                self.interval = int(self.interval * 1.3)
-                os.makedirs(self.loss_vis_folder, exist_ok=True)
-                for kpt_i in np.random.choice(C, 17, replace=False):
-                    tgt = gt_heatmaps[i, kpt_i].detach().cpu().numpy()
-                    htm = dt_heatmaps[i, kpt_i].detach().cpu().numpy()
-                    lss = heatmap_loss_pxl[i, kpt_i].detach().cpu().numpy()
-                    save_img = self._visualize_heatmaps(
-                        htm, tgt, lss, keypoint_weights[i, kpt_i], gt_probs[i, kpt_i]
-                    )
-
-                    save_path = os.path.join(
-                        self.loss_vis_folder,
-                        "heatmap_{:07d}-{:d}-{:d}.png".format(self.num_iters, i, kpt_i)
-                    )
-                    cv2.imwrite(save_path, save_img)
-
-            self.num_iters += 1
-            
+        # error_loss       = self.error_loss_module(dt_errs, gt_errs, annotated_in)    
 
         losses.update(
             loss_kpt=heatmap_loss

@@ -1,0 +1,91 @@
+# ==============================================================================
+# BBoxMaskPose Docker Compose Configuration
+# ==============================================================================
+#
+# This configuration provides GPU-accelerated inference for the BBoxMaskPose
+# multi-body detection, pose estimation, and segmentation pipeline.
+#
+# Prerequisites:
+#   - Docker Engine 19.03 or later
+#   - NVIDIA Container Toolkit (nvidia-docker2)
+#   - NVIDIA GPU with CUDA 12.1 support
+#
+# ==============================================================================
+
+services:
+  bboxmaskpose:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bboxmaskpose:latest
+    container_name: bboxmaskpose
+
+    # ----------------------------------------------------------------------
+    # GPU Configuration
+    # Requires nvidia-container-toolkit to be installed on the host
+    # Installation: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+    # ----------------------------------------------------------------------
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+
+    # ----------------------------------------------------------------------
+    # Volume Mounts
+    # ----------------------------------------------------------------------
+    volumes:
+      # Input: Mount directory containing images for processing (read-only)
+      - ./demo/data:/app/input:ro
+
+      # Output: Mount directory for saving results (read-write)
+      - ./outputs:/app/outputs:rw
+
+      # Configuration: Mount custom config files if needed (read-only)
+      - ./configs:/app/configs:ro
+
+    # ----------------------------------------------------------------------
+    # Environment Variables
+    # ----------------------------------------------------------------------
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_VISIBLE_DEVICES=0
+
+    working_dir: /app
+
+    # ----------------------------------------------------------------------
+    # Default Command
+    # Runs the demo on the sample OCHuman image
+    # Override this command to process different images
+    # ----------------------------------------------------------------------
+    command: [ "python", "demo/bmp_demo.py", "configs/bmp_D3.yaml", "/app/input/004806.jpg", "--output-root", "/app/outputs" ]
+
+# ==============================================================================
+# Usage Examples
+# ==============================================================================
+#
+# 1. Build the Docker image:
+#    docker-compose build
+#
+# 2. Run with the default sample image:
+#    docker-compose up
+#
+# 3. Run on a custom image (place image in demo/data/ first):
+#    docker-compose run bboxmaskpose python demo/bmp_demo.py \
+#      configs/bmp_D3.yaml /app/input/your_image.jpg --output-root /app/outputs
+#
+# 4. Process multiple images:
+#    for img in demo/data/*.jpg; do
+#      docker-compose run bboxmaskpose python demo/bmp_demo.py \
+#        configs/bmp_D3.yaml /app/input/$(basename $img) --output-root /app/outputs
+#    done
+#
+# 5. Start an interactive shell for debugging:
+#    docker-compose run bboxmaskpose bash
+#
+# 6. Clean up containers and images:
+#    docker-compose down --rmi local
+#
+# ==============================================================================

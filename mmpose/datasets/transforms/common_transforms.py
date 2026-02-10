@@ -127,6 +127,8 @@ class MaskBackground(BaseTransform):
         erode_amount: float = 0.5,
         dilate_prob: float = 0.0,
         dilate_amount: float = 0.5,
+        patches_computation_method: str = 'voronoi',
+        context_size: float = 1.25,
     ) -> None:
         
         super().__init__()
@@ -153,6 +155,8 @@ class MaskBackground(BaseTransform):
 
         self.erode_amount = erode_amount
         self.dilate_amount = dilate_amount
+        self.patches_computation_method = patches_computation_method
+        self.context_size = context_size
 
     def _perturb_by_dilation(self, mask: np.ndarray) -> np.ndarray:
         """Perturb the mask to simulate real-world detector."""
@@ -294,8 +298,12 @@ class MaskBackground(BaseTransform):
 
         if mask is not None and self._do_masking():
             # Convert mask from polygons to binary mask
-            try:            
-                mask_rle = Mask.frPyObjects(mask, results['img_shape'][0], results['img_shape'][1])
+            try:
+                try:
+                    mask_rle = Mask.frPyObjects(mask, results['img_shape'][0], results['img_shape'][1])
+                    mask_rle = Mask.merge(mask_rle)
+                except ValueError:
+                    mask_rle = mask
             except IndexError:
                 # breakpoint()
                 # print("Mask shape:", mask.shape)
@@ -304,9 +312,6 @@ class MaskBackground(BaseTransform):
                 # print("Image shape:", results['img_shape'])
 
                 return results
-
-            
-            mask_rle = Mask.merge(mask_rle)
             img = results['img'].copy()
             masked_image = results['img'].copy()
             mask = Mask.decode(mask_rle).reshape((img.shape[0], img.shape[1], 1))
