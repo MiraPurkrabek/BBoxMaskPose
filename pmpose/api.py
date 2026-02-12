@@ -27,23 +27,21 @@ BMP_ROOT = Path(__file__).parent.parent
 
 # Pretrained model URLs
 PRETRAINED_URLS = {
-    # "pmpose-default": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose-b.pth",
-    # "maskpose-b": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose-b.pth",
     # MaskPose
-    "MaskPose-s": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose-s-1.1.0.pth",
-    "MaskPose-b": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose-b-1.1.0.pth",
-    "MaskPose-l": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose-l-1.1.0.pth",
-    "MaskPose-h": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose-h-1.1.0.pth",
+    "MaskPose-s": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose/MaskPose-s-1.1.0.pth",
+    "MaskPose-b": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose/MaskPose-b-1.1.0.pth",
+    "MaskPose-l": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose/MaskPose-l-1.1.0.pth",
+    "MaskPose-h": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose/MaskPose-h-1.1.0.pth",
     # MaskPose whole body
     "MaskPose-s-wb": "TBD",
     "MaskPose-b-wb": "TBD",
     "MaskPose-l-wb": "TBD",
     "MaskPose-h-wb": "TBD",
     # PMPose
-    "PMPose-s": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/PMPose-s-1.0.0.pth",
-    "PMPose-b": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/PMPose-b-1.0.0.pth",
-    "PMPose-l": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/PMPose-l-1.0.0.pth",
-    "PMPose-h": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/PMPose-h-1.0.0.pth",
+    "PMPose-s": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/PMPose/PMPose-s-1.0.0.pth",
+    "PMPose-b": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/PMPose/PMPose-b-1.0.0.pth",
+    "PMPose-l": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/PMPose/PMPose-l-1.0.0.pth",
+    "PMPose-h": "https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/PMPose/PMPose-h-1.0.0.pth",
 }
 
 # Default config paths (relative to package root)
