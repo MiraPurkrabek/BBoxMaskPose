@@ -12,7 +12,7 @@ detector:
   
 pose_estimator:
   pose_config: 'mmpose/configs/MaskPose/ViTb-multi_mask.py'
-  pose_checkpoint: 'https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose-b.pth'
+  pose_checkpoint: 'https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose/MaskPose-b-1.0.0.pth'
   
 sam2:
   sam2_config: 'configs/samurai/sam2.1_hiera_b+.yaml'   # Use SAMURAI as it has img_size 1024 (SAM-2.1 has 512)
