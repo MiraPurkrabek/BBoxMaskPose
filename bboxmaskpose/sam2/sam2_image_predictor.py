@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
@@ -13,7 +12,6 @@ import torch
 from PIL.Image import Image
 
 from bboxmaskpose.sam2.modeling.sam2_base import SAM2Base
-
 from bboxmaskpose.sam2.utils.transforms import SAM2Transforms
 
 
@@ -61,9 +59,9 @@ class SAM2ImagePredictor:
         # Spatial dim for backbone feature maps
         isize = self.model.image_size
         self._bb_feat_sizes = [
-            (isize//4, isize//4),
-            (isize//8, isize//8),
-            (isize//16, isize//16),
+            (isize // 4, isize // 4),
+            (isize // 8, isize // 8),
+            (isize // 16, isize // 16),
         ]
 
     @classmethod
@@ -111,9 +109,7 @@ class SAM2ImagePredictor:
         input_image = self._transforms(image)
         input_image = input_image[None, ...].to(self.device)
 
-        assert (
-            len(input_image.shape) == 4 and input_image.shape[1] == 3
-        ), f"input_image must be of size 1x3xHxW, got {input_image.shape}"
+        assert len(input_image.shape) == 4 and input_image.shape[1] == 3, f"input_image must be of size 1x3xHxW, got {input_image.shape}"
         logging.info("Computing image embeddings for the provided image...")
         backbone_out = self.model.forward_image(input_image)
         _, vision_feats, _, _ = self.model._prepare_backbone_features(backbone_out)
@@ -122,10 +118,9 @@ class SAM2ImagePredictor:
             vision_feats[-1] = vision_feats[-1] + self.model.no_mem_embed
 
         # breakpoint()
-        feats = [
-            feat.permute(1, 2, 0).view(1, -1, *feat_size)
-            for feat, feat_size in zip(vision_feats[::-1], self._bb_feat_sizes[::-1])
-        ][::-1]
+        feats = [feat.permute(1, 2, 0).view(1, -1, *feat_size) for feat, feat_size in zip(vision_feats[::-1], self._bb_feat_sizes[::-1])][
+            ::-1
+        ]
         self._features = {"image_embed": feats[-1], "high_res_feats": feats[:-1]}
         self._is_image_set = True
         logging.info("Image embeddings computed.")
@@ -148,17 +143,13 @@ class SAM2ImagePredictor:
         assert isinstance(image_list, list)
         self._orig_hw = []
         for image in image_list:
-            assert isinstance(
-                image, np.ndarray
-            ), "Images are expected to be an np.ndarray in RGB format, and of shape  HWC"
+            assert isinstance(image, np.ndarray), "Images are expected to be an np.ndarray in RGB format, and of shape  HWC"
             self._orig_hw.append(image.shape[:2])
         # Transform the image to the form expected by the model
         img_batch = self._transforms.forward_batch(image_list)
         img_batch = img_batch.to(self.device)
         batch_size = img_batch.shape[0]
-        assert (
-            len(img_batch.shape) == 4 and img_batch.shape[1] == 3
-        ), f"img_batch must be of size Bx3xHxW, got {img_batch.shape}"
+        assert len(img_batch.shape) == 4 and img_batch.shape[1] == 3, f"img_batch must be of size Bx3xHxW, got {img_batch.shape}"
         logging.info("Computing image embeddings for the provided images...")
         backbone_out = self.model.forward_image(img_batch)
         _, vision_feats, _, _ = self.model._prepare_backbone_features(backbone_out)
@@ -167,8 +158,7 @@ class SAM2ImagePredictor:
             vision_feats[-1] = vision_feats[-1] + self.model.no_mem_embed
 
         feats = [
-            feat.permute(1, 2, 0).view(batch_size, -1, *feat_size)
-            for feat, feat_size in zip(vision_feats[::-1], self._bb_feat_sizes[::-1])
+            feat.permute(1, 2, 0).view(batch_size, -1, *feat_size) for feat, feat_size in zip(vision_feats[::-1], self._bb_feat_sizes[::-1])
         ][::-1]
         self._features = {"image_embed": feats[-1], "high_res_feats": feats[:-1]}
         self._is_image_set = True
@@ -190,25 +180,17 @@ class SAM2ImagePredictor:
         """
         assert self._is_batch, "This function should only be used when in batched mode"
         if not self._is_image_set:
-            raise RuntimeError(
-                "An image must be set with .set_image_batch(...) before mask prediction."
-            )
+            raise RuntimeError("An image must be set with .set_image_batch(...) before mask prediction.")
         num_images = len(self._features["image_embed"])
         all_masks = []
         all_ious = []
         all_low_res_masks = []
         for img_idx in range(num_images):
             # Transform input prompts
-            point_coords = (
-                point_coords_batch[img_idx] if point_coords_batch is not None else None
-            )
-            point_labels = (
-                point_labels_batch[img_idx] if point_labels_batch is not None else None
-            )
+            point_coords = point_coords_batch[img_idx] if point_coords_batch is not None else None
+            point_labels = point_labels_batch[img_idx] if point_labels_batch is not None else None
             box = box_batch[img_idx] if box_batch is not None else None
-            mask_input = (
-                mask_input_batch[img_idx] if mask_input_batch is not None else None
-            )
+            mask_input = mask_input_batch[img_idx] if mask_input_batch is not None else None
             mask_input, unnorm_coords, labels, unnorm_box = self._prep_prompts(
                 point_coords,
                 point_labels,
@@ -227,9 +209,7 @@ class SAM2ImagePredictor:
                 img_idx=img_idx,
             )
             masks_np = masks.squeeze(0).float().detach().cpu().numpy()
-            iou_predictions_np = (
-                iou_predictions.squeeze(0).float().detach().cpu().numpy()
-            )
+            iou_predictions_np = iou_predictions.squeeze(0).float().detach().cpu().numpy()
             low_res_masks_np = low_res_masks.squeeze(0).float().detach().cpu().numpy()
             all_masks.append(masks_np)
             all_ious.append(iou_predictions_np)
@@ -281,15 +261,11 @@ class SAM2ImagePredictor:
             a subsequent iteration as mask input.
         """
         if not self._is_image_set:
-            raise RuntimeError(
-                "An image must be set with .set_image(...) before mask prediction."
-            )
+            raise RuntimeError("An image must be set with .set_image(...) before mask prediction.")
 
         # Transform input prompts
 
-        mask_input, unnorm_coords, labels, unnorm_box = self._prep_prompts(
-            point_coords, point_labels, box, mask_input, normalize_coords
-        )
+        mask_input, unnorm_coords, labels, unnorm_box = self._prep_prompts(point_coords, point_labels, box, mask_input, normalize_coords)
 
         masks, iou_predictions, low_res_masks = self._predict(
             unnorm_coords,
@@ -305,33 +281,21 @@ class SAM2ImagePredictor:
         low_res_masks_np = low_res_masks.squeeze(0).float().detach().cpu().numpy()
         return masks_np, iou_predictions_np, low_res_masks_np
 
-    def _prep_prompts(
-        self, point_coords, point_labels, box, mask_logits, normalize_coords, img_idx=-1
-    ):
+    def _prep_prompts(self, point_coords, point_labels, box, mask_logits, normalize_coords, img_idx=-1):
 
         unnorm_coords, labels, unnorm_box, mask_input = None, None, None, None
         if point_coords is not None:
-            assert (
-                point_labels is not None
-            ), "point_labels must be supplied if point_coords is supplied."
-            point_coords = torch.as_tensor(
-                point_coords, dtype=torch.float, device=self.device
-            )
-            unnorm_coords = self._transforms.transform_coords(
-                point_coords, normalize=normalize_coords, orig_hw=self._orig_hw[img_idx]
-            )
+            assert point_labels is not None, "point_labels must be supplied if point_coords is supplied."
+            point_coords = torch.as_tensor(point_coords, dtype=torch.float, device=self.device)
+            unnorm_coords = self._transforms.transform_coords(point_coords, normalize=normalize_coords, orig_hw=self._orig_hw[img_idx])
             labels = torch.as_tensor(point_labels, dtype=torch.int, device=self.device)
             if len(unnorm_coords.shape) == 2:
                 unnorm_coords, labels = unnorm_coords[None, ...], labels[None, ...]
         if box is not None:
             box = torch.as_tensor(box, dtype=torch.float, device=self.device)
-            unnorm_box = self._transforms.transform_boxes(
-                box, normalize=normalize_coords, orig_hw=self._orig_hw[img_idx]
-            )  # Bx2x2
+            unnorm_box = self._transforms.transform_boxes(box, normalize=normalize_coords, orig_hw=self._orig_hw[img_idx])  # Bx2x2
         if mask_logits is not None:
-            mask_input = torch.as_tensor(
-                mask_logits, dtype=torch.float, device=self.device
-            )
+            mask_input = torch.as_tensor(mask_logits, dtype=torch.float, device=self.device)
             if len(mask_input.shape) == 3:
                 mask_input = mask_input[None, :, :, :]
         return mask_input, unnorm_coords, labels, unnorm_box
@@ -383,9 +347,7 @@ class SAM2ImagePredictor:
             a subsequent iteration as mask input.
         """
         if not self._is_image_set:
-            raise RuntimeError(
-                "An image must be set with .set_image(...) before mask prediction."
-            )
+            raise RuntimeError("An image must be set with .set_image(...) before mask prediction.")
 
         if point_coords is not None:
             concat_points = (point_coords, point_labels)
@@ -413,13 +375,8 @@ class SAM2ImagePredictor:
         )
 
         # Predict masks
-        batched_mode = (
-            concat_points is not None and concat_points[0].shape[0] > 1
-        )  # multi object prediction
-        high_res_features = [
-            feat_level[img_idx].unsqueeze(0)
-            for feat_level in self._features["high_res_feats"]
-        ]
+        batched_mode = concat_points is not None and concat_points[0].shape[0] > 1  # multi object prediction
+        high_res_features = [feat_level[img_idx].unsqueeze(0) for feat_level in self._features["high_res_feats"]]
         low_res_masks, iou_predictions, _, _ = self.model.sam_mask_decoder(
             image_embeddings=self._features["image_embed"][img_idx].unsqueeze(0),
             image_pe=self.model.sam_prompt_encoder.get_dense_pe(),
@@ -431,9 +388,7 @@ class SAM2ImagePredictor:
         )
 
         # Upscale the masks to the original image resolution
-        masks = self._transforms.postprocess_masks(
-            low_res_masks, self._orig_hw[img_idx]
-        )
+        masks = self._transforms.postprocess_masks(low_res_masks, self._orig_hw[img_idx])
         low_res_masks = torch.clamp(low_res_masks, -32.0, 32.0)
         if not return_logits:
             masks = masks > self.mask_threshold
@@ -447,12 +402,8 @@ class SAM2ImagePredictor:
         the embedding spatial dimension of SAM (typically C=256, H=W=64).
         """
         if not self._is_image_set:
-            raise RuntimeError(
-                "An image must be set with .set_image(...) to generate an embedding."
-            )
-        assert (
-            self._features is not None
-        ), "Features must exist if an image has been set."
+            raise RuntimeError("An image must be set with .set_image(...) to generate an embedding.")
+        assert self._features is not None, "Features must exist if an image has been set."
         return self._features["image_embed"]
 
     @property

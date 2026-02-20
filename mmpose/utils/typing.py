@@ -20,8 +20,7 @@ InstanceList = List[InstanceData]
 PixelDataList = List[PixelData]
 Predictions = Union[InstanceList, Tuple[InstanceList, PixelDataList]]
 # Type hint of model outputs
-ForwardResults = Union[Dict[str, Tensor], List[PoseDataSample], Tuple[Tensor],
-                       Tensor]
+ForwardResults = Union[Dict[str, Tensor], List[PoseDataSample], Tuple[Tensor], Tensor]
 # Type hint of features
 #   - Tuple[Tensor]: multi-level features extracted by the network
 #   - List[Tuple[Tensor]]: multiple feature pyramids for TTA

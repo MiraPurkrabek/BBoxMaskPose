@@ -143,5 +143,4 @@ docs/**/modelzoo.md
 
 *.mp4
 
-_TO_DELETE_demo/OCHuman_outputs/
 demos/outputs/

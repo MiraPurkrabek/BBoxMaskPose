@@ -11,8 +11,7 @@ from mmpose.registry import TRANSFORMS
 from mmpose.structures import MultilevelPixelData, PoseDataSample
 
 
-def image_to_tensor(img: Union[np.ndarray,
-                               Sequence[np.ndarray]]) -> torch.torch.Tensor:
+def image_to_tensor(img: Union[np.ndarray, Sequence[np.ndarray]]) -> torch.torch.Tensor:
     """Translate image or sequence of images to tensor. Multiple image tensors
     will be stacked.
 
@@ -37,8 +36,7 @@ def image_to_tensor(img: Union[np.ndarray,
     return tensor
 
 
-def keypoints_to_tensor(keypoints: Union[np.ndarray, Sequence[np.ndarray]]
-                        ) -> torch.torch.Tensor:
+def keypoints_to_tensor(keypoints: Union[np.ndarray, Sequence[np.ndarray]]) -> torch.torch.Tensor:
     """Translate keypoints or sequence of keypoints to tensor. Multiple
     keypoints tensors will be stacked.
 
@@ -54,8 +52,7 @@ def keypoints_to_tensor(keypoints: Union[np.ndarray, Sequence[np.ndarray]]
         tensor = torch.from_numpy(keypoints).contiguous()
     else:
         assert is_seq_of(keypoints, np.ndarray)
-        tensor = torch.stack(
-            [keypoints_to_tensor(_keypoints) for _keypoints in keypoints])
+        tensor = torch.stack([keypoints_to_tensor(_keypoints) for _keypoints in keypoints])
 
     return tensor
 
@@ -105,63 +102,77 @@ class PackPoseInputs(BaseTransform):
     # items in `instance_mapping_table` will be directly packed into
     # PoseDataSample.gt_instances without converting to Tensor
     instance_mapping_table = dict(
-        bbox='bboxes',
-        bbox_score='bbox_scores',
-        keypoints='keypoints',
-        keypoints_cam='keypoints_cam',
-        keypoints_visible='keypoints_visible',
-        keypoints_visibility='keypoints_visibility',
+        bbox="bboxes",
+        bbox_score="bbox_scores",
+        keypoints="keypoints",
+        keypoints_cam="keypoints_cam",
+        keypoints_visible="keypoints_visible",
+        keypoints_visibility="keypoints_visibility",
         # In CocoMetric, the area of predicted instances will be calculated
         # using gt_instances.bbox_scales. To unsure correspondence with
         # previous version, this key is preserved here.
-        bbox_scale='bbox_scales',
+        bbox_scale="bbox_scales",
         # `head_size` is used for computing MpiiPCKAccuracy metric,
         # namely, PCKh
-        head_size='head_size',
+        head_size="head_size",
         # `in_image` is used for training in/out probability prediction
         # and as a mask for some losses
-        in_image='in_image',
+        in_image="in_image",
         # `annotated` is used as weight for some losses. Different from
         # both `keypoints_visible` and `keypoint_weights`, `annotated` is
         # a binary mask indicating whether the keypoint is annotated.
         # annotated='annotated',
-        keypoints_scaled='keypoints_scaled',
-        heatmap_keypoints='heatmap_keypoints',
-        keypoints_in_image='keypoints_in_image',
-        bbox_mask='bbox_mask',
-        identification_similarity='identification_similarity',
-        identified='identified',
-        out_heatmaps='out_heatmaps',
-        out_kpt_weights='out_kpt_weights',
-        bbox_xyxy_wrt_input='bbox_xyxy_wrt_input',
+        keypoints_scaled="keypoints_scaled",
+        heatmap_keypoints="heatmap_keypoints",
+        keypoints_in_image="keypoints_in_image",
+        bbox_mask="bbox_mask",
+        identification_similarity="identification_similarity",
+        identified="identified",
+        out_heatmaps="out_heatmaps",
+        out_kpt_weights="out_kpt_weights",
+        bbox_xyxy_wrt_input="bbox_xyxy_wrt_input",
     )
 
     # items in `field_mapping_table` will be packed into
     # PoseDataSample.gt_fields and converted to Tensor. These items will be
     # used for computing losses
     field_mapping_table = dict(
-        heatmaps='heatmaps',
-        instance_heatmaps='instance_heatmaps',
-        heatmap_mask='heatmap_mask',
-        heatmap_weights='heatmap_weights',
-        displacements='displacements',
-        displacement_weights='displacement_weights')
+        heatmaps="heatmaps",
+        instance_heatmaps="instance_heatmaps",
+        heatmap_mask="heatmap_mask",
+        heatmap_weights="heatmap_weights",
+        displacements="displacements",
+        displacement_weights="displacement_weights",
+    )
 
     # items in `label_mapping_table` will be packed into
     # PoseDataSample.gt_instance_labels and converted to Tensor. These items
     # will be used for computing losses
     label_mapping_table = dict(
-        keypoint_labels='keypoint_labels',
-        keypoint_weights='keypoint_weights',
-        keypoints_visible_weights='keypoints_visible_weights')
+        keypoint_labels="keypoint_labels", keypoint_weights="keypoint_weights", keypoints_visible_weights="keypoints_visible_weights"
+    )
 
-    def __init__(self,
-                 meta_keys=('id', 'img_id', 'img_path', 'category_id',
-                            'crowd_index', 'ori_shape', 'img_shape',
-                            'input_size', 'input_center', 'input_scale',
-                            'flip', 'flip_direction', 'flip_indices',
-                            'raw_ann_info', 'dataset_name'),
-                 pack_transformed=False):
+    def __init__(
+        self,
+        meta_keys=(
+            "id",
+            "img_id",
+            "img_path",
+            "category_id",
+            "crowd_index",
+            "ori_shape",
+            "img_shape",
+            "input_size",
+            "input_center",
+            "input_scale",
+            "flip",
+            "flip_direction",
+            "flip_indices",
+            "raw_ann_info",
+            "dataset_name",
+        ),
+        pack_transformed=False,
+    ):
         self.meta_keys = meta_keys
         self.pack_transformed = pack_transformed
 
@@ -180,48 +191,43 @@ class PackPoseInputs(BaseTransform):
         """
         # print("\n\nPacking results")
         # Pack image(s) for 2d pose estimation
-        if 'img' in results:
-            img = results['img']
+        if "img" in results:
+            img = results["img"]
             inputs_tensor = image_to_tensor(img)
         # Pack keypoints for 3d pose-lifting
-        elif 'lifting_target' in results and 'keypoints' in results:
-            if 'keypoint_labels' in results:
-                keypoints = results['keypoint_labels']
+        elif "lifting_target" in results and "keypoints" in results:
+            if "keypoint_labels" in results:
+                keypoints = results["keypoint_labels"]
             else:
-                keypoints = results['keypoints']
+                keypoints = results["keypoints"]
             inputs_tensor = keypoints_to_tensor(keypoints)
 
         if "in_image" in results:
-            if 'keypoints_in_image' not in results:
+            if "keypoints_in_image" not in results:
                 # If `keypoints_in_image` is not provided, use `keypoints_visible` as
                 # default value. ('keypoints_visible' = annotated)
-                results['keypoints_in_image'] = results['in_image']
-            results['keypoints_in_image'] = (
-                results['keypoints_in_image'] &
-                results['in_image']) 
+                results["keypoints_in_image"] = results["in_image"]
+            results["keypoints_in_image"] = results["keypoints_in_image"] & results["in_image"]
 
         data_sample = PoseDataSample()
 
         # pack instance data
         gt_instances = InstanceData()
-        _instance_mapping_table = results.get('instance_mapping_table',
-                                              self.instance_mapping_table)
+        _instance_mapping_table = results.get("instance_mapping_table", self.instance_mapping_table)
         for key, packed_key in _instance_mapping_table.items():
             if key in results:
                 gt_instances.set_field(results[key], packed_key)
 
         # pack `transformed_keypoints` for visualizing data transform
         # and augmentation results
-        if self.pack_transformed and 'transformed_keypoints' in results:
-            gt_instances.set_field(results['transformed_keypoints'],
-                                   'transformed_keypoints')
+        if self.pack_transformed and "transformed_keypoints" in results:
+            gt_instances.set_field(results["transformed_keypoints"], "transformed_keypoints")
 
         data_sample.gt_instances = gt_instances
 
         # pack instance labels
         gt_instance_labels = InstanceData()
-        _label_mapping_table = results.get('label_mapping_table',
-                                           self.label_mapping_table)
+        _label_mapping_table = results.get("label_mapping_table", self.label_mapping_table)
         for key, packed_key in _label_mapping_table.items():
             if key in results:
                 if isinstance(results[key], list):
@@ -238,24 +244,19 @@ class PackPoseInputs(BaseTransform):
 
         # pack fields
         gt_fields = None
-        _field_mapping_table = results.get('field_mapping_table',
-                                           self.field_mapping_table)
+        _field_mapping_table = results.get("field_mapping_table", self.field_mapping_table)
         for key, packed_key in _field_mapping_table.items():
             if key in results:
                 if isinstance(results[key], list):
                     if gt_fields is None:
                         gt_fields = MultilevelPixelData()
                     else:
-                        assert isinstance(
-                            gt_fields, MultilevelPixelData
-                        ), 'Got mixed single-level and multi-level pixel data.'
+                        assert isinstance(gt_fields, MultilevelPixelData), "Got mixed single-level and multi-level pixel data."
                 else:
                     if gt_fields is None:
                         gt_fields = PixelData()
                     else:
-                        assert isinstance(
-                            gt_fields, PixelData
-                        ), 'Got mixed single-level and multi-level pixel data.'
+                        assert isinstance(gt_fields, PixelData), "Got mixed single-level and multi-level pixel data."
 
                 gt_fields.set_field(results[key], packed_key)
 
@@ -266,8 +267,8 @@ class PackPoseInputs(BaseTransform):
         data_sample.set_metainfo(img_meta)
 
         packed_results = dict()
-        packed_results['inputs'] = inputs_tensor
-        packed_results['data_samples'] = data_sample
+        packed_results["inputs"] = inputs_tensor
+        packed_results["data_samples"] = data_sample
 
         # print("\n\nPacked results done")
 
@@ -285,6 +286,6 @@ class PackPoseInputs(BaseTransform):
             str: Formatted string.
         """
         repr_str = self.__class__.__name__
-        repr_str += f'(meta_keys={self.meta_keys}, '
-        repr_str += f'pack_transformed={self.pack_transformed})'
+        repr_str += f"(meta_keys={self.meta_keys}, "
+        repr_str += f"pack_transformed={self.pack_transformed})"
         return repr_str

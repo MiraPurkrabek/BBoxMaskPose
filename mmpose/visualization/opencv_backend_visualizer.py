@@ -29,15 +29,11 @@ class OpencvBackendVisualizer(Visualizer):
         alpha (int, float): The transparency of bboxes. Defaults to ``1.0``
     """
 
-    def __init__(self,
-                 name='visualizer',
-                 backend: str = 'matplotlib',
-                 *args,
-                 **kwargs):
+    def __init__(self, name="visualizer", backend: str = "matplotlib", *args, **kwargs):
         super().__init__(name, *args, **kwargs)
-        assert backend in ('opencv', 'matplotlib'), f'the argument ' \
-            f'\'backend\' must be either \'opencv\' or \'matplotlib\', ' \
-            f'but got \'{backend}\'.'
+        assert backend in ("opencv", "matplotlib"), (
+            f"the argument " f"'backend' must be either 'opencv' or 'matplotlib', " f"but got '{backend}'."
+        )
         self.backend = backend
 
     @master_only
@@ -49,25 +45,19 @@ class OpencvBackendVisualizer(Visualizer):
             backend (str): The backend to save the image.
         """
         assert image is not None
-        image = image.astype('uint8')
+        image = image.astype("uint8")
         self._image = image
         self.width, self.height = image.shape[1], image.shape[0]
-        self._default_font_size = max(
-            np.sqrt(self.height * self.width) // 90, 10)
+        self._default_font_size = max(np.sqrt(self.height * self.width) // 90, 10)
 
-        if self.backend == 'matplotlib':
+        if self.backend == "matplotlib":
             # add a small 1e-2 to avoid precision lost due to matplotlib's
             # truncation (https://github.com/matplotlib/matplotlib/issues/15363)  # noqa
-            self.fig_save.set_size_inches(  # type: ignore
-                (self.width + 1e-2) / self.dpi,
-                (self.height + 1e-2) / self.dpi)
+            self.fig_save.set_size_inches((self.width + 1e-2) / self.dpi, (self.height + 1e-2) / self.dpi)  # type: ignore
             # self.canvas = mpl.backends.backend_cairo.FigureCanvasCairo(fig)
             self.ax_save.cla()
             self.ax_save.axis(False)
-            self.ax_save.imshow(
-                image,
-                extent=(0, self.width, self.height, 0),
-                interpolation='none')
+            self.ax_save.imshow(image, extent=(0, self.width, self.height, 0), interpolation="none")
 
     @master_only
     def get_image(self) -> np.ndarray:
@@ -76,20 +66,21 @@ class OpencvBackendVisualizer(Visualizer):
         Returns:
             np.ndarray: the drawn image which channel is RGB.
         """
-        assert self._image is not None, 'Please set image using `set_image`'
-        if self.backend == 'matplotlib':
+        assert self._image is not None, "Please set image using `set_image`"
+        if self.backend == "matplotlib":
             return super().get_image()
         else:
             return self._image
 
     @master_only
-    def draw_circles(self,
-                     center: Union[np.ndarray, torch.Tensor],
-                     radius: Union[np.ndarray, torch.Tensor],
-                     face_colors: Union[str, tuple, List[str],
-                                        List[tuple]] = 'none',
-                     alpha: float = 1.0,
-                     **kwargs) -> 'Visualizer':
+    def draw_circles(
+        self,
+        center: Union[np.ndarray, torch.Tensor],
+        radius: Union[np.ndarray, torch.Tensor],
+        face_colors: Union[str, tuple, List[str], List[tuple]] = "none",
+        alpha: float = 1.0,
+        **kwargs,
+    ) -> "Visualizer":
         """Draw single or multiple circles.
 
         Args:
@@ -120,29 +111,19 @@ class OpencvBackendVisualizer(Visualizer):
             alpha (Union[int, float]): The transparency of circles.
                 Defaults to 0.8.
         """
-        if self.backend == 'matplotlib':
-            super().draw_circles(
-                center=center,
-                radius=radius,
-                face_colors=face_colors,
-                alpha=alpha,
-                **kwargs)
-        elif self.backend == 'opencv':
+        if self.backend == "matplotlib":
+            super().draw_circles(center=center, radius=radius, face_colors=face_colors, alpha=alpha, **kwargs)
+        elif self.backend == "opencv":
             if isinstance(face_colors, str):
                 face_colors = mmcv.color_val(face_colors)[::-1]
 
             if alpha == 1.0:
-                self._image = cv2.circle(self._image,
-                                         (int(center[0]), int(center[1])),
-                                         int(radius), face_colors, -1)
+                self._image = cv2.circle(self._image, (int(center[0]), int(center[1])), int(radius), face_colors, -1)
             else:
-                img = cv2.circle(self._image.copy(),
-                                 (int(center[0]), int(center[1])), int(radius),
-                                 face_colors, -1)
-                self._image = cv2.addWeighted(self._image, 1 - alpha, img,
-                                              alpha, 0)
+                img = cv2.circle(self._image.copy(), (int(center[0]), int(center[1])), int(radius), face_colors, -1)
+                self._image = cv2.addWeighted(self._image, 1 - alpha, img, alpha, 0)
         else:
-            raise ValueError(f'got unsupported backend {self.backend}')
+            raise ValueError(f"got unsupported backend {self.backend}")
 
     @master_only
     def draw_texts(
@@ -150,12 +131,12 @@ class OpencvBackendVisualizer(Visualizer):
         texts: Union[str, List[str]],
         positions: Union[np.ndarray, torch.Tensor],
         font_sizes: Optional[Union[int, List[int]]] = None,
-        colors: Union[str, tuple, List[str], List[tuple]] = 'g',
-        vertical_alignments: Union[str, List[str]] = 'top',
-        horizontal_alignments: Union[str, List[str]] = 'left',
+        colors: Union[str, tuple, List[str], List[tuple]] = "g",
+        vertical_alignments: Union[str, List[str]] = "top",
+        horizontal_alignments: Union[str, List[str]] = "left",
         bboxes: Optional[Union[dict, List[dict]]] = None,
         **kwargs,
-    ) -> 'Visualizer':
+    ) -> "Visualizer":
         """Draw single or multiple text boxes.
 
         Args:
@@ -218,7 +199,7 @@ class OpencvBackendVisualizer(Visualizer):
                 `New in version 0.6.0.`
         """  # noqa: E501
 
-        if self.backend == 'matplotlib':
+        if self.backend == "matplotlib":
             super().draw_texts(
                 texts=texts,
                 positions=positions,
@@ -227,48 +208,48 @@ class OpencvBackendVisualizer(Visualizer):
                 vertical_alignments=vertical_alignments,
                 horizontal_alignments=horizontal_alignments,
                 bboxes=bboxes,
-                **kwargs)
+                **kwargs,
+            )
 
-        elif self.backend == 'opencv':
+        elif self.backend == "opencv":
             font_scale = max(0.1, font_sizes / 30)
             thickness = max(1, font_sizes // 15)
 
-            text_size, text_baseline = cv2.getTextSize(texts,
-                                                       cv2.FONT_HERSHEY_DUPLEX,
-                                                       font_scale, thickness)
+            text_size, text_baseline = cv2.getTextSize(texts, cv2.FONT_HERSHEY_DUPLEX, font_scale, thickness)
 
             x = int(positions[0])
-            if horizontal_alignments == 'right':
+            if horizontal_alignments == "right":
                 x = max(0, x - text_size[0])
             y = int(positions[1])
-            if vertical_alignments == 'top':
+            if vertical_alignments == "top":
                 y = min(self.height, y + text_size[1])
 
             if bboxes is not None:
-                bbox_color = bboxes[0]['facecolor']
+                bbox_color = bboxes[0]["facecolor"]
                 if isinstance(bbox_color, str):
                     bbox_color = mmcv.color_val(bbox_color)[::-1]
 
                 y = y - text_baseline // 2
                 self._image = cv2.rectangle(
-                    self._image, (x, y - text_size[1] - text_baseline // 2),
-                    (x + text_size[0], y + text_baseline // 2), bbox_color,
-                    cv2.FILLED)
+                    self._image,
+                    (x, y - text_size[1] - text_baseline // 2),
+                    (x + text_size[0], y + text_baseline // 2),
+                    bbox_color,
+                    cv2.FILLED,
+                )
 
-            self._image = cv2.putText(self._image, texts, (x, y),
-                                      cv2.FONT_HERSHEY_SIMPLEX, font_scale,
-                                      colors, thickness - 1)
+            self._image = cv2.putText(self._image, texts, (x, y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, colors, thickness - 1)
         else:
-            raise ValueError(f'got unsupported backend {self.backend}')
+            raise ValueError(f"got unsupported backend {self.backend}")
 
     @master_only
-    def draw_bboxes(self,
-                    bboxes: Union[np.ndarray, torch.Tensor],
-                    edge_colors: Union[str, tuple, List[str],
-                                       List[tuple]] = 'g',
-                    line_widths: Union[Union[int, float],
-                                       List[Union[int, float]]] = 2,
-                    **kwargs) -> 'Visualizer':
+    def draw_bboxes(
+        self,
+        bboxes: Union[np.ndarray, torch.Tensor],
+        edge_colors: Union[str, tuple, List[str], List[tuple]] = "g",
+        line_widths: Union[Union[int, float], List[Union[int, float]]] = 2,
+        **kwargs,
+    ) -> "Visualizer":
         """Draw single or multiple bboxes.
 
         Args:
@@ -297,32 +278,23 @@ class OpencvBackendVisualizer(Visualizer):
             alpha (Union[int, float]): The transparency of bboxes.
                 Defaults to 0.8.
         """
-        if self.backend == 'matplotlib':
-            super().draw_bboxes(
-                bboxes=bboxes,
-                edge_colors=edge_colors,
-                line_widths=line_widths,
-                **kwargs)
+        if self.backend == "matplotlib":
+            super().draw_bboxes(bboxes=bboxes, edge_colors=edge_colors, line_widths=line_widths, **kwargs)
 
-        elif self.backend == 'opencv':
-            self._image = mmcv.imshow_bboxes(
-                self._image,
-                bboxes,
-                edge_colors,
-                top_k=-1,
-                thickness=line_widths,
-                show=False)
+        elif self.backend == "opencv":
+            self._image = mmcv.imshow_bboxes(self._image, bboxes, edge_colors, top_k=-1, thickness=line_widths, show=False)
         else:
-            raise ValueError(f'got unsupported backend {self.backend}')
+            raise ValueError(f"got unsupported backend {self.backend}")
 
     @master_only
-    def draw_lines(self,
-                   x_datas: Union[np.ndarray, torch.Tensor],
-                   y_datas: Union[np.ndarray, torch.Tensor],
-                   colors: Union[str, tuple, List[str], List[tuple]] = 'g',
-                   line_widths: Union[Union[int, float],
-                                      List[Union[int, float]]] = 2,
-                   **kwargs) -> 'Visualizer':
+    def draw_lines(
+        self,
+        x_datas: Union[np.ndarray, torch.Tensor],
+        y_datas: Union[np.ndarray, torch.Tensor],
+        colors: Union[str, tuple, List[str], List[tuple]] = "g",
+        line_widths: Union[Union[int, float], List[Union[int, float]]] = 2,
+        **kwargs,
+    ) -> "Visualizer":
         """Draw single or multiple line segments.
 
         Args:
@@ -349,33 +321,24 @@ class OpencvBackendVisualizer(Visualizer):
                 If ``line_widths`` is single value, all the lines will
                 have the same linewidth. Defaults to 2.
         """
-        if self.backend == 'matplotlib':
-            super().draw_lines(
-                x_datas=x_datas,
-                y_datas=y_datas,
-                colors=colors,
-                line_widths=line_widths,
-                **kwargs)
+        if self.backend == "matplotlib":
+            super().draw_lines(x_datas=x_datas, y_datas=y_datas, colors=colors, line_widths=line_widths, **kwargs)
 
-        elif self.backend == 'opencv':
+        elif self.backend == "opencv":
             if isinstance(colors, str):
                 colors = mmcv.color_val(colors)[::-1]
-            self._image = cv2.line(
-                self._image, (x_datas[0], y_datas[0]),
-                (x_datas[1], y_datas[1]),
-                colors,
-                thickness=line_widths)
+            self._image = cv2.line(self._image, (x_datas[0], y_datas[0]), (x_datas[1], y_datas[1]), colors, thickness=line_widths)
         else:
-            raise ValueError(f'got unsupported backend {self.backend}')
+            raise ValueError(f"got unsupported backend {self.backend}")
 
     @master_only
-    def draw_polygons(self,
-                      polygons: Union[Union[np.ndarray, torch.Tensor],
-                                      List[Union[np.ndarray, torch.Tensor]]],
-                      edge_colors: Union[str, tuple, List[str],
-                                         List[tuple]] = 'g',
-                      alpha: float = 1.0,
-                      **kwargs) -> 'Visualizer':
+    def draw_polygons(
+        self,
+        polygons: Union[Union[np.ndarray, torch.Tensor], List[Union[np.ndarray, torch.Tensor]]],
+        edge_colors: Union[str, tuple, List[str], List[tuple]] = "g",
+        alpha: float = 1.0,
+        **kwargs,
+    ) -> "Visualizer":
         """Draw single or multiple bboxes.
 
         Args:
@@ -405,31 +368,20 @@ class OpencvBackendVisualizer(Visualizer):
             alpha (Union[int, float]): The transparency of polygons.
                 Defaults to 0.8.
         """
-        if self.backend == 'matplotlib':
-            super().draw_polygons(
-                polygons=polygons,
-                edge_colors=edge_colors,
-                alpha=alpha,
-                **kwargs)
+        if self.backend == "matplotlib":
+            super().draw_polygons(polygons=polygons, edge_colors=edge_colors, alpha=alpha, **kwargs)
 
-        elif self.backend == 'opencv':
+        elif self.backend == "opencv":
             if alpha == 1.0:
-                self._image = cv2.fillConvexPoly(self._image, polygons,
-                                                 edge_colors)
+                self._image = cv2.fillConvexPoly(self._image, polygons, edge_colors)
             else:
-                img = cv2.fillConvexPoly(self._image.copy(), polygons,
-                                         edge_colors)
-                self._image = cv2.addWeighted(self._image, 1 - alpha, img,
-                                              alpha, 0)
+                img = cv2.fillConvexPoly(self._image.copy(), polygons, edge_colors)
+                self._image = cv2.addWeighted(self._image, 1 - alpha, img, alpha, 0)
         else:
-            raise ValueError(f'got unsupported backend {self.backend}')
+            raise ValueError(f"got unsupported backend {self.backend}")
 
     @master_only
-    def show(self,
-             drawn_img: Optional[np.ndarray] = None,
-             win_name: str = 'image',
-             wait_time: float = 0.,
-             continue_key=' ') -> None:
+    def show(self, drawn_img: Optional[np.ndarray] = None, win_name: str = "image", wait_time: float = 0.0, continue_key=" ") -> None:
         """Show the drawn image.
 
         Args:
@@ -442,24 +394,20 @@ class OpencvBackendVisualizer(Visualizer):
             continue_key (str): The key for users to continue. Defaults to
                 the space key.
         """
-        if self.backend == 'matplotlib':
-            super().show(
-                drawn_img=drawn_img,
-                win_name=win_name,
-                wait_time=wait_time,
-                continue_key=continue_key)
+        if self.backend == "matplotlib":
+            super().show(drawn_img=drawn_img, win_name=win_name, wait_time=wait_time, continue_key=continue_key)
 
-        elif self.backend == 'opencv':
+        elif self.backend == "opencv":
             # Keep images are shown in the same window, and the title of window
             # will be updated with `win_name`.
             if not hasattr(self, win_name):
                 self._cv_win_name = win_name
-                cv2.namedWindow(winname=f'{id(self)}')
-                cv2.setWindowTitle(f'{id(self)}', win_name)
+                cv2.namedWindow(winname=f"{id(self)}")
+                cv2.setWindowTitle(f"{id(self)}", win_name)
             else:
-                cv2.setWindowTitle(f'{id(self)}', win_name)
+                cv2.setWindowTitle(f"{id(self)}", win_name)
             shown_img = self.get_image() if drawn_img is None else drawn_img
             cv2.imshow(str(id(self)), mmcv.bgr2rgb(shown_img))
             cv2.waitKey(int(np.ceil(wait_time * 1000)))
         else:
-            raise ValueError(f'got unsupported backend {self.backend}')
+            raise ValueError(f"got unsupported backend {self.backend}")

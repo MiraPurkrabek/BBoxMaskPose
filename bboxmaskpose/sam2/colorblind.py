@@ -1,7 +1,10 @@
+# Adapted from the distinctipy repository (https://github.com/alan-turing-institute/distinctipy).
+# Original authors: distinctipy contributors. Included with minor modifications.
 """
 Adapted from "The Color Blind Simulation function" by Matthew Wickline
 and the Human - Computer Interaction Resource Network (http://hcirn.com/), 2000 - 2001.
 """
+
 import numpy as np
 
 rBlind = {
@@ -261,16 +264,13 @@ def simulate_colors(colors, colorblind_type="Deuteranomaly", one_row=None, show=
     :return:
     """
     import matplotlib.pyplot as plt
-
     from distinctipy import distinctipy
 
     filtered_colors = [colorblind_filter(color, colorblind_type) for color in colors]
 
     fig, axes = plt.subplots(1, 2, figsize=(8, 4))
 
-    distinctipy.color_swatch(
-        colors, ax=axes[0], one_row=one_row, title="Viewed with Normal Sight"
-    )
+    distinctipy.color_swatch(colors, ax=axes[0], one_row=one_row, title="Viewed with Normal Sight")
 
     distinctipy.color_swatch(
         filtered_colors,
@@ -324,30 +324,22 @@ def simulate_clusters(
     """
     import matplotlib.pyplot as plt
     import pandas as pd
-
     from distinctipy import distinctipy
 
     if dataset not in ("s1", "s2", "s3", "s4", "a1", "a2", "a3", "b1"):
         raise ValueError("dataset must be s1, s2, s3, s4, a1, a2, a3 or b1")
 
-    URL = (
-        "https://raw.githubusercontent.com/alan-turing-institute/distinctipy/"
-        "main/distinctipy/datasets/"
-    )
+    URL = "https://raw.githubusercontent.com/alan-turing-institute/distinctipy/" "main/distinctipy/datasets/"
     df = pd.read_csv(URL + dataset + ".csv")
 
     if colorblind_distinct:
-        orig_colors = distinctipy.get_colors(
-            df["cluster"].nunique(), colorblind_type=colorblind_type
-        )
+        orig_colors = distinctipy.get_colors(df["cluster"].nunique(), colorblind_type=colorblind_type)
     else:
         orig_colors = distinctipy.get_colors(df["cluster"].nunique())
 
     orig_cmap = distinctipy.get_colormap(orig_colors)
 
-    filtered_colors = [
-        colorblind_filter(color, colorblind_type) for color in orig_colors
-    ]
+    filtered_colors = [colorblind_filter(color, colorblind_type) for color in orig_colors]
     filtered_cmap = distinctipy.get_colormap(filtered_colors)
 
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))

@@ -77,6 +77,11 @@ RUN pip install --no-cache-dir \
 # Install xtcocotools from source for extended COCO API functionality
 RUN pip install --no-cache-dir git+https://github.com/jin-s13/xtcocoapi.git
 
+# Install SAM-3D-Body for 3D pose estimation (optional)
+pip install 'git+https://github.com/facebookresearch/detectron2.git@a1ce2f9' --no-build-isolation --no-deps
+pip install git+https://github.com/microsoft/MoGe.git
+pip install git+https://github.com/MiraPurkrabek/sam-3d-body.git
+
 # ------------------------------------------------------------------------------
 # Project Installation
 # ------------------------------------------------------------------------------
@@ -98,12 +103,7 @@ RUN mkdir -p /app/models/SAM /app/outputs
 # Model Weights
 # ------------------------------------------------------------------------------
 
-# Download SAM 2.1 weights (Hiera Base Plus model, approximately 309MB)
-# These weights are required for the segmentation component
-RUN wget -q --show-progress -O /app/models/SAM/sam2.1_hiera_base_plus.pt \
-    https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_base_plus.pt
-
-# Note: RTMDet and MaskPose weights are downloaded automatically during runtime
+# Note: RTMDet, SAM-pose2seg and PMPose weights are downloaded automatically during runtime
 # from HuggingFace: https://huggingface.co/vrg-prague/BBoxMaskPose/
 
 # ------------------------------------------------------------------------------
@@ -117,14 +117,14 @@ USER bmpuser
 # Container Configuration
 # ------------------------------------------------------------------------------
 # Default command - can be overridden via docker-compose or docker run
-CMD ["python", "demo/bmp_demo.py", "--help"]
+CMD ["python", "demos/BMP_demo.py", "--help"]
 
 # ------------------------------------------------------------------------------
 # Metadata Labels
 # ------------------------------------------------------------------------------
 LABEL maintainer="Harsh Tomar"
 LABEL description="BBoxMaskPose: Multi-body Detection, Pose Estimation and Segmentation"
-LABEL version="1.1.0"
+LABEL version="2.0.0"
 LABEL org.opencontainers.image.source="https://github.com/MiraPurkrabek/BBoxMaskPose"
 LABEL org.opencontainers.image.documentation="https://mirapurkrabek.github.io/BBox-Mask-Pose/"
 LABEL org.opencontainers.image.licenses="GPL-3.0"

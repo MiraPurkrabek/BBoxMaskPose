@@ -4,9 +4,7 @@ from typing import Optional
 import numpy as np
 
 
-def get_instance_root(keypoints: np.ndarray,
-                      keypoints_visible: Optional[np.ndarray] = None,
-                      root_type: str = 'kpt_center') -> np.ndarray:
+def get_instance_root(keypoints: np.ndarray, keypoints_visible: Optional[np.ndarray] = None, root_type: str = "kpt_center") -> np.ndarray:
     """Calculate the coordinates and visibility of instance roots.
 
     Args:
@@ -46,24 +44,19 @@ def get_instance_root(keypoints: np.ndarray,
             continue
 
         # compute the instance root with visible keypoints
-        if root_type == 'kpt_center':
+        if root_type == "kpt_center":
             roots_coordinate[i] = visible_keypoints.mean(axis=0)
             roots_visible[i] = 1
-        elif root_type == 'bbox_center':
-            roots_coordinate[i] = (visible_keypoints.max(axis=0) +
-                                   visible_keypoints.min(axis=0)) / 2.0
+        elif root_type == "bbox_center":
+            roots_coordinate[i] = (visible_keypoints.max(axis=0) + visible_keypoints.min(axis=0)) / 2.0
             roots_visible[i] = 1
         else:
-            raise ValueError(
-                f'the value of `root_type` must be \'kpt_center\' or '
-                f'\'bbox_center\', but got \'{root_type}\'')
+            raise ValueError(f"the value of `root_type` must be 'kpt_center' or " f"'bbox_center', but got '{root_type}'")
 
     return roots_coordinate, roots_visible
 
 
-def get_instance_bbox(keypoints: np.ndarray,
-                      keypoints_visible: Optional[np.ndarray] = None
-                      ) -> np.ndarray:
+def get_instance_bbox(keypoints: np.ndarray, keypoints_visible: Optional[np.ndarray] = None) -> np.ndarray:
     """Calculate the pseudo instance bounding box from visible keypoints. The
     bounding boxes are in the xyxy format.
 
@@ -89,9 +82,7 @@ def get_instance_bbox(keypoints: np.ndarray,
     return bbox
 
 
-def get_diagonal_lengths(keypoints: np.ndarray,
-                         keypoints_visible: Optional[np.ndarray] = None
-                         ) -> np.ndarray:
+def get_diagonal_lengths(keypoints: np.ndarray, keypoints_visible: Optional[np.ndarray] = None) -> np.ndarray:
     """Calculate the diagonal length of instance bounding box from visible
     keypoints.
 

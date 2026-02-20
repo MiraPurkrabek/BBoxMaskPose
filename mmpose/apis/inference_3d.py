@@ -8,8 +8,7 @@ from mmengine.structures import InstanceData
 from mmpose.structures import PoseDataSample
 
 
-def convert_keypoint_definition(keypoints, pose_det_dataset,
-                                pose_lift_dataset):
+def convert_keypoint_definition(keypoints, pose_det_dataset, pose_lift_dataset):
     """Convert pose det dataset keypoints definition to pose lifter dataset
     keypoints definition, so that they are compatible with the definitions
     required for 3D pose lifting.
@@ -22,69 +21,56 @@ def convert_keypoint_definition(keypoints, pose_det_dataset,
     Returns:
         ndarray[K, 2 or 3]: the transformed 2D keypoints.
     """
-    assert pose_lift_dataset in [
-        'h36m', 'h3wb'], '`pose_lift_dataset` should be ' \
-        f'`h36m`, but got {pose_lift_dataset}.'
+    assert pose_lift_dataset in ["h36m", "h3wb"], "`pose_lift_dataset` should be " f"`h36m`, but got {pose_lift_dataset}."
 
-    keypoints_new = np.zeros((keypoints.shape[0], 17, keypoints.shape[2]),
-                             dtype=keypoints.dtype)
-    if pose_lift_dataset in ['h36m', 'h3wb']:
-        if pose_det_dataset in ['h36m', 'coco_wholebody']:
+    keypoints_new = np.zeros((keypoints.shape[0], 17, keypoints.shape[2]), dtype=keypoints.dtype)
+    if pose_lift_dataset in ["h36m", "h3wb"]:
+        if pose_det_dataset in ["h36m", "coco_wholebody"]:
             keypoints_new = keypoints
-        elif pose_det_dataset in ['coco', 'posetrack18']:
+        elif pose_det_dataset in ["coco", "posetrack18"]:
             # pelvis (root) is in the middle of l_hip and r_hip
             keypoints_new[:, 0] = (keypoints[:, 11] + keypoints[:, 12]) / 2
             # thorax is in the middle of l_shoulder and r_shoulder
             keypoints_new[:, 8] = (keypoints[:, 5] + keypoints[:, 6]) / 2
             # spine is in the middle of thorax and pelvis
-            keypoints_new[:,
-                          7] = (keypoints_new[:, 0] + keypoints_new[:, 8]) / 2
+            keypoints_new[:, 7] = (keypoints_new[:, 0] + keypoints_new[:, 8]) / 2
             # in COCO, head is in the middle of l_eye and r_eye
             # in PoseTrack18, head is in the middle of head_bottom and head_top
             keypoints_new[:, 10] = (keypoints[:, 1] + keypoints[:, 2]) / 2
             # rearrange other keypoints
-            keypoints_new[:, [1, 2, 3, 4, 5, 6, 9, 11, 12, 13, 14, 15, 16]] = \
-                keypoints[:, [12, 14, 16, 11, 13, 15, 0, 5, 7, 9, 6, 8, 10]]
-        elif pose_det_dataset in ['aic']:
+            keypoints_new[:, [1, 2, 3, 4, 5, 6, 9, 11, 12, 13, 14, 15, 16]] = keypoints[:, [12, 14, 16, 11, 13, 15, 0, 5, 7, 9, 6, 8, 10]]
+        elif pose_det_dataset in ["aic"]:
             # pelvis (root) is in the middle of l_hip and r_hip
             keypoints_new[:, 0] = (keypoints[:, 9] + keypoints[:, 6]) / 2
             # thorax is in the middle of l_shoulder and r_shoulder
             keypoints_new[:, 8] = (keypoints[:, 3] + keypoints[:, 0]) / 2
             # spine is in the middle of thorax and pelvis
-            keypoints_new[:,
-                          7] = (keypoints_new[:, 0] + keypoints_new[:, 8]) / 2
+            keypoints_new[:, 7] = (keypoints_new[:, 0] + keypoints_new[:, 8]) / 2
             # neck base (top end of neck) is 1/4 the way from
             # neck (bottom end of neck) to head top
             keypoints_new[:, 9] = (3 * keypoints[:, 13] + keypoints[:, 12]) / 4
             # head (spherical centre of head) is 7/12 the way from
             # neck (bottom end of neck) to head top
-            keypoints_new[:, 10] = (5 * keypoints[:, 13] +
-                                    7 * keypoints[:, 12]) / 12
+            keypoints_new[:, 10] = (5 * keypoints[:, 13] + 7 * keypoints[:, 12]) / 12
 
-            keypoints_new[:, [1, 2, 3, 4, 5, 6, 11, 12, 13, 14, 15, 16]] = \
-                keypoints[:, [6, 7, 8, 9, 10, 11, 3, 4, 5, 0, 1, 2]]
-        elif pose_det_dataset in ['crowdpose']:
+            keypoints_new[:, [1, 2, 3, 4, 5, 6, 11, 12, 13, 14, 15, 16]] = keypoints[:, [6, 7, 8, 9, 10, 11, 3, 4, 5, 0, 1, 2]]
+        elif pose_det_dataset in ["crowdpose"]:
             # pelvis (root) is in the middle of l_hip and r_hip
             keypoints_new[:, 0] = (keypoints[:, 6] + keypoints[:, 7]) / 2
             # thorax is in the middle of l_shoulder and r_shoulder
             keypoints_new[:, 8] = (keypoints[:, 0] + keypoints[:, 1]) / 2
             # spine is in the middle of thorax and pelvis
-            keypoints_new[:,
-                          7] = (keypoints_new[:, 0] + keypoints_new[:, 8]) / 2
+            keypoints_new[:, 7] = (keypoints_new[:, 0] + keypoints_new[:, 8]) / 2
             # neck base (top end of neck) is 1/4 the way from
             # neck (bottom end of neck) to head top
             keypoints_new[:, 9] = (3 * keypoints[:, 13] + keypoints[:, 12]) / 4
             # head (spherical centre of head) is 7/12 the way from
             # neck (bottom end of neck) to head top
-            keypoints_new[:, 10] = (5 * keypoints[:, 13] +
-                                    7 * keypoints[:, 12]) / 12
+            keypoints_new[:, 10] = (5 * keypoints[:, 13] + 7 * keypoints[:, 12]) / 12
 
-            keypoints_new[:, [1, 2, 3, 4, 5, 6, 11, 12, 13, 14, 15, 16]] = \
-                keypoints[:, [7, 9, 11, 6, 8, 10, 0, 2, 4, 1, 3, 5]]
+            keypoints_new[:, [1, 2, 3, 4, 5, 6, 11, 12, 13, 14, 15, 16]] = keypoints[:, [7, 9, 11, 6, 8, 10, 0, 2, 4, 1, 3, 5]]
         else:
-            raise NotImplementedError(
-                f'unsupported conversion between {pose_lift_dataset} and '
-                f'{pose_det_dataset}')
+            raise NotImplementedError(f"unsupported conversion between {pose_lift_dataset} and " f"{pose_det_dataset}")
 
     return keypoints_new
 
@@ -119,16 +105,12 @@ def extract_pose_sequence(pose_results, frame_idx, causal, seq_len, step=1):
     pad_left = max(0, frames_left - frame_idx // step)
     pad_right = max(0, frames_right - (num_frames - 1 - frame_idx) // step)
     start = max(frame_idx % step, frame_idx - frames_left * step)
-    end = min(num_frames - (num_frames - 1 - frame_idx) % step,
-              frame_idx + frames_right * step + 1)
-    pose_results_seq = [pose_results[0]] * pad_left + \
-        pose_results[start:end:step] + [pose_results[-1]] * pad_right
+    end = min(num_frames - (num_frames - 1 - frame_idx) % step, frame_idx + frames_right * step + 1)
+    pose_results_seq = [pose_results[0]] * pad_left + pose_results[start:end:step] + [pose_results[-1]] * pad_right
     return pose_results_seq
 
 
-def collate_pose_sequence(pose_results_2d,
-                          with_track_id=True,
-                          target_frame=-1):
+def collate_pose_sequence(pose_results_2d, with_track_id=True, target_frame=-1):
     """Reorganize multi-frame pose detection results into individual pose
     sequences.
 
@@ -164,8 +146,7 @@ def collate_pose_sequence(pose_results_2d,
 
     target_frame = (T + target_frame) % T  # convert negative index to positive
 
-    N = len(
-        pose_results_2d[target_frame])  # use identities in the target frame
+    N = len(pose_results_2d[target_frame])  # use identities in the target frame
     if N == 0:
         return []
 
@@ -181,21 +162,15 @@ def collate_pose_sequence(pose_results_2d,
         pred_instances = InstanceData()
 
         gt_instances = pose_results_2d[target_frame][idx].gt_instances.clone()
-        pred_instances = pose_results_2d[target_frame][
-            idx].pred_instances.clone()
+        pred_instances = pose_results_2d[target_frame][idx].pred_instances.clone()
         pose_seq.pred_instances = pred_instances
         pose_seq.gt_instances = gt_instances
 
         if not with_track_id:
-            pose_seq.pred_instances.keypoints = np.stack([
-                frame[idx].pred_instances.keypoints
-                for frame in pose_results_2d
-            ],
-                                                         axis=1)
+            pose_seq.pred_instances.keypoints = np.stack([frame[idx].pred_instances.keypoints for frame in pose_results_2d], axis=1)
         else:
             keypoints = np.zeros((B, T, K, C), dtype=np.float32)
-            keypoints[:, target_frame] = pose_results_2d[target_frame][
-                idx].pred_instances.keypoints
+            keypoints[:, target_frame] = pose_results_2d[target_frame][idx].pred_instances.keypoints
             # find the left most frame containing track_ids[idx]
             for frame_idx in range(target_frame - 1, -1, -1):
                 contains_idx = False
@@ -206,7 +181,7 @@ def collate_pose_sequence(pose_results_2d,
                         break
                 if not contains_idx:
                     # replicate the left most frame
-                    keypoints[:, :frame_idx + 1] = keypoints[:, frame_idx + 1]
+                    keypoints[:, : frame_idx + 1] = keypoints[:, frame_idx + 1]
                     break
             # find the right most frame containing track_idx[idx]
             for frame_idx in range(target_frame + 1, T):
@@ -218,19 +193,15 @@ def collate_pose_sequence(pose_results_2d,
                         break
                 if not contains_idx:
                     # replicate the right most frame
-                    keypoints[:, frame_idx + 1:] = keypoints[:, frame_idx]
+                    keypoints[:, frame_idx + 1 :] = keypoints[:, frame_idx]
                     break
-            pose_seq.pred_instances.set_field(keypoints, 'keypoints')
+            pose_seq.pred_instances.set_field(keypoints, "keypoints")
         pose_sequences.append(pose_seq)
 
     return pose_sequences
 
 
-def inference_pose_lifter_model(model,
-                                pose_results_2d,
-                                with_track_id=True,
-                                image_size=None,
-                                norm_pose_2d=False):
+def inference_pose_lifter_model(model, pose_results_2d, with_track_id=True, image_size=None, norm_pose_2d=False):
     """Inference 3D pose from 2D pose sequences using a pose lifter model.
 
     Args:
@@ -253,17 +224,17 @@ def inference_pose_lifter_model(model,
         the predicted keypoints and scores are saved at
         ``data_sample.pred_instances.keypoints_3d``.
     """
-    init_default_scope(model.cfg.get('default_scope', 'mmpose'))
+    init_default_scope(model.cfg.get("default_scope", "mmpose"))
     pipeline = Compose(model.cfg.test_dataloader.dataset.pipeline)
 
-    causal = model.cfg.test_dataloader.dataset.get('causal', False)
+    causal = model.cfg.test_dataloader.dataset.get("causal", False)
     target_idx = -1 if causal else len(pose_results_2d) // 2
 
     dataset_info = model.dataset_meta
     if dataset_info is not None:
-        if 'stats_info' in dataset_info:
-            bbox_center = dataset_info['stats_info']['bbox_center']
-            bbox_scale = dataset_info['stats_info']['bbox_scale']
+        if "stats_info" in dataset_info:
+            bbox_center = dataset_info["stats_info"]["bbox_center"]
+            bbox_scale = dataset_info["stats_info"]["bbox_scale"]
         else:
             if norm_pose_2d:
                 # compute the average bbox center and scale from the
@@ -274,11 +245,8 @@ def inference_pose_lifter_model(model,
                 for pose_res in pose_results_2d:
                     for data_sample in pose_res:
                         for bbox in data_sample.pred_instances.bboxes:
-                            bbox_center += np.array([[(bbox[0] + bbox[2]) / 2,
-                                                      (bbox[1] + bbox[3]) / 2]
-                                                     ])
-                            bbox_scale += max(bbox[2] - bbox[0],
-                                              bbox[3] - bbox[1])
+                            bbox_center += np.array([[(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2]])
+                            bbox_scale += max(bbox[2] - bbox[0], bbox[3] - bbox[1])
                             num_bbox += 1
                 bbox_center /= num_bbox
                 bbox_scale /= num_bbox
@@ -292,8 +260,7 @@ def inference_pose_lifter_model(model,
         for j, data_sample in enumerate(pose_res):
             data_sample_copy = PoseDataSample()
             data_sample_copy.gt_instances = data_sample.gt_instances.clone()
-            data_sample_copy.pred_instances = data_sample.pred_instances.clone(
-            )
+            data_sample_copy.pred_instances = data_sample.pred_instances.clone()
             data_sample_copy.track_id = data_sample.track_id
             kpts = data_sample.pred_instances.keypoints
             bboxes = data_sample.pred_instances.bboxes
@@ -302,20 +269,16 @@ def inference_pose_lifter_model(model,
                 kpt = kpts[k]
                 if norm_pose_2d:
                     bbox = bboxes[k]
-                    center = np.array([[(bbox[0] + bbox[2]) / 2,
-                                        (bbox[1] + bbox[3]) / 2]])
+                    center = np.array([[(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2]])
                     scale = max(bbox[2] - bbox[0], bbox[3] - bbox[1])
-                    keypoints.append((kpt[:, :2] - center) / scale *
-                                     bbox_scale + bbox_center)
+                    keypoints.append((kpt[:, :2] - center) / scale * bbox_scale + bbox_center)
                 else:
                     keypoints.append(kpt[:, :2])
-            data_sample_copy.pred_instances.set_field(
-                np.array(keypoints), 'keypoints')
+            data_sample_copy.pred_instances.set_field(np.array(keypoints), "keypoints")
             pose_res_copy.append(data_sample_copy)
         pose_results_2d_copy.append(pose_res_copy)
 
-    pose_sequences_2d = collate_pose_sequence(pose_results_2d_copy,
-                                              with_track_id, target_idx)
+    pose_sequences_2d = collate_pose_sequence(pose_results_2d_copy, with_track_id, target_idx)
 
     if not pose_sequences_2d:
         return []
@@ -325,24 +288,25 @@ def inference_pose_lifter_model(model,
         data_info = dict()
 
         keypoints_2d = pose_seq.pred_instances.keypoints
-        keypoints_2d = np.squeeze(
-            keypoints_2d, axis=0) if keypoints_2d.ndim == 4 else keypoints_2d
+        keypoints_2d = np.squeeze(keypoints_2d, axis=0) if keypoints_2d.ndim == 4 else keypoints_2d
 
         T, K, C = keypoints_2d.shape
 
-        data_info['keypoints'] = keypoints_2d
-        data_info['keypoints_visible'] = np.ones((
-            T,
-            K,
-        ), dtype=np.float32)
-        data_info['lifting_target'] = np.zeros((1, K, 3), dtype=np.float32)
-        data_info['factor'] = np.zeros((T, ), dtype=np.float32)
-        data_info['lifting_target_visible'] = np.ones((1, K, 1),
-                                                      dtype=np.float32)
+        data_info["keypoints"] = keypoints_2d
+        data_info["keypoints_visible"] = np.ones(
+            (
+                T,
+                K,
+            ),
+            dtype=np.float32,
+        )
+        data_info["lifting_target"] = np.zeros((1, K, 3), dtype=np.float32)
+        data_info["factor"] = np.zeros((T,), dtype=np.float32)
+        data_info["lifting_target_visible"] = np.ones((1, K, 1), dtype=np.float32)
 
         if image_size is not None:
             assert len(image_size) == 2
-            data_info['camera_param'] = dict(w=image_size[0], h=image_size[1])
+            data_info["camera_param"] = dict(w=image_size[0], h=image_size[1])
 
         data_info.update(model.dataset_meta)
         data_list.append(pipeline(data_info))

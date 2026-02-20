@@ -10,17 +10,29 @@ from .megvii_heatmap import MegviiHeatmap
 from .motionbert_label import MotionBERTLabel
 from .msra_heatmap import MSRAHeatmap
 from .oks_argmax_heatmap import OKSArgMaxHeatmap
+from .onehot_heatmap import OneHotHeatmap
 from .regression_label import RegressionLabel
 from .simcc_label import SimCCLabel
 from .spr import SPR
 from .udp_heatmap import UDPHeatmap
 from .video_pose_lifting import VideoPoseLifting
-from .onehot_heatmap import OneHotHeatmap
 
 __all__ = [
-    'MSRAHeatmap', 'MegviiHeatmap', 'UDPHeatmap', 'RegressionLabel',
-    'SimCCLabel', 'IntegralRegressionLabel', 'AssociativeEmbedding', 'SPR',
-    'DecoupledHeatmap', 'VideoPoseLifting', 'ImagePoseLifting',
-    'MotionBERTLabel', 'YOLOXPoseAnnotationProcessor', 'EDPoseLabel',
-    'Hand3DHeatmap', 'OKSArgMaxHeatmap', 'OneHotHeatmap'
+    "MSRAHeatmap",
+    "MegviiHeatmap",
+    "UDPHeatmap",
+    "RegressionLabel",
+    "SimCCLabel",
+    "IntegralRegressionLabel",
+    "AssociativeEmbedding",
+    "SPR",
+    "DecoupledHeatmap",
+    "VideoPoseLifting",
+    "ImagePoseLifting",
+    "MotionBERTLabel",
+    "YOLOXPoseAnnotationProcessor",
+    "EDPoseLabel",
+    "Hand3DHeatmap",
+    "OKSArgMaxHeatmap",
+    "OneHotHeatmap",
 ]

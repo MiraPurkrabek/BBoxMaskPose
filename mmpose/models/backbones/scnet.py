@@ -9,6 +9,7 @@ from mmcv.cnn import build_conv_layer, build_norm_layer
 from mmengine.model import BaseModule
 
 from mmpose.registry import MODELS
+
 from .resnet import Bottleneck, ResNet
 
 
@@ -28,14 +29,7 @@ class SCConv(BaseModule):
             Default: None
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 stride,
-                 pooling_r,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN', momentum=0.1),
-                 init_cfg=None):
+    def __init__(self, in_channels, out_channels, stride, pooling_r, conv_cfg=None, norm_cfg=dict(type="BN", momentum=0.1), init_cfg=None):
         # Protect mutable default arguments
         norm_cfg = copy.deepcopy(norm_cfg)
         super().__init__(init_cfg=init_cfg)
@@ -44,36 +38,15 @@ class SCConv(BaseModule):
 
         self.k2 = nn.Sequential(
             nn.AvgPool2d(kernel_size=pooling_r, stride=pooling_r),
-            build_conv_layer(
-                conv_cfg,
-                in_channels,
-                in_channels,
-                kernel_size=3,
-                stride=1,
-                padding=1,
-                bias=False),
+            build_conv_layer(conv_cfg, in_channels, in_channels, kernel_size=3, stride=1, padding=1, bias=False),
             build_norm_layer(norm_cfg, in_channels)[1],
         )
         self.k3 = nn.Sequential(
-            build_conv_layer(
-                conv_cfg,
-                in_channels,
-                in_channels,
-                kernel_size=3,
-                stride=1,
-                padding=1,
-                bias=False),
+            build_conv_layer(conv_cfg, in_channels, in_channels, kernel_size=3, stride=1, padding=1, bias=False),
             build_norm_layer(norm_cfg, in_channels)[1],
         )
         self.k4 = nn.Sequential(
-            build_conv_layer(
-                conv_cfg,
-                in_channels,
-                in_channels,
-                kernel_size=3,
-                stride=stride,
-                padding=1,
-                bias=False),
+            build_conv_layer(conv_cfg, in_channels, in_channels, kernel_size=3, stride=stride, padding=1, bias=False),
             build_norm_layer(norm_cfg, out_channels)[1],
             nn.ReLU(inplace=True),
         )
@@ -82,9 +55,7 @@ class SCConv(BaseModule):
         """Forward function."""
         identity = x
 
-        out = torch.sigmoid(
-            torch.add(identity, F.interpolate(self.k2(x),
-                                              identity.size()[2:])))
+        out = torch.sigmoid(torch.add(identity, F.interpolate(self.k2(x), identity.size()[2:])))
         out = torch.mul(self.k3(x), out)
         out = self.k4(out)
 
@@ -105,53 +76,25 @@ class SCBottleneck(Bottleneck):
         super().__init__(in_channels, out_channels, **kwargs)
         self.mid_channels = out_channels // self.expansion // 2
 
-        self.norm1_name, norm1 = build_norm_layer(
-            self.norm_cfg, self.mid_channels, postfix=1)
-        self.norm2_name, norm2 = build_norm_layer(
-            self.norm_cfg, self.mid_channels, postfix=2)
-        self.norm3_name, norm3 = build_norm_layer(
-            self.norm_cfg, out_channels, postfix=3)
+        self.norm1_name, norm1 = build_norm_layer(self.norm_cfg, self.mid_channels, postfix=1)
+        self.norm2_name, norm2 = build_norm_layer(self.norm_cfg, self.mid_channels, postfix=2)
+        self.norm3_name, norm3 = build_norm_layer(self.norm_cfg, out_channels, postfix=3)
 
-        self.conv1 = build_conv_layer(
-            self.conv_cfg,
-            in_channels,
-            self.mid_channels,
-            kernel_size=1,
-            stride=1,
-            bias=False)
+        self.conv1 = build_conv_layer(self.conv_cfg, in_channels, self.mid_channels, kernel_size=1, stride=1, bias=False)
         self.add_module(self.norm1_name, norm1)
 
         self.k1 = nn.Sequential(
-            build_conv_layer(
-                self.conv_cfg,
-                self.mid_channels,
-                self.mid_channels,
-                kernel_size=3,
-                stride=self.stride,
-                padding=1,
-                bias=False),
+            build_conv_layer(self.conv_cfg, self.mid_channels, self.mid_channels, kernel_size=3, stride=self.stride, padding=1, bias=False),
             build_norm_layer(self.norm_cfg, self.mid_channels)[1],
-            nn.ReLU(inplace=True))
+            nn.ReLU(inplace=True),
+        )
 
-        self.conv2 = build_conv_layer(
-            self.conv_cfg,
-            in_channels,
-            self.mid_channels,
-            kernel_size=1,
-            stride=1,
-            bias=False)
+        self.conv2 = build_conv_layer(self.conv_cfg, in_channels, self.mid_channels, kernel_size=1, stride=1, bias=False)
         self.add_module(self.norm2_name, norm2)
 
-        self.scconv = SCConv(self.mid_channels, self.mid_channels, self.stride,
-                             self.pooling_r, self.conv_cfg, self.norm_cfg)
+        self.scconv = SCConv(self.mid_channels, self.mid_channels, self.stride, self.pooling_r, self.conv_cfg, self.norm_cfg)
 
-        self.conv3 = build_conv_layer(
-            self.conv_cfg,
-            self.mid_channels * 2,
-            out_channels,
-            kernel_size=1,
-            stride=1,
-            bias=False)
+        self.conv3 = build_conv_layer(self.conv_cfg, self.mid_channels * 2, out_channels, kernel_size=1, stride=1, bias=False)
         self.add_module(self.norm3_name, norm3)
 
     def forward(self, x):
@@ -241,12 +184,9 @@ class SCNet(ResNet):
         (1, 2048, 7, 7)
     """
 
-    arch_settings = {
-        50: (SCBottleneck, [3, 4, 6, 3]),
-        101: (SCBottleneck, [3, 4, 23, 3])
-    }
+    arch_settings = {50: (SCBottleneck, [3, 4, 6, 3]), 101: (SCBottleneck, [3, 4, 23, 3])}
 
     def __init__(self, depth, **kwargs):
         if depth not in self.arch_settings:
-            raise KeyError(f'invalid depth {depth} for SCNet')
+            raise KeyError(f"invalid depth {depth} for SCNet")
         super().__init__(depth, **kwargs)

@@ -104,44 +104,45 @@ class Human36mDataset(BaseMocapDataset):
             image. Default: 1000.
     """
 
-    METAINFO: dict = dict(from_file='configs/_base_/datasets/h36m.py')
-    SUPPORTED_keypoint_2d_src = {'gt', 'detection', 'pipeline'}
+    METAINFO: dict = dict(from_file="configs/_base_/datasets/h36m.py")
+    SUPPORTED_keypoint_2d_src = {"gt", "detection", "pipeline"}
 
-    def __init__(self,
-                 ann_file: str = '',
-                 seq_len: int = 1,
-                 seq_step: int = 1,
-                 multiple_target: int = 0,
-                 multiple_target_step: int = 0,
-                 pad_video_seq: bool = False,
-                 causal: bool = True,
-                 subset_frac: float = 1.0,
-                 keypoint_2d_src: str = 'gt',
-                 keypoint_2d_det_file: Optional[str] = None,
-                 factor_file: Optional[str] = None,
-                 camera_param_file: Optional[str] = None,
-                 data_mode: str = 'topdown',
-                 metainfo: Optional[dict] = None,
-                 data_root: Optional[str] = None,
-                 data_prefix: dict = dict(img=''),
-                 filter_cfg: Optional[dict] = None,
-                 indices: Optional[Union[int, Sequence[int]]] = None,
-                 serialize_data: bool = True,
-                 pipeline: List[Union[dict, Callable]] = [],
-                 test_mode: bool = False,
-                 lazy_init: bool = False,
-                 max_refetch: int = 1000):
+    def __init__(
+        self,
+        ann_file: str = "",
+        seq_len: int = 1,
+        seq_step: int = 1,
+        multiple_target: int = 0,
+        multiple_target_step: int = 0,
+        pad_video_seq: bool = False,
+        causal: bool = True,
+        subset_frac: float = 1.0,
+        keypoint_2d_src: str = "gt",
+        keypoint_2d_det_file: Optional[str] = None,
+        factor_file: Optional[str] = None,
+        camera_param_file: Optional[str] = None,
+        data_mode: str = "topdown",
+        metainfo: Optional[dict] = None,
+        data_root: Optional[str] = None,
+        data_prefix: dict = dict(img=""),
+        filter_cfg: Optional[dict] = None,
+        indices: Optional[Union[int, Sequence[int]]] = None,
+        serialize_data: bool = True,
+        pipeline: List[Union[dict, Callable]] = [],
+        test_mode: bool = False,
+        lazy_init: bool = False,
+        max_refetch: int = 1000,
+    ):
         # check keypoint_2d_src
         self.keypoint_2d_src = keypoint_2d_src
         if self.keypoint_2d_src not in self.SUPPORTED_keypoint_2d_src:
             raise ValueError(
-                f'Unsupported `keypoint_2d_src` "{self.keypoint_2d_src}". '
-                f'Supported options are {self.SUPPORTED_keypoint_2d_src}')
+                f'Unsupported `keypoint_2d_src` "{self.keypoint_2d_src}". ' f"Supported options are {self.SUPPORTED_keypoint_2d_src}"
+            )
 
         if keypoint_2d_det_file:
             if not is_abs(keypoint_2d_det_file):
-                self.keypoint_2d_det_file = osp.join(data_root,
-                                                     keypoint_2d_det_file)
+                self.keypoint_2d_det_file = osp.join(data_root, keypoint_2d_det_file)
             else:
                 self.keypoint_2d_det_file = keypoint_2d_det_file
 
@@ -151,8 +152,7 @@ class Human36mDataset(BaseMocapDataset):
         if factor_file:
             if not is_abs(factor_file):
                 factor_file = osp.join(data_root, factor_file)
-            assert exists(factor_file), (f'`factor_file`: {factor_file}'
-                                         'does not exist.')
+            assert exists(factor_file), f"`factor_file`: {factor_file}" "does not exist."
         self.factor_file = factor_file
 
         if multiple_target > 0 and multiple_target_step == 0:
@@ -176,14 +176,15 @@ class Human36mDataset(BaseMocapDataset):
             pipeline=pipeline,
             test_mode=test_mode,
             lazy_init=lazy_init,
-            max_refetch=max_refetch)
+            max_refetch=max_refetch,
+        )
 
     def get_sequence_indices(self) -> List[List[int]]:
         """Split original videos into sequences and build frame indices.
 
         This method overrides the default one in the base class.
         """
-        imgnames = self.ann_data['imgname']
+        imgnames = self.ann_data["imgname"]
         video_frames = defaultdict(list)
         for idx, imgname in enumerate(imgnames):
             subj, action, camera = self._parse_h36m_imgname(imgname)
@@ -197,11 +198,9 @@ class Human36mDataset(BaseMocapDataset):
         if self.multiple_target:
             for _, _indices in sorted(video_frames.items()):
                 n_frame = len(_indices)
-                seqs_from_video = [
-                    _indices[i:(i + self.multiple_target):_step]
-                    for i in range(0, n_frame, self.multiple_target_step)
-                ][:(n_frame + self.multiple_target_step -
-                    self.multiple_target) // self.multiple_target_step]
+                seqs_from_video = [_indices[i : (i + self.multiple_target) : _step] for i in range(0, n_frame, self.multiple_target_step)][
+                    : (n_frame + self.multiple_target_step - self.multiple_target) // self.multiple_target_step
+                ]
                 sequence_indices.extend(seqs_from_video)
 
         else:
@@ -219,19 +218,12 @@ class Human36mDataset(BaseMocapDataset):
                         frames_right = frames_left
                     for i in range(n_frame):
                         pad_left = max(0, frames_left - i // _step)
-                        pad_right = max(
-                            0, frames_right - (n_frame - 1 - i) // _step)
+                        pad_right = max(0, frames_right - (n_frame - 1 - i) // _step)
                         start = max(i % _step, i - frames_left * _step)
-                        end = min(n_frame - (n_frame - 1 - i) % _step,
-                                  i + frames_right * _step + 1)
-                        sequence_indices.append([_indices[0]] * pad_left +
-                                                _indices[start:end:_step] +
-                                                [_indices[-1]] * pad_right)
+                        end = min(n_frame - (n_frame - 1 - i) % _step, i + frames_right * _step + 1)
+                        sequence_indices.append([_indices[0]] * pad_left + _indices[start:end:_step] + [_indices[-1]] * pad_right)
                 else:
-                    seqs_from_video = [
-                        _indices[i:(i + _len):_step]
-                        for i in range(0, n_frame - _len + 1)
-                    ]
+                    seqs_from_video = [_indices[i : (i + _len) : _step] for i in range(0, n_frame - _len + 1)]
                     sequence_indices.extend(seqs_from_video)
 
         # reduce dataset size if needed
@@ -247,45 +239,38 @@ class Human36mDataset(BaseMocapDataset):
         instance_list, image_list = super()._load_annotations()
 
         h36m_data = self.ann_data
-        kpts_3d = h36m_data['S']
+        kpts_3d = h36m_data["S"]
 
-        if self.keypoint_2d_src == 'detection':
-            assert exists(self.keypoint_2d_det_file), (
-                f'`keypoint_2d_det_file`: `{self.keypoint_2d_det_file}`'
-                'does not exist.')
-            kpts_2d = self._load_keypoint_2d_detection(
-                self.keypoint_2d_det_file)
+        if self.keypoint_2d_src == "detection":
+            assert exists(self.keypoint_2d_det_file), f"`keypoint_2d_det_file`: `{self.keypoint_2d_det_file}`" "does not exist."
+            kpts_2d = self._load_keypoint_2d_detection(self.keypoint_2d_det_file)
             assert kpts_2d.shape[0] == kpts_3d.shape[0], (
-                f'Number of `kpts_2d` ({kpts_2d.shape[0]}) does not match '
-                f'number of `kpts_3d` ({kpts_3d.shape[0]}).')
+                f"Number of `kpts_2d` ({kpts_2d.shape[0]}) does not match " f"number of `kpts_3d` ({kpts_3d.shape[0]})."
+            )
 
             assert kpts_2d.shape[2] == 3, (
-                f'Expect `kpts_2d.shape[2]` == 3, but got '
-                f'{kpts_2d.shape[2]}. Please check the format of '
-                f'{self.keypoint_2d_det_file}')
+                f"Expect `kpts_2d.shape[2]` == 3, but got "
+                f"{kpts_2d.shape[2]}. Please check the format of "
+                f"{self.keypoint_2d_det_file}"
+            )
 
             for idx, frame_ids in enumerate(self.sequence_indices):
                 kpt_2d = kpts_2d[frame_ids].astype(np.float32)
                 keypoints = kpt_2d[..., :2]
                 keypoints_visible = kpt_2d[..., 2]
-                instance_list[idx].update({
-                    'keypoints':
-                    keypoints,
-                    'keypoints_visible':
-                    keypoints_visible
-                })
+                instance_list[idx].update({"keypoints": keypoints, "keypoints_visible": keypoints_visible})
         if self.factor_file:
             with get_local_path(self.factor_file) as local_path:
                 factors = np.load(local_path).astype(np.float32)
         else:
-            factors = np.zeros((kpts_3d.shape[0], ), dtype=np.float32)
+            factors = np.zeros((kpts_3d.shape[0],), dtype=np.float32)
         assert factors.shape[0] == kpts_3d.shape[0], (
-            f'Number of `factors` ({factors.shape[0]}) does not match '
-            f'number of `kpts_3d` ({kpts_3d.shape[0]}).')
+            f"Number of `factors` ({factors.shape[0]}) does not match " f"number of `kpts_3d` ({kpts_3d.shape[0]})."
+        )
 
         for idx, frame_ids in enumerate(self.sequence_indices):
             factor = factors[frame_ids].astype(np.float32)
-            instance_list[idx].update({'factor': factor})
+            instance_list[idx].update({"factor": factor})
 
         return instance_list, image_list
 
@@ -296,19 +281,19 @@ class Human36mDataset(BaseMocapDataset):
         A typical h36m image filename is like:
         S1_Directions_1.54138969_000001.jpg
         """
-        subj, rest = osp.basename(imgname).split('_', 1)
-        action, rest = rest.split('.', 1)
-        camera, rest = rest.split('_', 1)
+        subj, rest = osp.basename(imgname).split("_", 1)
+        action, rest = rest.split(".", 1)
+        camera, rest = rest.split("_", 1)
         return subj, action, camera
 
     def get_camera_param(self, imgname) -> dict:
         """Get camera parameters of a frame by its image name."""
-        assert hasattr(self, 'camera_param')
+        assert hasattr(self, "camera_param")
         subj, _, camera = self._parse_h36m_imgname(imgname)
         return self.camera_param[(subj, camera)]
 
     def _load_keypoint_2d_detection(self, det_file):
-        """"Load 2D joint detection results from file."""
+        """ "Load 2D joint detection results from file."""
         with get_local_path(det_file) as local_path:
             kpts_2d = np.load(local_path).astype(np.float32)
 

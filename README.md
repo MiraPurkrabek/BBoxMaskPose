@@ -44,6 +44,9 @@
 
 ## 📢 News
 
+- **Feb 2026**: Version 2.0 with improved (1) pose and (2) SAM and (3) wiring to 3D prediction released. 
+- **Feb 2026**: SAM-pose2seg won a Best Paper Award on CVWW 2026 🎉
+- **Jan 2026**: [BMPv2 paper](https://arxiv.org/abs/2601.15200) is available on arXiv
 - **Aug 2025**: [HuggingFace Image Demo](https://huggingface.co/spaces/purkrmir/BBoxMaskPose-demo) is out! 🎮
 - **Jul 2025**: Version 1.1 with easy-to-run image demo released
 - **Jun 2025**: BMPv1 paper accepted to ICCV 2025! 🎉
@@ -147,13 +150,6 @@ pip install -e .
 
 ## 🎮 Demo
 
-**Step 1:** Download SAM2 weights using the [enclosed script](models/SAM/download_ckpts.sh):
-```bash
-bash models/SAM/download_ckpts.sh
-```
-
-**Step 2:** Run demos:
-
 #### PMPose Demo (Pose Estimation Only)
 ```bash
 python demos/PMPose_demo.py --image data/004806.jpg --device cuda
@@ -161,7 +157,7 @@ python demos/PMPose_demo.py --image data/004806.jpg --device cuda
 
 #### BBoxMaskPose Demo (Full Pipeline)
 ```bash
-python demos/BMP_demo.py --image data/004806.jpg --device cuda --config BMP_D3
+python demos/BMP_demo.py --image data/004806.jpg --device cuda
 ```
 
 After running the demo, outputs are in `outputs/004806/`. The expected output should look like this:
@@ -174,6 +170,38 @@ After running the demo, outputs are in `outputs/004806/`. The expected output sh
     <img src="data/assets/004806_pose.jpg" alt="Pose results" width="200" style="margin-right:10px;" />
   </a>
 </div>
+
+#### BBoxMaskPose v2 Demo (Full Pipeline + 3D Mesh Recovery)
+This demo extends BMP with [SAM-3D-Body](https://github.com/facebookresearch/sam-3d-body) for 3D human mesh recovery:
+```bash
+# Basic usage (auto-downloads checkpoint from HuggingFace)
+python demos/BMPv2_demo.py --image data/004806.jpg --device cuda
+
+# With local checkpoint
+python demos/BMPv2_demo.py --image data/004806.jpg --device cuda \
+    --sam3d_checkpoint checkpoints/sam-3d-body-dinov3/model.ckpt \
+    --mhr_path checkpoints/sam-3d-body-dinov3/assets/mhr_model.pt
+```
+
+**SAM-3D-Body Installation (Optional):**
+BMPv2 requires SAM-3D-Body for 3D mesh recovery. Install it separately:
+```bash
+# 1. Install dependencies
+pip install -r requirements/sam3d.txt
+
+# 2. Install detectron2
+pip install 'git+https://github.com/facebookresearch/detectron2.git@a1ce2f9' --no-build-isolation --no-deps
+
+# 3. Install MoGe (optional, for FOV estimation)
+pip install git+https://github.com/microsoft/MoGe.git
+
+# 4. Install adapted SAM-3D-Body repository
+pip install git+https://github.com/MiraPurkrabek/sam-3d-body.git
+
+# 5. Request access to checkpoints at https://huggingface.co/facebook/sam-3d-body-dinov3
+```
+
+For more details, see [SAM-3D-Body installation guide](https://github.com/facebookresearch/sam-3d-body/blob/main/INSTALL.md).
 
 #### Jupyter Notebook
 Interactive demo with both PMPose and BBoxMaskPose:
@@ -226,18 +254,20 @@ Our detector and pose estimator will be downloaded during the runtime.
 
 If you want to download our weights yourself, here are the links to our HuggingFace:
 - ViTPose-b trained on COCO+MPII+AIC -- [download weights](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/ViTPose-b-multi_mmpose20.pth)
-- MaskPose-b -- [download weights](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose/MaskPose-b-1.0.0.pth)
+- MaskPose-b -- [download weights](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose-b.pth)
 - Fine-tuned RTMDet-L -- [download weights](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/rtmdet-ins-l-mask.pth)
 
 ## 🙏 Acknowledgments
 
-The code combines [MMDetection](https://github.com/open-mmlab/mmdetection), [MMPose 2.0](https://github.com/open-mmlab/mmpose), [ViTPose](https://github.com/ViTAE-Transformer/ViTPose) and [SAM 2.1](https://github.com/facebookresearch/sam2).
+The code combines [MMDetection](https://github.com/open-mmlab/mmdetection), [MMPose 2.0](https://github.com/open-mmlab/mmpose), [ViTPose](https://github.com/ViTAE-Transformer/ViTPose), [SAM 2.1](https://github.com/facebookresearch/sam2) and [SAM-3D-Body](https://github.com/facebookresearch/sam-3d-body).
+
+Our visualizations integrate [Distinctipy](https://github.com/alan-turing-institute/distinctipy) for automatic color selection.
 
 This repository combines our work on BBoxMaskPose project with our previous work on [probabilistic 2D human pose estimation modelling](https://mirapurkrabek.github.io/ProbPose/).
 
 ## 📝 Citation
 
-The code was implemented by [Miroslav Purkrábek]([htt]https://mirapurkrabek.github.io/).
+The code was implemented by [Miroslav Purkrábek](https://mirapurkrabek.github.io/) and Constantin Kolomiiets.
 If you use this work, kindly cite it using the references provided below.
 
 For questions, please use the Issues of Discussion.
@@ -257,8 +287,17 @@ For questions, please use the Issues of Discussion.
 @InProceedings{Purkrabek2026BMPv2,
     author    = {Purkrabek, Miroslav and Kolomiiets, Constantin and Matas, Jiri},
     title     = {BBoxMaskPose v2: Expanding Mutual Conditioning to 3D},
-    booktitle = {arXiv preprint arXiv:to be added},
+    booktitle = {arXiv preprint arXiv:2601.15200},
     year      = {2026}
+}
+```
+
+```
+@article{yang2025sam3dbody,
+  title={SAM 3D Body: Robust Full-Body Human Mesh Recovery},
+  author={Yang, Xitong and Kukreja, Devansh and Pinkus, Don and Sagar, Anushka and Fan, Taosha and Park, Jinhyung and Shin, Soyong and Cao, Jinkun and Liu, Jiawei and Ugrinovic, Nicolas and Feiszli, Matt and Malik, Jitendra and Dollar, Piotr and Kitani, Kris},
+  journal={arXiv preprint; identifier to be added},
+  year={2025}
 }
 ```
 

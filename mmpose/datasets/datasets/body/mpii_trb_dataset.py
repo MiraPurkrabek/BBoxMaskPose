@@ -8,6 +8,7 @@ from mmengine.fileio import exists, get_local_path
 
 from mmpose.registry import DATASETS
 from mmpose.structures.bbox import bbox_cs2xyxy
+
 from ..base import BaseCocoStyleDataset
 
 
@@ -101,71 +102,68 @@ class MpiiTrbDataset(BaseCocoStyleDataset):
             image. Default: 1000.
     """
 
-    METAINFO: dict = dict(from_file='configs/_base_/datasets/mpii_trb.py')
+    METAINFO: dict = dict(from_file="configs/_base_/datasets/mpii_trb.py")
 
     def _load_annotations(self) -> Tuple[List[dict], List[dict]]:
         """Load data from annotations in MPII-TRB format."""
 
-        assert exists(self.ann_file), (
-            f'Annotation file `{self.ann_file}` does not exist')
+        assert exists(self.ann_file), f"Annotation file `{self.ann_file}` does not exist"
 
         with get_local_path(self.ann_file) as local_path:
             with open(local_path) as anno_file:
                 self.data = json.load(anno_file)
 
-        imgid2info = {img['id']: img for img in self.data['images']}
+        imgid2info = {img["id"]: img for img in self.data["images"]}
 
         instance_list = []
         image_list = []
         used_img_ids = set()
 
         # mpii-trb bbox scales are normalized with factor 200.
-        pixel_std = 200.
+        pixel_std = 200.0
 
-        for ann in self.data['annotations']:
-            img_id = ann['image_id']
+        for ann in self.data["annotations"]:
+            img_id = ann["image_id"]
 
             # center, scale in shape [1, 2] and bbox in [1, 4]
-            center = np.array([ann['center']], dtype=np.float32)
-            scale = np.array([[ann['scale'], ann['scale']]],
-                             dtype=np.float32) * pixel_std
+            center = np.array([ann["center"]], dtype=np.float32)
+            scale = np.array([[ann["scale"], ann["scale"]]], dtype=np.float32) * pixel_std
             bbox = bbox_cs2xyxy(center, scale)
 
             # keypoints in shape [1, K, 2] and keypoints_visible in [1, K]
-            _keypoints = np.array(
-                ann['keypoints'], dtype=np.float32).reshape(1, -1, 3)
+            _keypoints = np.array(ann["keypoints"], dtype=np.float32).reshape(1, -1, 3)
             keypoints = _keypoints[..., :2]
             keypoints_visible = np.minimum(1, _keypoints[..., 2])
 
-            img_path = osp.join(self.data_prefix['img'],
-                                imgid2info[img_id]['file_name'])
+            img_path = osp.join(self.data_prefix["img"], imgid2info[img_id]["file_name"])
 
             instance_info = {
-                'id': ann['id'],
-                'img_id': img_id,
-                'img_path': img_path,
-                'bbox_center': center,
-                'bbox_scale': scale,
-                'bbox': bbox,
-                'bbox_score': np.ones(1, dtype=np.float32),
-                'num_keypoints': ann['num_joints'],
-                'keypoints': keypoints,
-                'keypoints_visible': keypoints_visible,
-                'iscrowd': ann['iscrowd'],
+                "id": ann["id"],
+                "img_id": img_id,
+                "img_path": img_path,
+                "bbox_center": center,
+                "bbox_scale": scale,
+                "bbox": bbox,
+                "bbox_score": np.ones(1, dtype=np.float32),
+                "num_keypoints": ann["num_joints"],
+                "keypoints": keypoints,
+                "keypoints_visible": keypoints_visible,
+                "iscrowd": ann["iscrowd"],
             }
 
             # val set
-            if 'headbox' in ann:
-                instance_info['headbox'] = np.array(
-                    ann['headbox'], dtype=np.float32)
+            if "headbox" in ann:
+                instance_info["headbox"] = np.array(ann["headbox"], dtype=np.float32)
 
             instance_list.append(instance_info)
-            if instance_info['img_id'] not in used_img_ids:
-                used_img_ids.add(instance_info['img_id'])
-                image_list.append({
-                    'img_id': instance_info['img_id'],
-                    'img_path': instance_info['img_path'],
-                })
+            if instance_info["img_id"] not in used_img_ids:
+                used_img_ids.add(instance_info["img_id"])
+                image_list.append(
+                    {
+                        "img_id": instance_info["img_id"],
+                        "img_path": instance_info["img_path"],
+                    }
+                )
 
-        instance_list = sorted(instance_list, key=lambda x: x['id'])
+        instance_list = sorted(instance_list, key=lambda x: x["id"])
         return instance_list, image_list

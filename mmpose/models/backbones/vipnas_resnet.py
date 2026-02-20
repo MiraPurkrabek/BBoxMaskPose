@@ -9,6 +9,7 @@ from mmengine.model import BaseModule, Sequential
 from mmengine.utils.dl_utils.parrots_wrapper import _BatchNorm
 
 from mmpose.registry import MODELS
+
 from .base_backbone import BaseBackbone
 
 
@@ -41,25 +42,27 @@ class ViPNAS_Bottleneck(BaseModule):
             Default: None
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 expansion=4,
-                 stride=1,
-                 dilation=1,
-                 downsample=None,
-                 style='pytorch',
-                 with_cp=False,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN'),
-                 kernel_size=3,
-                 groups=1,
-                 attention=False,
-                 init_cfg=None):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        expansion=4,
+        stride=1,
+        dilation=1,
+        downsample=None,
+        style="pytorch",
+        with_cp=False,
+        conv_cfg=None,
+        norm_cfg=dict(type="BN"),
+        kernel_size=3,
+        groups=1,
+        attention=False,
+        init_cfg=None,
+    ):
         # Protect mutable default arguments
         norm_cfg = copy.deepcopy(norm_cfg)
         super().__init__(init_cfg=init_cfg)
-        assert style in ['pytorch', 'caffe']
+        assert style in ["pytorch", "caffe"]
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -73,27 +76,18 @@ class ViPNAS_Bottleneck(BaseModule):
         self.conv_cfg = conv_cfg
         self.norm_cfg = norm_cfg
 
-        if self.style == 'pytorch':
+        if self.style == "pytorch":
             self.conv1_stride = 1
             self.conv2_stride = stride
         else:
             self.conv1_stride = stride
             self.conv2_stride = 1
 
-        self.norm1_name, norm1 = build_norm_layer(
-            norm_cfg, self.mid_channels, postfix=1)
-        self.norm2_name, norm2 = build_norm_layer(
-            norm_cfg, self.mid_channels, postfix=2)
-        self.norm3_name, norm3 = build_norm_layer(
-            norm_cfg, out_channels, postfix=3)
+        self.norm1_name, norm1 = build_norm_layer(norm_cfg, self.mid_channels, postfix=1)
+        self.norm2_name, norm2 = build_norm_layer(norm_cfg, self.mid_channels, postfix=2)
+        self.norm3_name, norm3 = build_norm_layer(norm_cfg, out_channels, postfix=3)
 
-        self.conv1 = build_conv_layer(
-            conv_cfg,
-            in_channels,
-            self.mid_channels,
-            kernel_size=1,
-            stride=self.conv1_stride,
-            bias=False)
+        self.conv1 = build_conv_layer(conv_cfg, in_channels, self.mid_channels, kernel_size=1, stride=self.conv1_stride, bias=False)
         self.add_module(self.norm1_name, norm1)
         self.conv2 = build_conv_layer(
             conv_cfg,
@@ -104,20 +98,15 @@ class ViPNAS_Bottleneck(BaseModule):
             padding=kernel_size // 2,
             groups=groups,
             dilation=dilation,
-            bias=False)
+            bias=False,
+        )
 
         self.add_module(self.norm2_name, norm2)
-        self.conv3 = build_conv_layer(
-            conv_cfg,
-            self.mid_channels,
-            out_channels,
-            kernel_size=1,
-            bias=False)
+        self.conv3 = build_conv_layer(conv_cfg, self.mid_channels, out_channels, kernel_size=1, bias=False)
         self.add_module(self.norm3_name, norm3)
 
         if attention:
-            self.attention = ContextBlock(out_channels,
-                                          max(1.0 / 16, 16.0 / out_channels))
+            self.attention = ContextBlock(out_channels, max(1.0 / 16, 16.0 / out_channels))
         else:
             self.attention = None
 
@@ -197,14 +186,14 @@ def get_expansion(block, expansion=None):
     if isinstance(expansion, int):
         assert expansion > 0
     elif expansion is None:
-        if hasattr(block, 'expansion'):
+        if hasattr(block, "expansion"):
             expansion = block.expansion
         elif issubclass(block, ViPNAS_Bottleneck):
             expansion = 1
         else:
-            raise TypeError(f'expansion is not specified for {block.__name__}')
+            raise TypeError(f"expansion is not specified for {block.__name__}")
     else:
-        raise TypeError('expansion must be an integer or None')
+        raise TypeError("expansion must be an integer or None")
 
     return expansion
 
@@ -241,22 +230,24 @@ class ViPNAS_ResLayer(Sequential):
             Default: None
     """
 
-    def __init__(self,
-                 block,
-                 num_blocks,
-                 in_channels,
-                 out_channels,
-                 expansion=None,
-                 stride=1,
-                 avg_down=False,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN'),
-                 downsample_first=True,
-                 kernel_size=3,
-                 groups=1,
-                 attention=False,
-                 init_cfg=None,
-                 **kwargs):
+    def __init__(
+        self,
+        block,
+        num_blocks,
+        in_channels,
+        out_channels,
+        expansion=None,
+        stride=1,
+        avg_down=False,
+        conv_cfg=None,
+        norm_cfg=dict(type="BN"),
+        downsample_first=True,
+        kernel_size=3,
+        groups=1,
+        attention=False,
+        init_cfg=None,
+        **kwargs,
+    ):
         # Protect mutable default arguments
         norm_cfg = copy.deepcopy(norm_cfg)
         self.block = block
@@ -268,22 +259,13 @@ class ViPNAS_ResLayer(Sequential):
             conv_stride = stride
             if avg_down and stride != 1:
                 conv_stride = 1
-                downsample.append(
-                    nn.AvgPool2d(
-                        kernel_size=stride,
-                        stride=stride,
-                        ceil_mode=True,
-                        count_include_pad=False))
-            downsample.extend([
-                build_conv_layer(
-                    conv_cfg,
-                    in_channels,
-                    out_channels,
-                    kernel_size=1,
-                    stride=conv_stride,
-                    bias=False),
-                build_norm_layer(norm_cfg, out_channels)[1]
-            ])
+                downsample.append(nn.AvgPool2d(kernel_size=stride, stride=stride, ceil_mode=True, count_include_pad=False))
+            downsample.extend(
+                [
+                    build_conv_layer(conv_cfg, in_channels, out_channels, kernel_size=1, stride=conv_stride, bias=False),
+                    build_norm_layer(norm_cfg, out_channels)[1],
+                ]
+            )
             downsample = nn.Sequential(*downsample)
 
         layers = []
@@ -300,7 +282,9 @@ class ViPNAS_ResLayer(Sequential):
                     kernel_size=kernel_size,
                     groups=groups,
                     attention=attention,
-                    **kwargs))
+                    **kwargs,
+                )
+            )
             in_channels = out_channels
             for _ in range(1, num_blocks):
                 layers.append(
@@ -314,7 +298,9 @@ class ViPNAS_ResLayer(Sequential):
                         kernel_size=kernel_size,
                         groups=groups,
                         attention=attention,
-                        **kwargs))
+                        **kwargs,
+                    )
+                )
         else:  # downsample_first=False is for HourglassModule
             for i in range(0, num_blocks - 1):
                 layers.append(
@@ -328,7 +314,9 @@ class ViPNAS_ResLayer(Sequential):
                         kernel_size=kernel_size,
                         groups=groups,
                         attention=attention,
-                        **kwargs))
+                        **kwargs,
+                    )
+                )
             layers.append(
                 block(
                     in_channels=in_channels,
@@ -341,7 +329,9 @@ class ViPNAS_ResLayer(Sequential):
                     kernel_size=kernel_size,
                     groups=groups,
                     attention=attention,
-                    **kwargs))
+                    **kwargs,
+                )
+            )
 
         super().__init__(*layers, init_cfg=init_cfg)
 
@@ -405,40 +395,36 @@ class ViPNAS_ResNet(BaseBackbone):
         50: ViPNAS_Bottleneck,
     }
 
-    def __init__(self,
-                 depth,
-                 in_channels=3,
-                 num_stages=4,
-                 strides=(1, 2, 2, 2),
-                 dilations=(1, 1, 1, 1),
-                 out_indices=(3, ),
-                 style='pytorch',
-                 deep_stem=False,
-                 avg_down=False,
-                 frozen_stages=-1,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN', requires_grad=True),
-                 norm_eval=False,
-                 with_cp=False,
-                 zero_init_residual=True,
-                 wid=[48, 80, 160, 304, 608],
-                 expan=[None, 1, 1, 1, 1],
-                 dep=[None, 4, 6, 7, 3],
-                 ks=[7, 3, 5, 5, 5],
-                 group=[None, 16, 16, 16, 16],
-                 att=[None, True, False, True, True],
-                 init_cfg=[
-                     dict(type='Normal', std=0.001, layer=['Conv2d']),
-                     dict(
-                         type='Constant',
-                         val=1,
-                         layer=['_BatchNorm', 'GroupNorm'])
-                 ]):
+    def __init__(
+        self,
+        depth,
+        in_channels=3,
+        num_stages=4,
+        strides=(1, 2, 2, 2),
+        dilations=(1, 1, 1, 1),
+        out_indices=(3,),
+        style="pytorch",
+        deep_stem=False,
+        avg_down=False,
+        frozen_stages=-1,
+        conv_cfg=None,
+        norm_cfg=dict(type="BN", requires_grad=True),
+        norm_eval=False,
+        with_cp=False,
+        zero_init_residual=True,
+        wid=[48, 80, 160, 304, 608],
+        expan=[None, 1, 1, 1, 1],
+        dep=[None, 4, 6, 7, 3],
+        ks=[7, 3, 5, 5, 5],
+        group=[None, 16, 16, 16, 16],
+        att=[None, True, False, True, True],
+        init_cfg=[dict(type="Normal", std=0.001, layer=["Conv2d"]), dict(type="Constant", val=1, layer=["_BatchNorm", "GroupNorm"])],
+    ):
         # Protect mutable default arguments
         norm_cfg = copy.deepcopy(norm_cfg)
         super().__init__(init_cfg=init_cfg)
         if depth not in self.arch_settings:
-            raise KeyError(f'invalid depth {depth} for resnet')
+            raise KeyError(f"invalid depth {depth} for resnet")
         self.depth = depth
         self.stem_channels = dep[0]
         self.num_stages = num_stages
@@ -458,7 +444,7 @@ class ViPNAS_ResNet(BaseBackbone):
         self.norm_eval = norm_eval
         self.zero_init_residual = zero_init_residual
         self.block = self.arch_settings[depth]
-        self.stage_blocks = dep[1:1 + num_stages]
+        self.stage_blocks = dep[1 : 1 + num_stages]
 
         self._make_stem_layer(in_channels, wid[0], ks[0])
 
@@ -484,9 +470,10 @@ class ViPNAS_ResNet(BaseBackbone):
                 norm_cfg=norm_cfg,
                 kernel_size=ks[i + 1],
                 groups=group[i + 1],
-                attention=att[i + 1])
+                attention=att[i + 1],
+            )
             _in_channels = _out_channels
-            layer_name = f'layer{i + 1}'
+            layer_name = f"layer{i + 1}"
             self.add_module(layer_name, res_layer)
             self.res_layers.append(layer_name)
 
@@ -515,7 +502,8 @@ class ViPNAS_ResNet(BaseBackbone):
                     padding=1,
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg,
-                    inplace=True),
+                    inplace=True,
+                ),
                 ConvModule(
                     stem_channels // 2,
                     stem_channels // 2,
@@ -524,7 +512,8 @@ class ViPNAS_ResNet(BaseBackbone):
                     padding=1,
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg,
-                    inplace=True),
+                    inplace=True,
+                ),
                 ConvModule(
                     stem_channels // 2,
                     stem_channels,
@@ -533,18 +522,14 @@ class ViPNAS_ResNet(BaseBackbone):
                     padding=1,
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg,
-                    inplace=True))
+                    inplace=True,
+                ),
+            )
         else:
             self.conv1 = build_conv_layer(
-                self.conv_cfg,
-                in_channels,
-                stem_channels,
-                kernel_size=kernel_size,
-                stride=2,
-                padding=kernel_size // 2,
-                bias=False)
-            self.norm1_name, norm1 = build_norm_layer(
-                self.norm_cfg, stem_channels, postfix=1)
+                self.conv_cfg, in_channels, stem_channels, kernel_size=kernel_size, stride=2, padding=kernel_size // 2, bias=False
+            )
+            self.norm1_name, norm1 = build_norm_layer(self.norm_cfg, stem_channels, postfix=1)
             self.add_module(self.norm1_name, norm1)
             self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -563,7 +548,7 @@ class ViPNAS_ResNet(BaseBackbone):
                         param.requires_grad = False
 
         for i in range(1, self.frozen_stages + 1):
-            m = getattr(self, f'layer{i}')
+            m = getattr(self, f"layer{i}")
             m.eval()
             for param in m.parameters():
                 param.requires_grad = False

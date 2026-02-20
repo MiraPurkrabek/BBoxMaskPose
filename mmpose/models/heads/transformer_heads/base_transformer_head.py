@@ -6,8 +6,8 @@ import torch
 from torch import Tensor
 
 from mmpose.registry import MODELS
-from mmpose.utils.typing import (Features, OptConfigType, OptMultiConfig,
-                                 OptSampleList, Predictions)
+from mmpose.utils.typing import Features, OptConfigType, OptMultiConfig, OptSampleList, Predictions
+
 from ..base_head import BaseHead
 
 
@@ -34,14 +34,16 @@ class TransformerHead(BaseHead):
         init_cfg (ConfigDict, optional): Config to control the initialization.
     """
 
-    def __init__(self,
-                 encoder: OptConfigType = None,
-                 decoder: OptConfigType = None,
-                 out_head: OptConfigType = None,
-                 positional_encoding: OptConfigType = None,
-                 num_queries: int = 100,
-                 loss: OptConfigType = None,
-                 init_cfg: OptMultiConfig = None):
+    def __init__(
+        self,
+        encoder: OptConfigType = None,
+        decoder: OptConfigType = None,
+        out_head: OptConfigType = None,
+        positional_encoding: OptConfigType = None,
+        num_queries: int = 100,
+        loss: OptConfigType = None,
+        init_cfg: OptMultiConfig = None,
+    ):
 
         if init_cfg is None:
             init_cfg = self.default_init_cfg
@@ -54,46 +56,34 @@ class TransformerHead(BaseHead):
         self.positional_encoding_cfg = positional_encoding
         self.num_queries = num_queries
 
-    def forward(self,
-                feats: Tuple[Tensor],
-                batch_data_samples: OptSampleList = None) -> Dict:
+    def forward(self, feats: Tuple[Tensor], batch_data_samples: OptSampleList = None) -> Dict:
         """Forward the network."""
         encoder_outputs_dict = self.forward_encoder(feats, batch_data_samples)
 
         decoder_outputs_dict = self.forward_decoder(**encoder_outputs_dict)
 
-        head_outputs_dict = self.forward_out_head(batch_data_samples,
-                                                  **decoder_outputs_dict)
+        head_outputs_dict = self.forward_out_head(batch_data_samples, **decoder_outputs_dict)
         return head_outputs_dict
 
     @abstractmethod
-    def predict(self,
-                feats: Features,
-                batch_data_samples: OptSampleList,
-                test_cfg: OptConfigType = {}) -> Predictions:
+    def predict(self, feats: Features, batch_data_samples: OptSampleList, test_cfg: OptConfigType = {}) -> Predictions:
         """Predict results from features."""
         pass
 
-    def loss(self,
-             feats: Tuple[Tensor],
-             batch_data_samples: OptSampleList,
-             train_cfg: OptConfigType = {}) -> dict:
+    def loss(self, feats: Tuple[Tensor], batch_data_samples: OptSampleList, train_cfg: OptConfigType = {}) -> dict:
         """Calculate losses from a batch of inputs and data samples."""
         pass
 
     @abstractmethod
-    def forward_encoder(self, feat: Tensor, feat_mask: Tensor,
-                        feat_pos: Tensor, **kwargs) -> Dict:
+    def forward_encoder(self, feat: Tensor, feat_mask: Tensor, feat_pos: Tensor, **kwargs) -> Dict:
         pass
 
     @abstractmethod
-    def forward_decoder(self, query: Tensor, query_pos: Tensor, memory: Tensor,
-                        **kwargs) -> Dict:
+    def forward_decoder(self, query: Tensor, query_pos: Tensor, memory: Tensor, **kwargs) -> Dict:
         pass
 
     @abstractmethod
-    def forward_out_head(self, query: Tensor, query_pos: Tensor,
-                         memory: Tensor, **kwargs) -> Dict:
+    def forward_out_head(self, query: Tensor, query_pos: Tensor, memory: Tensor, **kwargs) -> Dict:
         pass
 
     @staticmethod

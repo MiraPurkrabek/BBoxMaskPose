@@ -31,17 +31,14 @@ class YOLOXPoseModeSwitchHook(Hook):
             during training. Defaults to None.
     """
 
-    def __init__(self,
-                 num_last_epochs: int = 20,
-                 new_train_dataset: dict = None,
-                 new_train_pipeline: Sequence[dict] = None):
+    def __init__(self, num_last_epochs: int = 20, new_train_dataset: dict = None, new_train_pipeline: Sequence[dict] = None):
         self.num_last_epochs = num_last_epochs
         self.new_train_dataset = new_train_dataset
         self.new_train_pipeline = new_train_pipeline
 
     def _modify_dataloader(self, runner: Runner):
         """Modify dataloader with new dataset and pipeline configurations."""
-        runner.logger.info(f'New Pipeline: {self.new_train_pipeline}')
+        runner.logger.info(f"New Pipeline: {self.new_train_pipeline}")
 
         train_dataloader_cfg = copy.deepcopy(runner.cfg.train_dataloader)
         if self.new_train_dataset:
@@ -51,7 +48,7 @@ class YOLOXPoseModeSwitchHook(Hook):
 
         new_train_dataloader = Runner.build_dataloader(train_dataloader_cfg)
         runner.train_loop.dataloader = new_train_dataloader
-        runner.logger.info('Recreated the dataloader!')
+        runner.logger.info("Recreated the dataloader!")
 
     def before_train_epoch(self, runner: Runner):
         """Close mosaic and mixup augmentation, switch to use L1 loss."""
@@ -62,7 +59,7 @@ class YOLOXPoseModeSwitchHook(Hook):
 
         if epoch + 1 == runner.max_epochs - self.num_last_epochs:
             self._modify_dataloader(runner)
-            runner.logger.info('Added additional reg loss now!')
+            runner.logger.info("Added additional reg loss now!")
             model.head.use_aux_loss = True
 
 
@@ -104,5 +101,4 @@ class RTMOModeSwitchHook(Hook):
         if epoch in self.epoch_attributes:
             for key, value in self.epoch_attributes[epoch].items():
                 rsetattr(model.head, key, value)
-                runner.logger.info(
-                    f'Change model.head.{key} to {rgetattr(model.head, key)}')
+                runner.logger.info(f"Change model.head.{key} to {rgetattr(model.head, key)}")

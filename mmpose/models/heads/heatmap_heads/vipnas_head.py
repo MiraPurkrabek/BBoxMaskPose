@@ -6,6 +6,7 @@ from torch import nn
 
 from mmpose.registry import KEYPOINT_CODECS, MODELS
 from mmpose.utils.typing import ConfigType, OptConfigType
+
 from .heatmap_head import HeatmapHead
 
 OptIntSeq = Optional[Sequence[int]]
@@ -54,19 +55,20 @@ class ViPNASHead(HeatmapHead):
 
     _version = 2
 
-    def __init__(self,
-                 in_channels: Union[int, Sequence[int]],
-                 out_channels: int,
-                 deconv_out_channels: OptIntSeq = (144, 144, 144),
-                 deconv_kernel_sizes: OptIntSeq = (4, 4, 4),
-                 deconv_num_groups: OptIntSeq = (16, 16, 16),
-                 conv_out_channels: OptIntSeq = None,
-                 conv_kernel_sizes: OptIntSeq = None,
-                 final_layer: dict = dict(kernel_size=1),
-                 loss: ConfigType = dict(
-                     type='KeypointMSELoss', use_target_weight=True),
-                 decoder: OptConfigType = None,
-                 init_cfg: OptConfigType = None):
+    def __init__(
+        self,
+        in_channels: Union[int, Sequence[int]],
+        out_channels: int,
+        deconv_out_channels: OptIntSeq = (144, 144, 144),
+        deconv_kernel_sizes: OptIntSeq = (4, 4, 4),
+        deconv_num_groups: OptIntSeq = (16, 16, 16),
+        conv_out_channels: OptIntSeq = None,
+        conv_kernel_sizes: OptIntSeq = None,
+        final_layer: dict = dict(kernel_size=1),
+        loss: ConfigType = dict(type="KeypointMSELoss", use_target_weight=True),
+        decoder: OptConfigType = None,
+        init_cfg: OptConfigType = None,
+    ):
 
         if init_cfg is None:
             init_cfg = self.default_init_cfg
@@ -82,20 +84,20 @@ class ViPNASHead(HeatmapHead):
             self.decoder = None
 
         if deconv_out_channels:
-            if deconv_kernel_sizes is None or len(deconv_out_channels) != len(
-                    deconv_kernel_sizes):
+            if deconv_kernel_sizes is None or len(deconv_out_channels) != len(deconv_kernel_sizes):
                 raise ValueError(
                     '"deconv_out_channels" and "deconv_kernel_sizes" should '
-                    'be integer sequences with the same length. Got '
-                    f'mismatched lengths {deconv_out_channels} and '
-                    f'{deconv_kernel_sizes}')
-            if deconv_num_groups is None or len(deconv_out_channels) != len(
-                    deconv_num_groups):
+                    "be integer sequences with the same length. Got "
+                    f"mismatched lengths {deconv_out_channels} and "
+                    f"{deconv_kernel_sizes}"
+                )
+            if deconv_num_groups is None or len(deconv_out_channels) != len(deconv_num_groups):
                 raise ValueError(
                     '"deconv_out_channels" and "deconv_num_groups" should '
-                    'be integer sequences with the same length. Got '
-                    f'mismatched lengths {deconv_out_channels} and '
-                    f'{deconv_num_groups}')
+                    "be integer sequences with the same length. Got "
+                    f"mismatched lengths {deconv_out_channels} and "
+                    f"{deconv_num_groups}"
+                )
 
             self.deconv_layers = self._make_deconv_layers(
                 in_channels=in_channels,
@@ -108,28 +110,23 @@ class ViPNASHead(HeatmapHead):
             self.deconv_layers = nn.Identity()
 
         if conv_out_channels:
-            if conv_kernel_sizes is None or len(conv_out_channels) != len(
-                    conv_kernel_sizes):
+            if conv_kernel_sizes is None or len(conv_out_channels) != len(conv_kernel_sizes):
                 raise ValueError(
                     '"conv_out_channels" and "conv_kernel_sizes" should '
-                    'be integer sequences with the same length. Got '
-                    f'mismatched lengths {conv_out_channels} and '
-                    f'{conv_kernel_sizes}')
+                    "be integer sequences with the same length. Got "
+                    f"mismatched lengths {conv_out_channels} and "
+                    f"{conv_kernel_sizes}"
+                )
 
             self.conv_layers = self._make_conv_layers(
-                in_channels=in_channels,
-                layer_out_channels=conv_out_channels,
-                layer_kernel_sizes=conv_kernel_sizes)
+                in_channels=in_channels, layer_out_channels=conv_out_channels, layer_kernel_sizes=conv_kernel_sizes
+            )
             in_channels = conv_out_channels[-1]
         else:
             self.conv_layers = nn.Identity()
 
         if final_layer is not None:
-            cfg = dict(
-                type='Conv2d',
-                in_channels=in_channels,
-                out_channels=out_channels,
-                kernel_size=1)
+            cfg = dict(type="Conv2d", in_channels=in_channels, out_channels=out_channels, kernel_size=1)
             cfg.update(final_layer)
             self.final_layer = build_conv_layer(cfg)
         else:
@@ -138,16 +135,13 @@ class ViPNASHead(HeatmapHead):
         # Register the hook to automatically convert old version state dicts
         self._register_load_state_dict_pre_hook(self._load_state_dict_pre_hook)
 
-    def _make_deconv_layers(self, in_channels: int,
-                            layer_out_channels: Sequence[int],
-                            layer_kernel_sizes: Sequence[int],
-                            layer_groups: Sequence[int]) -> nn.Module:
+    def _make_deconv_layers(
+        self, in_channels: int, layer_out_channels: Sequence[int], layer_kernel_sizes: Sequence[int], layer_groups: Sequence[int]
+    ) -> nn.Module:
         """Create deconvolutional layers by given parameters."""
 
         layers = []
-        for out_channels, kernel_size, groups in zip(layer_out_channels,
-                                                     layer_kernel_sizes,
-                                                     layer_groups):
+        for out_channels, kernel_size, groups in zip(layer_out_channels, layer_kernel_sizes, layer_groups):
             if kernel_size == 4:
                 padding = 1
                 output_padding = 0
@@ -158,11 +152,9 @@ class ViPNASHead(HeatmapHead):
                 padding = 0
                 output_padding = 0
             else:
-                raise ValueError(f'Unsupported kernel size {kernel_size} for'
-                                 'deconvlutional layers in '
-                                 f'{self.__class__.__name__}')
+                raise ValueError(f"Unsupported kernel size {kernel_size} for" "deconvlutional layers in " f"{self.__class__.__name__}")
             cfg = dict(
-                type='deconv',
+                type="deconv",
                 in_channels=in_channels,
                 out_channels=out_channels,
                 kernel_size=kernel_size,
@@ -170,7 +162,8 @@ class ViPNASHead(HeatmapHead):
                 stride=2,
                 padding=padding,
                 output_padding=output_padding,
-                bias=False)
+                bias=False,
+            )
             layers.append(build_upsample_layer(cfg))
             layers.append(nn.BatchNorm2d(num_features=out_channels))
             layers.append(nn.ReLU(inplace=True))

@@ -50,15 +50,17 @@ class PoseDataPreprocessor(ImgDataPreprocessor):
             transforms on batched data. Defaults to None.
     """
 
-    def __init__(self,
-                 mean: Sequence[float] = None,
-                 std: Sequence[float] = None,
-                 pad_size_divisor: int = 1,
-                 pad_value: Union[float, int] = 0,
-                 bgr_to_rgb: bool = False,
-                 rgb_to_bgr: bool = False,
-                 non_blocking: Optional[bool] = False,
-                 batch_augments: Optional[List[dict]] = None):
+    def __init__(
+        self,
+        mean: Sequence[float] = None,
+        std: Sequence[float] = None,
+        pad_size_divisor: int = 1,
+        pad_value: Union[float, int] = 0,
+        bgr_to_rgb: bool = False,
+        rgb_to_bgr: bool = False,
+        non_blocking: Optional[bool] = False,
+        batch_augments: Optional[List[dict]] = None,
+    ):
         super().__init__(
             mean=mean,
             std=std,
@@ -66,11 +68,11 @@ class PoseDataPreprocessor(ImgDataPreprocessor):
             pad_value=pad_value,
             bgr_to_rgb=bgr_to_rgb,
             rgb_to_bgr=rgb_to_bgr,
-            non_blocking=non_blocking)
+            non_blocking=non_blocking,
+        )
 
         if batch_augments is not None:
-            self.batch_augments = nn.ModuleList(
-                [MODELS.build(aug) for aug in batch_augments])
+            self.batch_augments = nn.ModuleList([MODELS.build(aug) for aug in batch_augments])
         else:
             self.batch_augments = None
 
@@ -87,53 +89,43 @@ class PoseDataPreprocessor(ImgDataPreprocessor):
         """
         batch_pad_shape = self._get_pad_shape(data)
         data = super().forward(data=data, training=training)
-        inputs, data_samples = data['inputs'], data['data_samples']
+        inputs, data_samples = data["inputs"], data["data_samples"]
 
         # update metainfo since the image shape might change
         batch_input_shape = tuple(inputs[0].size()[-2:])
         for data_sample, pad_shape in zip(data_samples, batch_pad_shape):
-            data_sample.set_metainfo({
-                'batch_input_shape': batch_input_shape,
-                'pad_shape': pad_shape
-            })
+            data_sample.set_metainfo({"batch_input_shape": batch_input_shape, "pad_shape": pad_shape})
 
         # apply batch augmentations
         if training and self.batch_augments is not None:
             for batch_aug in self.batch_augments:
                 inputs, data_samples = batch_aug(inputs, data_samples)
 
-        return {'inputs': inputs, 'data_samples': data_samples}
+        return {"inputs": inputs, "data_samples": data_samples}
 
     def _get_pad_shape(self, data: dict) -> List[tuple]:
         """Get the pad_shape of each image based on data and
         pad_size_divisor."""
-        _batch_inputs = data['inputs']
+        _batch_inputs = data["inputs"]
         # Process data with `pseudo_collate`.
         if is_seq_of(_batch_inputs, torch.Tensor):
             batch_pad_shape = []
             for ori_input in _batch_inputs:
-                pad_h = int(
-                    np.ceil(ori_input.shape[1] /
-                            self.pad_size_divisor)) * self.pad_size_divisor
-                pad_w = int(
-                    np.ceil(ori_input.shape[2] /
-                            self.pad_size_divisor)) * self.pad_size_divisor
+                pad_h = int(np.ceil(ori_input.shape[1] / self.pad_size_divisor)) * self.pad_size_divisor
+                pad_w = int(np.ceil(ori_input.shape[2] / self.pad_size_divisor)) * self.pad_size_divisor
                 batch_pad_shape.append((pad_h, pad_w))
         # Process data with `default_collate`.
         elif isinstance(_batch_inputs, torch.Tensor):
             assert _batch_inputs.dim() == 4, (
-                'The input of `ImgDataPreprocessor` should be a NCHW tensor '
-                'or a list of tensor, but got a tensor with shape: '
-                f'{_batch_inputs.shape}')
-            pad_h = int(
-                np.ceil(_batch_inputs.shape[1] /
-                        self.pad_size_divisor)) * self.pad_size_divisor
-            pad_w = int(
-                np.ceil(_batch_inputs.shape[2] /
-                        self.pad_size_divisor)) * self.pad_size_divisor
+                "The input of `ImgDataPreprocessor` should be a NCHW tensor "
+                "or a list of tensor, but got a tensor with shape: "
+                f"{_batch_inputs.shape}"
+            )
+            pad_h = int(np.ceil(_batch_inputs.shape[1] / self.pad_size_divisor)) * self.pad_size_divisor
+            pad_w = int(np.ceil(_batch_inputs.shape[2] / self.pad_size_divisor)) * self.pad_size_divisor
             batch_pad_shape = [(pad_h, pad_w)] * _batch_inputs.shape[0]
         else:
-            raise TypeError('Output of `cast_data` should be a dict '
-                            'or a tuple with inputs and data_samples, but got'
-                            f'{type(data)}: {data}')
+            raise TypeError(
+                "Output of `cast_data` should be a dict " "or a tuple with inputs and data_samples, but got" f"{type(data)}: {data}"
+            )
         return batch_pad_shape

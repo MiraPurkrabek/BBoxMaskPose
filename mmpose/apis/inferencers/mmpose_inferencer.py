@@ -56,53 +56,53 @@ class MMPoseInferencer(BaseMMPoseInferencer):
             config will be used. Default is None.
     """
 
-    preprocess_kwargs: set = {
-        'bbox_thr', 'nms_thr', 'bboxes', 'use_oks_tracking', 'tracking_thr',
-        'disable_norm_pose_2d'
-    }
-    forward_kwargs: set = {
-        'merge_results', 'disable_rebase_keypoint', 'pose_based_nms'
-    }
+    preprocess_kwargs: set = {"bbox_thr", "nms_thr", "bboxes", "use_oks_tracking", "tracking_thr", "disable_norm_pose_2d"}
+    forward_kwargs: set = {"merge_results", "disable_rebase_keypoint", "pose_based_nms"}
     visualize_kwargs: set = {
-        'return_vis', 'show', 'wait_time', 'draw_bbox', 'radius', 'thickness',
-        'kpt_thr', 'vis_out_dir', 'skeleton_style', 'draw_heatmap',
-        'black_background', 'num_instances'
+        "return_vis",
+        "show",
+        "wait_time",
+        "draw_bbox",
+        "radius",
+        "thickness",
+        "kpt_thr",
+        "vis_out_dir",
+        "skeleton_style",
+        "draw_heatmap",
+        "black_background",
+        "num_instances",
     }
-    postprocess_kwargs: set = {'pred_out_dir', 'return_datasample'}
+    postprocess_kwargs: set = {"pred_out_dir", "return_datasample"}
 
-    def __init__(self,
-                 pose2d: Optional[str] = None,
-                 pose2d_weights: Optional[str] = None,
-                 pose3d: Optional[str] = None,
-                 pose3d_weights: Optional[str] = None,
-                 device: Optional[str] = None,
-                 scope: str = 'mmpose',
-                 det_model: Optional[Union[ModelType, str]] = None,
-                 det_weights: Optional[str] = None,
-                 det_cat_ids: Optional[Union[int, List]] = None,
-                 show_progress: bool = False) -> None:
+    def __init__(
+        self,
+        pose2d: Optional[str] = None,
+        pose2d_weights: Optional[str] = None,
+        pose3d: Optional[str] = None,
+        pose3d_weights: Optional[str] = None,
+        device: Optional[str] = None,
+        scope: str = "mmpose",
+        det_model: Optional[Union[ModelType, str]] = None,
+        det_weights: Optional[str] = None,
+        det_cat_ids: Optional[Union[int, List]] = None,
+        show_progress: bool = False,
+    ) -> None:
 
         self.visualizer = None
         self.show_progress = show_progress
         if pose3d is not None:
-            if 'hand3d' in pose3d:
-                self.inferencer = Hand3DInferencer(pose3d, pose3d_weights,
-                                                   device, scope, det_model,
-                                                   det_weights, det_cat_ids,
-                                                   show_progress)
+            if "hand3d" in pose3d:
+                self.inferencer = Hand3DInferencer(
+                    pose3d, pose3d_weights, device, scope, det_model, det_weights, det_cat_ids, show_progress
+                )
             else:
-                self.inferencer = Pose3DInferencer(pose3d, pose3d_weights,
-                                                   pose2d, pose2d_weights,
-                                                   device, scope, det_model,
-                                                   det_weights, det_cat_ids,
-                                                   show_progress)
+                self.inferencer = Pose3DInferencer(
+                    pose3d, pose3d_weights, pose2d, pose2d_weights, device, scope, det_model, det_weights, det_cat_ids, show_progress
+                )
         elif pose2d is not None:
-            self.inferencer = Pose2DInferencer(pose2d, pose2d_weights, device,
-                                               scope, det_model, det_weights,
-                                               det_cat_ids, show_progress)
+            self.inferencer = Pose2DInferencer(pose2d, pose2d_weights, device, scope, det_model, det_weights, det_cat_ids, show_progress)
         else:
-            raise ValueError('Either 2d or 3d pose estimation algorithm '
-                             'should be provided.')
+            raise ValueError("Either 2d or 3d pose estimation algorithm " "should be provided.")
 
     def preprocess(self, inputs: InputsType, batch_size: int = 1, **kwargs):
         """Process the inputs into a model-feedable format.
@@ -158,18 +158,21 @@ class MMPoseInferencer(BaseMMPoseInferencer):
             dict: Inference and visualization results.
         """
         if out_dir is not None:
-            if 'vis_out_dir' not in kwargs:
-                kwargs['vis_out_dir'] = f'{out_dir}/visualizations'
-            if 'pred_out_dir' not in kwargs:
-                kwargs['pred_out_dir'] = f'{out_dir}/predictions'
+            if "vis_out_dir" not in kwargs:
+                kwargs["vis_out_dir"] = f"{out_dir}/visualizations"
+            if "pred_out_dir" not in kwargs:
+                kwargs["pred_out_dir"] = f"{out_dir}/predictions"
 
         kwargs = {
             key: value
             for key, value in kwargs.items()
-            if key in set.union(self.inferencer.preprocess_kwargs,
-                                self.inferencer.forward_kwargs,
-                                self.inferencer.visualize_kwargs,
-                                self.inferencer.postprocess_kwargs)
+            if key
+            in set.union(
+                self.inferencer.preprocess_kwargs,
+                self.inferencer.forward_kwargs,
+                self.inferencer.visualize_kwargs,
+                self.inferencer.postprocess_kwargs,
+            )
         }
         (
             preprocess_kwargs,
@@ -181,47 +184,37 @@ class MMPoseInferencer(BaseMMPoseInferencer):
         self.inferencer.update_model_visualizer_settings(**kwargs)
 
         # preprocessing
-        if isinstance(inputs, str) and inputs.startswith('webcam'):
+        if isinstance(inputs, str) and inputs.startswith("webcam"):
             inputs = self.inferencer._get_webcam_inputs(inputs)
             batch_size = 1
-            if not visualize_kwargs.get('show', False):
-                warnings.warn('The display mode is closed when using webcam '
-                              'input. It will be turned on automatically.')
-            visualize_kwargs['show'] = True
+            if not visualize_kwargs.get("show", False):
+                warnings.warn("The display mode is closed when using webcam " "input. It will be turned on automatically.")
+            visualize_kwargs["show"] = True
         else:
             inputs = self.inferencer._inputs_to_list(inputs)
         self._video_input = self.inferencer._video_input
         if self._video_input:
             self.video_info = self.inferencer.video_info
 
-        inputs = self.preprocess(
-            inputs, batch_size=batch_size, **preprocess_kwargs)
+        inputs = self.preprocess(inputs, batch_size=batch_size, **preprocess_kwargs)
 
         # forward
-        if 'bbox_thr' in self.inferencer.forward_kwargs:
-            forward_kwargs['bbox_thr'] = preprocess_kwargs.get('bbox_thr', -1)
+        if "bbox_thr" in self.inferencer.forward_kwargs:
+            forward_kwargs["bbox_thr"] = preprocess_kwargs.get("bbox_thr", -1)
 
         preds = []
 
-        for proc_inputs, ori_inputs in (track(inputs, description='Inference')
-                                        if self.show_progress else inputs):
+        for proc_inputs, ori_inputs in track(inputs, description="Inference") if self.show_progress else inputs:
             preds = self.forward(proc_inputs, **forward_kwargs)
 
-            visualization = self.visualize(ori_inputs, preds,
-                                           **visualize_kwargs)
-            results = self.postprocess(
-                preds,
-                visualization,
-                return_datasamples=return_datasamples,
-                **postprocess_kwargs)
+            visualization = self.visualize(ori_inputs, preds, **visualize_kwargs)
+            results = self.postprocess(preds, visualization, return_datasamples=return_datasamples, **postprocess_kwargs)
             yield results
 
         if self._video_input:
-            self._finalize_video_processing(
-                postprocess_kwargs.get('pred_out_dir', ''))
+            self._finalize_video_processing(postprocess_kwargs.get("pred_out_dir", ""))
 
-    def visualize(self, inputs: InputsType, preds: PredType,
-                  **kwargs) -> List[np.ndarray]:
+    def visualize(self, inputs: InputsType, preds: PredType, **kwargs) -> List[np.ndarray]:
         """Visualize predictions.
 
         Args:
@@ -242,9 +235,8 @@ class MMPoseInferencer(BaseMMPoseInferencer):
         Returns:
             List[np.ndarray]: Visualization results.
         """
-        window_name = ''
+        window_name = ""
         if self.inferencer._video_input:
-            window_name = self.inferencer.video_info['name']
+            window_name = self.inferencer.video_info["name"]
 
-        return self.inferencer.visualize(
-            inputs, preds, window_name=window_name, **kwargs)
+        return self.inferencer.visualize(inputs, preds, window_name=window_name, **kwargs)

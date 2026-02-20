@@ -1,5 +1,6 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 from mmpose.registry import DATASETS
+
 from ..base import BaseCocoStyleDataset
 
 
@@ -66,4 +67,4 @@ class ExlposeDataset(BaseCocoStyleDataset):
             image. Default: 1000.
     """
 
-    METAINFO: dict = dict(from_file='configs/_base_/datasets/exlpose.py')
+    METAINFO: dict = dict(from_file="configs/_base_/datasets/exlpose.py")

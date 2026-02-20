@@ -11,15 +11,10 @@ from typing import List, Tuple, Union
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from bboxmaskpose.sam2.modeling.backbones.utils import PatchEmbed, window_partition, window_unpartition
+from bboxmaskpose.sam2.modeling.sam2_utils import MLP, DropPath
 from iopath.common.file_io import g_pathmgr
-
-from bboxmaskpose.sam2.modeling.backbones.utils import (
-    PatchEmbed,
-    window_partition,
-    window_unpartition,
-)
-
-from bboxmaskpose.sam2.modeling.sam2_utils import DropPath, MLP
 
 
 def do_pool(x: torch.Tensor, pool: nn.Module, norm: nn.Module = None) -> torch.Tensor:
@@ -107,9 +102,7 @@ class MultiScaleBlock(nn.Module):
 
         self.pool, self.q_stride = None, q_stride
         if self.q_stride:
-            self.pool = nn.MaxPool2d(
-                kernel_size=q_stride, stride=q_stride, ceil_mode=False
-            )
+            self.pool = nn.MaxPool2d(kernel_size=q_stride, stride=q_stride, ceil_mode=False)
 
         self.attn = MultiScaleAttention(
             dim,
@@ -218,16 +211,10 @@ class Hiera(nn.Module):
 
         # Windowed positional embedding (https://arxiv.org/abs/2311.05613)
         self.window_pos_embed_bkg_spatial_size = window_pos_embed_bkg_spatial_size
-        self.pos_embed = nn.Parameter(
-            torch.zeros(1, embed_dim, *self.window_pos_embed_bkg_spatial_size)
-        )
-        self.pos_embed_window = nn.Parameter(
-            torch.zeros(1, embed_dim, self.window_spec[0], self.window_spec[0])
-        )
+        self.pos_embed = nn.Parameter(torch.zeros(1, embed_dim, *self.window_pos_embed_bkg_spatial_size))
+        self.pos_embed_window = nn.Parameter(torch.zeros(1, embed_dim, self.window_spec[0], self.window_spec[0]))
 
-        dpr = [
-            x.item() for x in torch.linspace(0, drop_path_rate, depth)
-        ]  # stochastic depth decay rule
+        dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depth)]  # stochastic depth decay rule
 
         cur_stage = 1
         self.blocks = nn.ModuleList()
@@ -259,11 +246,7 @@ class Hiera(nn.Module):
             embed_dim = dim_out
             self.blocks.append(block)
 
-        self.channel_list = (
-            [self.blocks[i].dim_out for i in self.stage_ends[::-1]]
-            if return_interm_layers
-            else [self.blocks[-1].dim_out]
-        )
+        self.channel_list = [self.blocks[i].dim_out for i in self.stage_ends[::-1]] if return_interm_layers else [self.blocks[-1].dim_out]
 
         if weights_path is not None:
             with g_pathmgr.open(weights_path, "rb") as f:
@@ -274,9 +257,7 @@ class Hiera(nn.Module):
         h, w = hw
         window_embed = self.pos_embed_window
         pos_embed = F.interpolate(self.pos_embed, size=(h, w), mode="bicubic")
-        pos_embed = pos_embed + window_embed.tile(
-            [x // y for x, y in zip(pos_embed.shape, window_embed.shape)]
-        )
+        pos_embed = pos_embed + window_embed.tile([x // y for x, y in zip(pos_embed.shape, window_embed.shape)])
         pos_embed = pos_embed.permute(0, 2, 3, 1)
         return pos_embed
 
@@ -290,9 +271,7 @@ class Hiera(nn.Module):
         outputs = []
         for i, blk in enumerate(self.blocks):
             x = blk(x)
-            if (i == self.stage_ends[-1]) or (
-                i in self.stage_ends and self.return_interm_layers
-            ):
+            if (i == self.stage_ends[-1]) or (i in self.stage_ends and self.return_interm_layers):
                 feats = x.permute(0, 3, 1, 2)
                 outputs.append(feats)
 

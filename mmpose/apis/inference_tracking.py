@@ -29,7 +29,7 @@ def _compute_iou(bboxA, bboxB):
     union_area = float(bboxA_area + bboxB_area - inter_area)
     if union_area == 0:
         union_area = 1e-5
-        warnings.warn('union_area=0 is unexpected')
+        warnings.warn("union_area=0 is unexpected")
 
     iou = inter_area / union_area
 
@@ -64,9 +64,7 @@ def _track_by_iou(res, results_last, thr):
 
 def _track_by_oks(res, results_last, thr, sigmas=None):
     """Get track id using OKS tracking greedily."""
-    keypoint = np.concatenate((res.pred_instances.keypoints,
-                               res.pred_instances.keypoint_scores[:, :, None]),
-                              axis=2)
+    keypoint = np.concatenate((res.pred_instances.keypoints, res.pred_instances.keypoint_scores[:, :, None]), axis=2)
     keypoint = np.squeeze(keypoint, axis=0).reshape((-1))
     area = np.squeeze(res.pred_instances.areas, axis=0)
     max_index = -1
@@ -75,21 +73,17 @@ def _track_by_oks(res, results_last, thr, sigmas=None):
     if len(results_last) == 0:
         return -1, results_last, match_result
 
-    keypoints_last = np.array([
-        np.squeeze(
-            np.concatenate(
-                (res_last.pred_instances.keypoints,
-                 res_last.pred_instances.keypoint_scores[:, :, None]),
-                axis=2),
-            axis=0).reshape((-1)) for res_last in results_last
-    ])
-    area_last = np.array([
-        np.squeeze(res_last.pred_instances.areas, axis=0)
-        for res_last in results_last
-    ])
+    keypoints_last = np.array(
+        [
+            np.squeeze(
+                np.concatenate((res_last.pred_instances.keypoints, res_last.pred_instances.keypoint_scores[:, :, None]), axis=2), axis=0
+            ).reshape((-1))
+            for res_last in results_last
+        ]
+    )
+    area_last = np.array([np.squeeze(res_last.pred_instances.areas, axis=0) for res_last in results_last])
 
-    oks_score = oks_iou(
-        keypoint, keypoints_last, area, area_last, sigmas=sigmas)
+    oks_score = oks_iou(keypoint, keypoints_last, area, area_last, sigmas=sigmas)
 
     max_index = np.argmax(oks_score)
 

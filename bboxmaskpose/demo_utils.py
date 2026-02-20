@@ -1,3 +1,4 @@
+# Copyright (c) authors of BBoxMaskPose (BMPv2). All rights reserved.
 """
 Utilities for the BMP demo:
 - Visualization of detections, masks, and poses
@@ -18,8 +19,9 @@ import numpy as np
 from mmengine.logging import print_log
 from mmengine.structures import InstanceData
 from pycocotools import mask as Mask
-from bboxmaskpose.sam2.distinctipy import get_colors
 from tqdm import tqdm
+
+from bboxmaskpose.sam2.distinctipy import get_colors
 
 ### Visualization hyperparameters
 MIN_CONTOUR_AREA: int = 50
@@ -36,6 +38,21 @@ try:
     from posevis import pose_visualization
 except ImportError:
     from .posevis_lite import pose_visualization
+
+
+WHITELIST_ATTRIBUTES = [
+    "bboxes",
+    "bbox_scores",
+    "keypoints",
+    "keypoint_scores",
+    "scores",
+    "pred_masks",
+    "refined_masks",
+    "sam_scores",
+    "sam_kpts",
+    "keypoint_vis",
+    "keypoint_prob",
+]
 
 
 class DotDict(dict):
@@ -68,17 +85,7 @@ def filter_instances(instances: InstanceData, indices):
         return None
     data = {}
     # Attributes to filter
-    for attr in [
-        "bboxes",
-        "bbox_scores",
-        "keypoints",
-        "keypoint_scores",
-        "scores",
-        "pred_masks",
-        "refined_masks",
-        "sam_scores",
-        "sam_kpts",
-    ]:
+    for attr in WHITELIST_ATTRIBUTES:
         if hasattr(instances, attr):
             arr = getattr(instances, attr)
             data[attr] = arr[indices] if arr is not None else None
@@ -95,17 +102,7 @@ def concat_instances(instances1: InstanceData, instances2: InstanceData):
     if instances2 is None:
         return instances1
     data = {}
-    for attr in [
-        "bboxes",
-        "bbox_scores",
-        "keypoints",
-        "keypoint_scores",
-        "scores",
-        "pred_masks",
-        "refined_masks",
-        "sam_scores",
-        "sam_kpts",
-    ]:
+    for attr in WHITELIST_ATTRIBUTES:
         arr1 = getattr(instances1, attr, None)
         arr2 = getattr(instances2, attr, None)
         if arr1 is None and arr2 is None:
@@ -146,17 +143,13 @@ def _visualize_predictions(
     vis_types = vis_type.split("+")
 
     # Exclude white, black, and green colors from the palette as they are not distinctive
-    colors = (np.array(get_colors(len(bboxes), exclude_colors=[(0, 1, 0), (0, 0, 0), (1, 1, 1)], rng=0)) * 255).astype(
-        int
-    )
+    colors = (np.array(get_colors(len(bboxes), exclude_colors=[(0, 1, 0), (0, 0, 0), (1, 1, 1)], rng=0)) * 255).astype(int)
 
     if mask_is_binary:
         poly_masks: List[Optional[List[np.ndarray]]] = []
         for binary_mask in masks:
             if binary_mask is not None:
-                contours, _ = cv2.findContours(
-                    (binary_mask * 255).astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-                )
+                contours, _ = cv2.findContours((binary_mask * 255).astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 polys = [cnt.flatten() for cnt in contours if cv2.contourArea(cnt) >= MIN_CONTOUR_AREA]
             else:
                 polys = None
@@ -253,9 +246,7 @@ def visualize_itteration(
             label = "BMP {:d}x: {}".format(iteration_idx + 1, vis_def["label"])
             cv2.putText(vis_img, label, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 3)
             cv2.putText(vis_img, label, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-        out_path = os.path.join(
-            output_root, "{}_iter{}_{}.jpg".format(img_name, iteration_idx + 1, vis_def["label"].replace(" ", "_"))
-        )
+        out_path = os.path.join(output_root, "{}_iter{}_{}.jpg".format(img_name, iteration_idx + 1, vis_def["label"].replace(" ", "_")))
         cv2.imwrite(str(out_path), vis_img)
 
     # Show prompting keypoints
@@ -363,7 +354,6 @@ def create_GIF(
     # Add 'before' and 'after' images
     after1_img = os.path.join(dirname, "{}_iter{}_Final_Poses.jpg".format(img_name_wo_ext, bmp_x))
     after2_img = os.path.join(dirname, "{}_iter{}_SAM_Masks.jpg".format(img_name_wo_ext, bmp_x))
-    # gif_images.append(os.path.join(dirname, "black_image.jpg"))  # Add black image at the end
     gif_images.append(after1_img)
     gif_images.append(after2_img)
     gif_images.append(os.path.join(dirname, "black_image.jpg"))  # Add black image at the end
@@ -401,10 +391,7 @@ def create_GIF(
         right = "[{}:v]".format(i)
         out = "[v{}]".format(i)
         offset = (i - 1) * (display_dur + fade_dur) + display_dur
-        parts.append(
-            "{}{}xfade=transition=fade:".format(left, right)
-            + "duration={}:offset={:.3f}{}".format(fade_dur, offset, out)
-        )
+        parts.append("{}{}xfade=transition=fade:".format(left, right) + "duration={}:offset={:.3f}{}".format(fade_dur, offset, out))
     filter_complex = ";".join(parts)
 
     # 3. make MP4 slideshow
@@ -488,9 +475,7 @@ def create_GIF(
     print_log(f"GIF saved as '{gif_output_path}'", logger="current")
 
 
-def _update_bbox_by_mask(
-    bbox: List[int], mask_poly: Optional[List[List[int]]], image_shape: Tuple[int, int, int]
-) -> List[int]:
+def _update_bbox_by_mask(bbox: List[int], mask_poly: Optional[List[List[int]]], image_shape: Tuple[int, int, int]) -> List[int]:
     """
     Adjust bounding box to tightly fit mask polygon.
 
@@ -535,11 +520,6 @@ def pose_nms(config: Any, image_kpts: np.ndarray, image_bboxes: np.ndarray, num_
     Returns:
         np.ndarray: Indices of kept instances.
     """
-    # Sort image kpts by average score - lowest first
-    # scores = image_kpts[:, :, 2].mean(axis=1)
-    # sort_idx = np.argsort(scores)
-    # image_kpts = image_kpts[sort_idx, :, :]
-
     # Compute OKS between all pairs of poses
     oks_matrix = np.zeros((image_kpts.shape[0], image_kpts.shape[0]))
     for i in range(image_kpts.shape[0]):
@@ -555,8 +535,7 @@ def pose_nms(config: Any, image_kpts: np.ndarray, image_bboxes: np.ndarray, num_
             dt = {"keypoints": image_kpts[j].copy(), "bbox": gt_bbox_xyxy}
             gt["keypoints"][:, 2] = (gt["keypoints"][:, 2] > config.confidence_thr) * 2
             oks = compute_oks(gt, dt)
-            if oks > 1:
-                breakpoint()
+            assert oks <= 1.0, f"OKS value {oks} exceeds 1.0, which indicates a bug in compute_oks"
             oks_matrix[i, j] = oks
 
     np.fill_diagonal(oks_matrix, -1)
@@ -597,13 +576,10 @@ def compute_oks(gt: Dict[str, Any], dt: Dict[str, Any], use_area: bool = True, p
     Returns:
         float: OKS score or mean OKS.
     """
-    sigmas = (
-        np.array([0.26, 0.25, 0.25, 0.35, 0.35, 0.79, 0.79, 0.72, 0.72, 0.62, 0.62, 1.07, 1.07, 0.87, 0.87, 0.89, 0.89])
-        / 10.0
-    )
+    sigmas = np.array([0.26, 0.25, 0.25, 0.35, 0.35, 0.79, 0.79, 0.72, 0.72, 0.62, 0.62, 1.07, 1.07, 0.87, 0.87, 0.89, 0.89]) / 10.0
     vars = (sigmas * 2) ** 2
     k = len(sigmas)
-    visibility_condition = lambda x: x > 0
+    visibility_condition = lambda x: x > 0.3
     g = np.array(gt["keypoints"]).reshape(k, 3)
     xg = g[:, 0]
     yg = g[:, 1]

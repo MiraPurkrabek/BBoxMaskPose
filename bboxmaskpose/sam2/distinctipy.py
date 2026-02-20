@@ -1,3 +1,5 @@
+# Adapted from the distinctipy repository (https://github.com/alan-turing-institute/distinctipy).
+# Original authors: distinctipy contributors. Included with minor modifications.
 import math
 import random
 
@@ -125,9 +127,7 @@ def color_distance(c1, c2):
     return distance
 
 
-def distinct_color(
-    exclude_colors, pastel_factor=0.0, n_attempts=1000, colorblind_type=None, rng=None
-):
+def distinct_color(exclude_colors, pastel_factor=0.0, n_attempts=1000, colorblind_type=None, rng=None):
     """
     Generate a colour as distinct as possible from the colours defined in exclude_colors
     Inspired by: https://gist.github.com/adewes/5884820
@@ -164,10 +164,7 @@ def distinct_color(
         return get_random_color(pastel_factor=pastel_factor, rng=rng)
 
     if colorblind_type:
-        exclude_colors = [
-            colorblind.colorblind_filter(color, colorblind_type)
-            for color in exclude_colors
-        ]
+        exclude_colors = [colorblind.colorblind_filter(color, colorblind_type) for color in exclude_colors]
 
     max_distance = None
     best_color = None
@@ -181,9 +178,7 @@ def distinct_color(
                 else:
                     compare_color = color
 
-                distance_to_nearest = min(
-                    [color_distance(compare_color, c) for c in exclude_colors]
-                )
+                distance_to_nearest = min([color_distance(compare_color, c) for c in exclude_colors])
 
                 if (not max_distance) or (distance_to_nearest > max_distance):
                     max_distance = distance_to_nearest
@@ -202,9 +197,7 @@ def distinct_color(
             else:
                 compare_color = color
 
-            distance_to_nearest = min(
-                [color_distance(compare_color, c) for c in exclude_colors]
-            )
+            distance_to_nearest = min([color_distance(compare_color, c) for c in exclude_colors])
 
             if (not max_distance) or (distance_to_nearest > max_distance):
                 max_distance = distance_to_nearest

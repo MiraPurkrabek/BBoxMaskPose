@@ -1,5 +1,6 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 from mmpose.registry import DATASETS
+
 from ..base import BaseCocoStyleDataset
 
 
@@ -69,4 +70,4 @@ class CocoDataset(BaseCocoStyleDataset):
             image. Default: 1000.
     """
 
-    METAINFO: dict = dict(from_file='configs/_base_/datasets/coco.py')
+    METAINFO: dict = dict(from_file="configs/_base_/datasets/coco.py")

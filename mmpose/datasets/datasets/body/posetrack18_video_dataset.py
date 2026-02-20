@@ -5,10 +5,11 @@ from typing import Callable, List, Optional, Sequence, Union
 import numpy as np
 from mmengine.fileio import exists, get_local_path, load
 from mmengine.utils import is_list_of
-from xtcocotools.coco import COCO
 
 from mmpose.registry import DATASETS
 from mmpose.structures.bbox import bbox_xywh2xyxy
+from xtcocotools.coco import COCO
+
 from ..base import BaseCocoStyleDataset
 
 
@@ -101,81 +102,74 @@ class PoseTrack18VideoDataset(BaseCocoStyleDataset):
             image. Default: 1000.
     """
 
-    METAINFO: dict = dict(from_file='configs/_base_/datasets/posetrack18.py')
+    METAINFO: dict = dict(from_file="configs/_base_/datasets/posetrack18.py")
 
-    def __init__(self,
-                 ann_file: str = '',
-                 bbox_file: Optional[str] = None,
-                 data_mode: str = 'topdown',
-                 frame_weights: List[Union[int, float]] = [0.0, 1.0],
-                 frame_sampler_mode: str = 'random',
-                 frame_range: Optional[Union[int, List[int]]] = None,
-                 num_sampled_frame: Optional[int] = None,
-                 frame_indices: Optional[Sequence[int]] = None,
-                 ph_fill_len: int = 6,
-                 metainfo: Optional[dict] = None,
-                 data_root: Optional[str] = None,
-                 data_prefix: dict = dict(img=''),
-                 filter_cfg: Optional[dict] = None,
-                 indices: Optional[Union[int, Sequence[int]]] = None,
-                 serialize_data: bool = True,
-                 pipeline: List[Union[dict, Callable]] = [],
-                 test_mode: bool = False,
-                 lazy_init: bool = False,
-                 max_refetch: int = 1000):
-        assert sum(frame_weights) == 1, 'Invalid `frame_weights`: should sum'\
-            f' to 1.0, but got {frame_weights}.'
+    def __init__(
+        self,
+        ann_file: str = "",
+        bbox_file: Optional[str] = None,
+        data_mode: str = "topdown",
+        frame_weights: List[Union[int, float]] = [0.0, 1.0],
+        frame_sampler_mode: str = "random",
+        frame_range: Optional[Union[int, List[int]]] = None,
+        num_sampled_frame: Optional[int] = None,
+        frame_indices: Optional[Sequence[int]] = None,
+        ph_fill_len: int = 6,
+        metainfo: Optional[dict] = None,
+        data_root: Optional[str] = None,
+        data_prefix: dict = dict(img=""),
+        filter_cfg: Optional[dict] = None,
+        indices: Optional[Union[int, Sequence[int]]] = None,
+        serialize_data: bool = True,
+        pipeline: List[Union[dict, Callable]] = [],
+        test_mode: bool = False,
+        lazy_init: bool = False,
+        max_refetch: int = 1000,
+    ):
+        assert sum(frame_weights) == 1, "Invalid `frame_weights`: should sum" f" to 1.0, but got {frame_weights}."
         for weight in frame_weights:
-            assert weight >= 0, 'frame_weight can not be a negative value.'
+            assert weight >= 0, "frame_weight can not be a negative value."
         self.frame_weights = np.array(frame_weights)
 
-        if frame_sampler_mode not in {'fixed', 'random'}:
+        if frame_sampler_mode not in {"fixed", "random"}:
             raise ValueError(
-                f'{self.__class__.__name__} got invalid frame_sampler_mode: '
-                f'{frame_sampler_mode}. Should be `"fixed"` or `"random"`.')
+                f"{self.__class__.__name__} got invalid frame_sampler_mode: " f'{frame_sampler_mode}. Should be `"fixed"` or `"random"`.'
+            )
         self.frame_sampler_mode = frame_sampler_mode
 
-        if frame_sampler_mode == 'random':
-            assert frame_range is not None, \
-                '`frame_sampler_mode` is set as `random`, ' \
-                'please specify the `frame_range`.'
+        if frame_sampler_mode == "random":
+            assert frame_range is not None, "`frame_sampler_mode` is set as `random`, " "please specify the `frame_range`."
 
             if isinstance(frame_range, int):
-                assert frame_range >= 0, \
-                    'frame_range can not be a negative value.'
+                assert frame_range >= 0, "frame_range can not be a negative value."
                 self.frame_range = [-frame_range, frame_range]
 
             elif isinstance(frame_range, Sequence):
-                assert len(frame_range) == 2, 'The length must be 2.'
-                assert frame_range[0] <= 0 and frame_range[
-                    1] >= 0 and frame_range[1] > frame_range[
-                        0], 'Invalid `frame_range`'
+                assert len(frame_range) == 2, "The length must be 2."
+                assert frame_range[0] <= 0 and frame_range[1] >= 0 and frame_range[1] > frame_range[0], "Invalid `frame_range`"
                 for i in frame_range:
-                    assert isinstance(i, int), 'Each element must be int.'
+                    assert isinstance(i, int), "Each element must be int."
                 self.frame_range = frame_range
             else:
-                raise TypeError(
-                    f'The type of `frame_range` must be int or Sequence, '
-                    f'but got {type(frame_range)}.')
+                raise TypeError(f"The type of `frame_range` must be int or Sequence, " f"but got {type(frame_range)}.")
 
-            assert num_sampled_frame is not None, \
-                '`frame_sampler_mode` is set as `random`, please specify ' \
-                '`num_sampled_frame`, e.g. the number of sampled frames.'
+            assert num_sampled_frame is not None, (
+                "`frame_sampler_mode` is set as `random`, please specify " "`num_sampled_frame`, e.g. the number of sampled frames."
+            )
 
-            assert len(frame_weights) == num_sampled_frame + 1, \
-                f'the length of frame_weights({len(frame_weights)}) '\
-                f'does not match the number of sampled adjacent '\
-                f'frames({num_sampled_frame})'
+            assert len(frame_weights) == num_sampled_frame + 1, (
+                f"the length of frame_weights({len(frame_weights)}) "
+                f"does not match the number of sampled adjacent "
+                f"frames({num_sampled_frame})"
+            )
             self.frame_indices = None
             self.num_sampled_frame = num_sampled_frame
 
-        if frame_sampler_mode == 'fixed':
-            assert frame_indices is not None, \
-                '`frame_sampler_mode` is set as `fixed`, ' \
-                'please specify the `frame_indices`.'
-            assert len(frame_weights) == len(frame_indices), \
-                f'the length of frame_weights({len(frame_weights)}) does not '\
-                f'match the length of frame_indices({len(frame_indices)}).'
+        if frame_sampler_mode == "fixed":
+            assert frame_indices is not None, "`frame_sampler_mode` is set as `fixed`, " "please specify the `frame_indices`."
+            assert len(frame_weights) == len(frame_indices), (
+                f"the length of frame_weights({len(frame_weights)}) does not " f"match the length of frame_indices({len(frame_indices)})."
+            )
             frame_indices.sort()
             self.frame_indices = frame_indices
             self.frame_range = None
@@ -196,7 +190,8 @@ class PoseTrack18VideoDataset(BaseCocoStyleDataset):
             pipeline=pipeline,
             test_mode=test_mode,
             lazy_init=lazy_init,
-            max_refetch=max_refetch)
+            max_refetch=max_refetch,
+        )
 
     def parse_data_info(self, raw_data_info: dict) -> Optional[dict]:
         """Parse raw annotation of an instance.
@@ -213,18 +208,17 @@ class PoseTrack18VideoDataset(BaseCocoStyleDataset):
             dict: Parsed instance annotation
         """
 
-        ann = raw_data_info['raw_ann_info']
-        img = raw_data_info['raw_img_info']
+        ann = raw_data_info["raw_ann_info"]
+        img = raw_data_info["raw_img_info"]
 
         # filter invalid instance
-        if 'bbox' not in ann or 'keypoints' not in ann or max(
-                ann['keypoints']) == 0:
+        if "bbox" not in ann or "keypoints" not in ann or max(ann["keypoints"]) == 0:
             return None
 
-        img_w, img_h = img['width'], img['height']
+        img_w, img_h = img["width"], img["height"]
         # get the bbox of the center frame
         # get bbox in shape [1, 4], formatted as xywh
-        x, y, w, h = ann['bbox']
+        x, y, w, h = ann["bbox"]
         x1 = np.clip(x, 0, img_w - 1)
         y1 = np.clip(y, 0, img_h - 1)
         x2 = np.clip(x + w, 0, img_w - 1)
@@ -234,27 +228,26 @@ class PoseTrack18VideoDataset(BaseCocoStyleDataset):
 
         # get the keypoints of the center frame
         # keypoints in shape [1, K, 2] and keypoints_visible in [1, K]
-        _keypoints = np.array(
-            ann['keypoints'], dtype=np.float32).reshape(1, -1, 3)
+        _keypoints = np.array(ann["keypoints"], dtype=np.float32).reshape(1, -1, 3)
         keypoints = _keypoints[..., :2]
         keypoints_visible = np.minimum(1, _keypoints[..., 2])
 
         # deal with multiple image paths
         img_paths: list = []
         # get the image path of the center frame
-        center_img_path = osp.join(self.data_prefix['img'], img['file_name'])
+        center_img_path = osp.join(self.data_prefix["img"], img["file_name"])
         # append the center image path first
         img_paths.append(center_img_path)
 
         # select the frame indices
-        if self.frame_sampler_mode == 'fixed':
+        if self.frame_sampler_mode == "fixed":
             indices = self.frame_indices
         else:  # self.frame_sampler_mode == 'random':
             low, high = self.frame_range
             indices = np.random.randint(low, high + 1, self.num_sampled_frame)
 
-        nframes = int(img['nframes'])
-        file_name = img['file_name']
+        nframes = int(img["nframes"])
+        file_name = img["file_name"]
         ref_idx = int(osp.splitext(osp.basename(file_name))[0])
 
         for idx in indices:
@@ -265,38 +258,34 @@ class PoseTrack18VideoDataset(BaseCocoStyleDataset):
             # clip the frame index to make sure that it does not exceed
             # the boundings of frame indices
             support_idx = np.clip(support_idx, 0, nframes - 1)
-            sup_img_path = osp.join(
-                osp.dirname(center_img_path),
-                str(support_idx).zfill(self.ph_fill_len) + '.jpg')
+            sup_img_path = osp.join(osp.dirname(center_img_path), str(support_idx).zfill(self.ph_fill_len) + ".jpg")
 
             img_paths.append(sup_img_path)
 
         data_info = {
-            'img_id': int(img['frame_id']),
-            'img_path': img_paths,
-            'bbox': bbox,
-            'bbox_score': np.ones(1, dtype=np.float32),
-            'num_keypoints': ann['num_keypoints'],
-            'keypoints': keypoints,
-            'keypoints_visible': keypoints_visible,
-            'frame_weights': self.frame_weights,
-            'id': ann['id'],
+            "img_id": int(img["frame_id"]),
+            "img_path": img_paths,
+            "bbox": bbox,
+            "bbox_score": np.ones(1, dtype=np.float32),
+            "num_keypoints": ann["num_keypoints"],
+            "keypoints": keypoints,
+            "keypoints_visible": keypoints_visible,
+            "frame_weights": self.frame_weights,
+            "id": ann["id"],
         }
 
         return data_info
 
     def _load_detection_results(self) -> List[dict]:
         """Load data from detection results with dummy keypoint annotations."""
-        assert exists(self.ann_file), (
-            f'Annotation file `{self.ann_file}` does not exist')
-        assert exists(
-            self.bbox_file), (f'Bbox file `{self.bbox_file}` does not exist')
+        assert exists(self.ann_file), f"Annotation file `{self.ann_file}` does not exist"
+        assert exists(self.bbox_file), f"Bbox file `{self.bbox_file}` does not exist"
 
         # load detection results
         det_results = load(self.bbox_file)
         assert is_list_of(det_results, dict), (
-            f'annotation file `{self.bbox_file}` should be a list of dicts, '
-            f'but got type {type(det_results)}')
+            f"annotation file `{self.bbox_file}` should be a list of dicts, " f"but got type {type(det_results)}"
+        )
 
         # load coco annotations to build image id-to-name index
         with get_local_path(self.ann_file) as local_path:
@@ -307,61 +296,59 @@ class PoseTrack18VideoDataset(BaseCocoStyleDataset):
         # mapping image id to name
         id2name = {}
         for img_id, image in self.coco.imgs.items():
-            file_name = image['file_name']
+            file_name = image["file_name"]
             id2name[img_id] = file_name
             name2id[file_name] = img_id
 
-        num_keypoints = self.metainfo['num_keypoints']
+        num_keypoints = self.metainfo["num_keypoints"]
         data_list = []
         id_ = 0
         for det in det_results:
             # remove non-human instances
-            if det['category_id'] != 1:
+            if det["category_id"] != 1:
                 continue
 
             # get the predicted bbox and bbox_score
-            bbox_xywh = np.array(
-                det['bbox'][:4], dtype=np.float32).reshape(1, 4)
+            bbox_xywh = np.array(det["bbox"][:4], dtype=np.float32).reshape(1, 4)
             bbox = bbox_xywh2xyxy(bbox_xywh)
-            bbox_score = np.array(det['score'], dtype=np.float32).reshape(1)
+            bbox_score = np.array(det["score"], dtype=np.float32).reshape(1)
 
             # use dummy keypoint location and visibility
             keypoints = np.zeros((1, num_keypoints, 2), dtype=np.float32)
             keypoints_visible = np.ones((1, num_keypoints), dtype=np.float32)
 
             # deal with different bbox file formats
-            if 'nframes' in det:
-                nframes = int(det['nframes'])
+            if "nframes" in det:
+                nframes = int(det["nframes"])
             else:
-                if 'image_name' in det:
-                    img_id = name2id[det['image_name']]
+                if "image_name" in det:
+                    img_id = name2id[det["image_name"]]
                 else:
-                    img_id = det['image_id']
+                    img_id = det["image_id"]
                 img_ann = self.coco.loadImgs(img_id)[0]
-                nframes = int(img_ann['nframes'])
+                nframes = int(img_ann["nframes"])
 
             # deal with multiple image paths
             img_paths: list = []
-            if 'image_name' in det:
-                image_name = det['image_name']
+            if "image_name" in det:
+                image_name = det["image_name"]
             else:
-                image_name = id2name[det['image_id']]
+                image_name = id2name[det["image_id"]]
             # get the image path of the center frame
-            center_img_path = osp.join(self.data_prefix['img'], image_name)
+            center_img_path = osp.join(self.data_prefix["img"], image_name)
             # append the center image path first
             img_paths.append(center_img_path)
 
             # "images/val/012834_mpii_test/000000.jpg" -->> "000000.jpg"
-            center_image_name = image_name.split('/')[-1]
-            ref_idx = int(center_image_name.replace('.jpg', ''))
+            center_image_name = image_name.split("/")[-1]
+            ref_idx = int(center_image_name.replace(".jpg", ""))
 
             # select the frame indices
-            if self.frame_sampler_mode == 'fixed':
+            if self.frame_sampler_mode == "fixed":
                 indices = self.frame_indices
             else:  # self.frame_sampler_mode == 'random':
                 low, high = self.frame_range
-                indices = np.random.randint(low, high + 1,
-                                            self.num_sampled_frame)
+                indices = np.random.randint(low, high + 1, self.num_sampled_frame)
 
             for idx in indices:
                 if self.test_mode and idx == 0:
@@ -371,22 +358,22 @@ class PoseTrack18VideoDataset(BaseCocoStyleDataset):
                 # clip the frame index to make sure that it does not exceed
                 # the boundings of frame indices
                 support_idx = np.clip(support_idx, 0, nframes - 1)
-                sup_img_path = center_img_path.replace(
-                    center_image_name,
-                    str(support_idx).zfill(self.ph_fill_len) + '.jpg')
+                sup_img_path = center_img_path.replace(center_image_name, str(support_idx).zfill(self.ph_fill_len) + ".jpg")
 
                 img_paths.append(sup_img_path)
 
-            data_list.append({
-                'img_id': det['image_id'],
-                'img_path': img_paths,
-                'frame_weights': self.frame_weights,
-                'bbox': bbox,
-                'bbox_score': bbox_score,
-                'keypoints': keypoints,
-                'keypoints_visible': keypoints_visible,
-                'id': id_,
-            })
+            data_list.append(
+                {
+                    "img_id": det["image_id"],
+                    "img_path": img_paths,
+                    "frame_weights": self.frame_weights,
+                    "bbox": bbox,
+                    "bbox_score": bbox_score,
+                    "keypoints": keypoints,
+                    "keypoints_visible": keypoints_visible,
+                    "id": id_,
+                }
+            )
 
             id_ += 1
 

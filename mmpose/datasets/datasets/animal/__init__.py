@@ -10,7 +10,13 @@ from .macaque_dataset import MacaqueDataset
 from .zebra_dataset import ZebraDataset
 
 __all__ = [
-    'AnimalPoseDataset', 'AP10KDataset', 'Horse10Dataset', 'MacaqueDataset',
-    'FlyDataset', 'LocustDataset', 'ZebraDataset', 'ATRWDataset',
-    'AnimalKingdomDataset'
+    "AnimalPoseDataset",
+    "AP10KDataset",
+    "Horse10Dataset",
+    "MacaqueDataset",
+    "FlyDataset",
+    "LocustDataset",
+    "ZebraDataset",
+    "ATRWDataset",
+    "AnimalKingdomDataset",
 ]

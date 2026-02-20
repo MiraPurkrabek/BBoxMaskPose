@@ -3,12 +3,12 @@ from typing import Optional, Tuple
 
 import numpy as np
 
-from mmpose.codecs.utils import get_heatmap_maximum, get_simcc_maximum, get_heatmap_expected_value
+from mmpose.codecs.utils import get_heatmap_expected_value, get_heatmap_maximum, get_simcc_maximum
+
 from .mesh_eval import compute_similarity_transform
 
 
-def _calc_distances(preds: np.ndarray, gts: np.ndarray, mask: np.ndarray,
-                    norm_factor: np.ndarray) -> np.ndarray:
+def _calc_distances(preds: np.ndarray, gts: np.ndarray, mask: np.ndarray, norm_factor: np.ndarray) -> np.ndarray:
     """Calculate the normalized distances between preds and target.
 
     Note:
@@ -37,8 +37,7 @@ def _calc_distances(preds: np.ndarray, gts: np.ndarray, mask: np.ndarray,
     distances = np.full((N, K), -1, dtype=np.float32)
     # handle invalid values
     norm_factor[np.where(norm_factor <= 0)] = 1e6
-    distances[_mask] = np.linalg.norm(
-        ((preds - gts) / norm_factor[:, None, :])[_mask], axis=-1)
+    distances[_mask] = np.linalg.norm(((preds - gts) / norm_factor[:, None, :])[_mask], axis=-1)
     return distances.T
 
 
@@ -64,8 +63,7 @@ def _distance_acc(distances: np.ndarray, thr: float = 0.5) -> float:
     return -1
 
 
-def keypoint_pck_accuracy(pred: np.ndarray, gt: np.ndarray, mask: np.ndarray,
-                          thr: np.ndarray, norm_factor: np.ndarray) -> tuple:
+def keypoint_pck_accuracy(pred: np.ndarray, gt: np.ndarray, mask: np.ndarray, thr: np.ndarray, norm_factor: np.ndarray) -> tuple:
     """Calculate the pose accuracy of PCK for each individual keypoint and the
     averaged accuracy across all keypoints for coordinates.
 
@@ -103,11 +101,7 @@ def keypoint_pck_accuracy(pred: np.ndarray, gt: np.ndarray, mask: np.ndarray,
     return acc, avg_acc, cnt
 
 
-def keypoint_auc(pred: np.ndarray,
-                 gt: np.ndarray,
-                 mask: np.ndarray,
-                 norm_factor: np.ndarray,
-                 num_thrs: int = 20) -> float:
+def keypoint_auc(pred: np.ndarray, gt: np.ndarray, mask: np.ndarray, norm_factor: np.ndarray, num_thrs: int = 20) -> float:
     """Calculate the Area under curve (AUC) of keypoint PCK accuracy.
 
     Note:
@@ -139,8 +133,7 @@ def keypoint_auc(pred: np.ndarray,
     return auc
 
 
-def keypoint_nme(pred: np.ndarray, gt: np.ndarray, mask: np.ndarray,
-                 normalize_factor: np.ndarray) -> float:
+def keypoint_nme(pred: np.ndarray, gt: np.ndarray, mask: np.ndarray, normalize_factor: np.ndarray) -> float:
     """Calculate the normalized mean error (NME).
 
     Note:
@@ -181,19 +174,19 @@ def keypoint_epe(pred: np.ndarray, gt: np.ndarray, mask: np.ndarray) -> float:
         float: Average end-point error.
     """
 
-    distances = _calc_distances(
-        pred, gt, mask,
-        np.ones((pred.shape[0], pred.shape[2]), dtype=np.float32))
+    distances = _calc_distances(pred, gt, mask, np.ones((pred.shape[0], pred.shape[2]), dtype=np.float32))
     distance_valid = distances[distances != -1]
     return distance_valid.sum() / max(1, len(distance_valid))
 
 
-def pose_pck_accuracy(output: np.ndarray,
-                      target: np.ndarray,
-                      mask: np.ndarray,
-                      thr: float = 0.05,
-                      normalize: Optional[np.ndarray] = None,
-                      method: str = 'argmax') -> tuple:
+def pose_pck_accuracy(
+    output: np.ndarray,
+    target: np.ndarray,
+    mask: np.ndarray,
+    thr: float = 0.05,
+    normalize: Optional[np.ndarray] = None,
+    method: str = "argmax",
+) -> tuple:
     """Calculate the pose accuracy of PCK for each individual keypoint and the
     averaged accuracy across all keypoints from heatmaps.
 
@@ -226,8 +219,8 @@ def pose_pck_accuracy(output: np.ndarray,
         - int: Number of valid keypoints.
     """
     method = method.lower()
-    if method not in ['argmax', 'expected']:
-        raise ValueError(f'Invalid method: {method}')
+    if method not in ["argmax", "expected"]:
+        raise ValueError(f"Invalid method: {method}")
 
     N, K, H, W = output.shape
     if K == 0:
@@ -235,7 +228,7 @@ def pose_pck_accuracy(output: np.ndarray,
     if normalize is None:
         normalize = np.tile(np.array([[H, W]]), (N, 1))
 
-    if method == 'argmax':
+    if method == "argmax":
         pred, _ = get_heatmap_maximum(output)
         gt, _ = get_heatmap_maximum(target)
     else:
@@ -244,12 +237,14 @@ def pose_pck_accuracy(output: np.ndarray,
     return keypoint_pck_accuracy(pred, gt, mask, thr, normalize)
 
 
-def simcc_pck_accuracy(output: Tuple[np.ndarray, np.ndarray],
-                       target: Tuple[np.ndarray, np.ndarray],
-                       simcc_split_ratio: float,
-                       mask: np.ndarray,
-                       thr: float = 0.05,
-                       normalize: Optional[np.ndarray] = None) -> tuple:
+def simcc_pck_accuracy(
+    output: Tuple[np.ndarray, np.ndarray],
+    target: Tuple[np.ndarray, np.ndarray],
+    simcc_split_ratio: float,
+    mask: np.ndarray,
+    thr: float = 0.05,
+    normalize: Optional[np.ndarray] = None,
+) -> tuple:
     """Calculate the pose accuracy of PCK for each individual keypoint and the
     averaged accuracy across all keypoints from SimCC.
 
@@ -297,10 +292,7 @@ def simcc_pck_accuracy(output: Tuple[np.ndarray, np.ndarray],
     return keypoint_pck_accuracy(pred_coords, gt_coords, mask, thr, normalize)
 
 
-def multilabel_classification_accuracy(pred: np.ndarray,
-                                       gt: np.ndarray,
-                                       mask: np.ndarray,
-                                       thr: float = 0.5) -> float:
+def multilabel_classification_accuracy(pred: np.ndarray, gt: np.ndarray, mask: np.ndarray, thr: float = 0.5) -> float:
     """Get multi-label classification accuracy.
 
     Note:
@@ -330,10 +322,7 @@ def multilabel_classification_accuracy(pred: np.ndarray,
     return acc
 
 
-def keypoint_mpjpe(pred: np.ndarray,
-                   gt: np.ndarray,
-                   mask: np.ndarray,
-                   alignment: str = 'none'):
+def keypoint_mpjpe(pred: np.ndarray, gt: np.ndarray, mask: np.ndarray, alignment: str = "none"):
     """Calculate the mean per-joint position error (MPJPE) and the error after
     rigid alignment with the ground truth (P-MPJPE).
 
@@ -365,20 +354,17 @@ def keypoint_mpjpe(pred: np.ndarray,
     """
     assert mask.any()
 
-    if alignment == 'none':
+    if alignment == "none":
         pass
-    elif alignment == 'procrustes':
-        pred = np.stack([
-            compute_similarity_transform(pred_i, gt_i)
-            for pred_i, gt_i in zip(pred, gt)
-        ])
-    elif alignment == 'scale':
-        pred_dot_pred = np.einsum('nkc,nkc->n', pred, pred)
-        pred_dot_gt = np.einsum('nkc,nkc->n', pred, gt)
+    elif alignment == "procrustes":
+        pred = np.stack([compute_similarity_transform(pred_i, gt_i) for pred_i, gt_i in zip(pred, gt)])
+    elif alignment == "scale":
+        pred_dot_pred = np.einsum("nkc,nkc->n", pred, pred)
+        pred_dot_gt = np.einsum("nkc,nkc->n", pred, gt)
         scale_factor = pred_dot_gt / pred_dot_pred
         pred = pred * scale_factor[:, None, None]
     else:
-        raise ValueError(f'Invalid value for alignment: {alignment}')
+        raise ValueError(f"Invalid value for alignment: {alignment}")
     error = np.linalg.norm(pred - gt, ord=2, axis=-1)[mask].mean()
 
     return error

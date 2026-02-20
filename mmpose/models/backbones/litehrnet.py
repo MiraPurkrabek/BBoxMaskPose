@@ -8,12 +8,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as cp
-from mmcv.cnn import (ConvModule, DepthwiseSeparableConvModule,
-                      build_conv_layer, build_norm_layer)
+from mmcv.cnn import ConvModule, DepthwiseSeparableConvModule, build_conv_layer, build_norm_layer
 from mmengine.model import BaseModule
 from torch.nn.modules.batchnorm import _BatchNorm
 
 from mmpose.registry import MODELS
+
 from .base_backbone import BaseBackbone
 from .utils import channel_shuffle
 
@@ -35,13 +35,7 @@ class SpatialWeighting(BaseModule):
             Default: None
     """
 
-    def __init__(self,
-                 channels,
-                 ratio=16,
-                 conv_cfg=None,
-                 norm_cfg=None,
-                 act_cfg=(dict(type='ReLU'), dict(type='Sigmoid')),
-                 init_cfg=None):
+    def __init__(self, channels, ratio=16, conv_cfg=None, norm_cfg=None, act_cfg=(dict(type="ReLU"), dict(type="Sigmoid")), init_cfg=None):
         super().__init__(init_cfg=init_cfg)
         if isinstance(act_cfg, dict):
             act_cfg = (act_cfg, act_cfg)
@@ -55,7 +49,8 @@ class SpatialWeighting(BaseModule):
             stride=1,
             conv_cfg=conv_cfg,
             norm_cfg=norm_cfg,
-            act_cfg=act_cfg[0])
+            act_cfg=act_cfg[0],
+        )
         self.conv2 = ConvModule(
             in_channels=int(channels / ratio),
             out_channels=channels,
@@ -63,7 +58,8 @@ class SpatialWeighting(BaseModule):
             stride=1,
             conv_cfg=conv_cfg,
             norm_cfg=norm_cfg,
-            act_cfg=act_cfg[1])
+            act_cfg=act_cfg[1],
+        )
 
     def forward(self, x):
         out = self.global_avgpool(x)
@@ -89,13 +85,7 @@ class CrossResolutionWeighting(BaseModule):
             Default: None
     """
 
-    def __init__(self,
-                 channels,
-                 ratio=16,
-                 conv_cfg=None,
-                 norm_cfg=None,
-                 act_cfg=(dict(type='ReLU'), dict(type='Sigmoid')),
-                 init_cfg=None):
+    def __init__(self, channels, ratio=16, conv_cfg=None, norm_cfg=None, act_cfg=(dict(type="ReLU"), dict(type="Sigmoid")), init_cfg=None):
         super().__init__(init_cfg=init_cfg)
         if isinstance(act_cfg, dict):
             act_cfg = (act_cfg, act_cfg)
@@ -110,7 +100,8 @@ class CrossResolutionWeighting(BaseModule):
             stride=1,
             conv_cfg=conv_cfg,
             norm_cfg=norm_cfg,
-            act_cfg=act_cfg[0])
+            act_cfg=act_cfg[0],
+        )
         self.conv2 = ConvModule(
             in_channels=int(total_channel / ratio),
             out_channels=total_channel,
@@ -118,7 +109,8 @@ class CrossResolutionWeighting(BaseModule):
             stride=1,
             conv_cfg=conv_cfg,
             norm_cfg=norm_cfg,
-            act_cfg=act_cfg[1])
+            act_cfg=act_cfg[1],
+        )
 
     def forward(self, x):
         mini_size = x[-1].size()[-2:]
@@ -127,10 +119,7 @@ class CrossResolutionWeighting(BaseModule):
         out = self.conv1(out)
         out = self.conv2(out)
         out = torch.split(out, self.channels, dim=1)
-        out = [
-            s * F.interpolate(a, size=s.size()[-2:], mode='nearest')
-            for s, a in zip(x, out)
-        ]
+        out = [s * F.interpolate(a, size=s.size()[-2:], mode="nearest") for s, a in zip(x, out)]
         return out
 
 
@@ -151,14 +140,7 @@ class ConditionalChannelWeighting(BaseModule):
             Default: None
     """
 
-    def __init__(self,
-                 in_channels,
-                 stride,
-                 reduce_ratio,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN'),
-                 with_cp=False,
-                 init_cfg=None):
+    def __init__(self, in_channels, stride, reduce_ratio, conv_cfg=None, norm_cfg=dict(type="BN"), with_cp=False, init_cfg=None):
         super().__init__(init_cfg=init_cfg)
         self.with_cp = with_cp
         self.stride = stride
@@ -167,28 +149,27 @@ class ConditionalChannelWeighting(BaseModule):
         branch_channels = [channel // 2 for channel in in_channels]
 
         self.cross_resolution_weighting = CrossResolutionWeighting(
-            branch_channels,
-            ratio=reduce_ratio,
-            conv_cfg=conv_cfg,
-            norm_cfg=norm_cfg)
+            branch_channels, ratio=reduce_ratio, conv_cfg=conv_cfg, norm_cfg=norm_cfg
+        )
 
-        self.depthwise_convs = nn.ModuleList([
-            ConvModule(
-                channel,
-                channel,
-                kernel_size=3,
-                stride=self.stride,
-                padding=1,
-                groups=channel,
-                conv_cfg=conv_cfg,
-                norm_cfg=norm_cfg,
-                act_cfg=None) for channel in branch_channels
-        ])
+        self.depthwise_convs = nn.ModuleList(
+            [
+                ConvModule(
+                    channel,
+                    channel,
+                    kernel_size=3,
+                    stride=self.stride,
+                    padding=1,
+                    groups=channel,
+                    conv_cfg=conv_cfg,
+                    norm_cfg=norm_cfg,
+                    act_cfg=None,
+                )
+                for channel in branch_channels
+            ]
+        )
 
-        self.spatial_weighting = nn.ModuleList([
-            SpatialWeighting(channels=channel, ratio=4)
-            for channel in branch_channels
-        ])
+        self.spatial_weighting = nn.ModuleList([SpatialWeighting(channels=channel, ratio=4) for channel in branch_channels])
 
     def forward(self, x):
 
@@ -233,15 +214,9 @@ class Stem(BaseModule):
             Default: None
     """
 
-    def __init__(self,
-                 in_channels,
-                 stem_channels,
-                 out_channels,
-                 expand_ratio,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN'),
-                 with_cp=False,
-                 init_cfg=None):
+    def __init__(
+        self, in_channels, stem_channels, out_channels, expand_ratio, conv_cfg=None, norm_cfg=dict(type="BN"), with_cp=False, init_cfg=None
+    ):
         super().__init__(init_cfg=init_cfg)
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -257,7 +232,8 @@ class Stem(BaseModule):
             padding=1,
             conv_cfg=self.conv_cfg,
             norm_cfg=self.norm_cfg,
-            act_cfg=dict(type='ReLU'))
+            act_cfg=dict(type="ReLU"),
+        )
 
         mid_channels = int(round(stem_channels * expand_ratio))
         branch_channels = stem_channels // 2
@@ -276,7 +252,8 @@ class Stem(BaseModule):
                 groups=branch_channels,
                 conv_cfg=conv_cfg,
                 norm_cfg=norm_cfg,
-                act_cfg=None),
+                act_cfg=None,
+            ),
             ConvModule(
                 branch_channels,
                 inc_channels,
@@ -285,7 +262,8 @@ class Stem(BaseModule):
                 padding=0,
                 conv_cfg=conv_cfg,
                 norm_cfg=norm_cfg,
-                act_cfg=dict(type='ReLU')),
+                act_cfg=dict(type="ReLU"),
+            ),
         )
 
         self.expand_conv = ConvModule(
@@ -296,7 +274,8 @@ class Stem(BaseModule):
             padding=0,
             conv_cfg=conv_cfg,
             norm_cfg=norm_cfg,
-            act_cfg=dict(type='ReLU'))
+            act_cfg=dict(type="ReLU"),
+        )
         self.depthwise_conv = ConvModule(
             mid_channels,
             mid_channels,
@@ -306,17 +285,18 @@ class Stem(BaseModule):
             groups=mid_channels,
             conv_cfg=conv_cfg,
             norm_cfg=norm_cfg,
-            act_cfg=None)
+            act_cfg=None,
+        )
         self.linear_conv = ConvModule(
             mid_channels,
-            branch_channels
-            if stem_channels == self.out_channels else stem_channels,
+            branch_channels if stem_channels == self.out_channels else stem_channels,
             kernel_size=1,
             stride=1,
             padding=0,
             conv_cfg=conv_cfg,
             norm_cfg=norm_cfg,
-            act_cfg=dict(type='ReLU'))
+            act_cfg=dict(type="ReLU"),
+        )
 
     def forward(self, x):
 
@@ -353,7 +333,7 @@ class IterativeHead(BaseModule):
             Default: None
     """
 
-    def __init__(self, in_channels, norm_cfg=dict(type='BN'), init_cfg=None):
+    def __init__(self, in_channels, norm_cfg=dict(type="BN"), init_cfg=None):
         super().__init__(init_cfg=init_cfg)
         projects = []
         num_branchs = len(in_channels)
@@ -369,9 +349,11 @@ class IterativeHead(BaseModule):
                         stride=1,
                         padding=1,
                         norm_cfg=norm_cfg,
-                        act_cfg=dict(type='ReLU'),
+                        act_cfg=dict(type="ReLU"),
                         dw_act_cfg=None,
-                        pw_act_cfg=dict(type='ReLU')))
+                        pw_act_cfg=dict(type="ReLU"),
+                    )
+                )
             else:
                 projects.append(
                     DepthwiseSeparableConvModule(
@@ -381,9 +363,11 @@ class IterativeHead(BaseModule):
                         stride=1,
                         padding=1,
                         norm_cfg=norm_cfg,
-                        act_cfg=dict(type='ReLU'),
+                        act_cfg=dict(type="ReLU"),
                         dw_act_cfg=None,
-                        pw_act_cfg=dict(type='ReLU')))
+                        pw_act_cfg=dict(type="ReLU"),
+                    )
+                )
         self.projects = nn.ModuleList(projects)
 
     def forward(self, x):
@@ -393,11 +377,7 @@ class IterativeHead(BaseModule):
         last_x = None
         for i, s in enumerate(x):
             if last_x is not None:
-                last_x = F.interpolate(
-                    last_x,
-                    size=s.size()[-2:],
-                    mode='bilinear',
-                    align_corners=True)
+                last_x = F.interpolate(last_x, size=s.size()[-2:], mode="bilinear", align_corners=True)
                 s = s + last_x
             s = self.projects[i](s)
             y.append(s)
@@ -425,15 +405,17 @@ class ShuffleUnit(BaseModule):
             Default: None
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 stride=1,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN'),
-                 act_cfg=dict(type='ReLU'),
-                 with_cp=False,
-                 init_cfg=None):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        stride=1,
+        conv_cfg=None,
+        norm_cfg=dict(type="BN"),
+        act_cfg=dict(type="ReLU"),
+        with_cp=False,
+        init_cfg=None,
+    ):
         super().__init__(init_cfg=init_cfg)
         self.stride = stride
         self.with_cp = with_cp
@@ -441,14 +423,11 @@ class ShuffleUnit(BaseModule):
         branch_features = out_channels // 2
         if self.stride == 1:
             assert in_channels == branch_features * 2, (
-                f'in_channels ({in_channels}) should equal to '
-                f'branch_features * 2 ({branch_features * 2}) '
-                'when stride is 1')
+                f"in_channels ({in_channels}) should equal to " f"branch_features * 2 ({branch_features * 2}) " "when stride is 1"
+            )
 
         if in_channels != branch_features * 2:
-            assert self.stride != 1, (
-                f'stride ({self.stride}) should not equal 1 when '
-                f'in_channels != branch_features * 2')
+            assert self.stride != 1, f"stride ({self.stride}) should not equal 1 when " f"in_channels != branch_features * 2"
 
         if self.stride > 1:
             self.branch1 = nn.Sequential(
@@ -461,16 +440,11 @@ class ShuffleUnit(BaseModule):
                     groups=in_channels,
                     conv_cfg=conv_cfg,
                     norm_cfg=norm_cfg,
-                    act_cfg=None),
+                    act_cfg=None,
+                ),
                 ConvModule(
-                    in_channels,
-                    branch_features,
-                    kernel_size=1,
-                    stride=1,
-                    padding=0,
-                    conv_cfg=conv_cfg,
-                    norm_cfg=norm_cfg,
-                    act_cfg=act_cfg),
+                    in_channels, branch_features, kernel_size=1, stride=1, padding=0, conv_cfg=conv_cfg, norm_cfg=norm_cfg, act_cfg=act_cfg
+                ),
             )
 
         self.branch2 = nn.Sequential(
@@ -482,7 +456,8 @@ class ShuffleUnit(BaseModule):
                 padding=0,
                 conv_cfg=conv_cfg,
                 norm_cfg=norm_cfg,
-                act_cfg=act_cfg),
+                act_cfg=act_cfg,
+            ),
             ConvModule(
                 branch_features,
                 branch_features,
@@ -492,16 +467,12 @@ class ShuffleUnit(BaseModule):
                 groups=branch_features,
                 conv_cfg=conv_cfg,
                 norm_cfg=norm_cfg,
-                act_cfg=None),
+                act_cfg=None,
+            ),
             ConvModule(
-                branch_features,
-                branch_features,
-                kernel_size=1,
-                stride=1,
-                padding=0,
-                conv_cfg=conv_cfg,
-                norm_cfg=norm_cfg,
-                act_cfg=act_cfg))
+                branch_features, branch_features, kernel_size=1, stride=1, padding=0, conv_cfg=conv_cfg, norm_cfg=norm_cfg, act_cfg=act_cfg
+            ),
+        )
 
     def forward(self, x):
 
@@ -547,18 +518,20 @@ class LiteHRModule(BaseModule):
             Default: None
     """
 
-    def __init__(self,
-                 num_branches,
-                 num_blocks,
-                 in_channels,
-                 reduce_ratio,
-                 module_type,
-                 multiscale_output=False,
-                 with_fuse=True,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN'),
-                 with_cp=False,
-                 init_cfg=None):
+    def __init__(
+        self,
+        num_branches,
+        num_blocks,
+        in_channels,
+        reduce_ratio,
+        module_type,
+        multiscale_output=False,
+        with_fuse=True,
+        conv_cfg=None,
+        norm_cfg=dict(type="BN"),
+        with_cp=False,
+        init_cfg=None,
+    ):
         super().__init__(init_cfg=init_cfg)
         self._check_branches(num_branches, in_channels)
 
@@ -572,9 +545,9 @@ class LiteHRModule(BaseModule):
         self.conv_cfg = conv_cfg
         self.with_cp = with_cp
 
-        if self.module_type.upper() == 'LITE':
+        if self.module_type.upper() == "LITE":
             self.layers = self._make_weighting_blocks(num_blocks, reduce_ratio)
-        elif self.module_type.upper() == 'NAIVE':
+        elif self.module_type.upper() == "NAIVE":
             self.layers = self._make_naive_branches(num_branches, num_blocks)
         else:
             raise ValueError("module_type should be either 'LITE' or 'NAIVE'.")
@@ -585,8 +558,7 @@ class LiteHRModule(BaseModule):
     def _check_branches(self, num_branches, in_channels):
         """Check input to avoid ValueError."""
         if num_branches != len(in_channels):
-            error_msg = f'NUM_BRANCHES({num_branches}) ' \
-                f'!= NUM_INCHANNELS({len(in_channels)})'
+            error_msg = f"NUM_BRANCHES({num_branches}) " f"!= NUM_INCHANNELS({len(in_channels)})"
             raise ValueError(error_msg)
 
     def _make_weighting_blocks(self, num_blocks, reduce_ratio, stride=1):
@@ -600,7 +572,9 @@ class LiteHRModule(BaseModule):
                     reduce_ratio=reduce_ratio,
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg,
-                    with_cp=self.with_cp))
+                    with_cp=self.with_cp,
+                )
+            )
 
         return nn.Sequential(*layers)
 
@@ -614,8 +588,10 @@ class LiteHRModule(BaseModule):
                 stride=stride,
                 conv_cfg=self.conv_cfg,
                 norm_cfg=self.norm_cfg,
-                act_cfg=dict(type='ReLU'),
-                with_cp=self.with_cp))
+                act_cfg=dict(type="ReLU"),
+                with_cp=self.with_cp,
+            )
+        )
         for i in range(1, num_blocks):
             layers.append(
                 ShuffleUnit(
@@ -624,8 +600,10 @@ class LiteHRModule(BaseModule):
                     stride=1,
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg,
-                    act_cfg=dict(type='ReLU'),
-                    with_cp=self.with_cp))
+                    act_cfg=dict(type="ReLU"),
+                    with_cp=self.with_cp,
+                )
+            )
 
         return nn.Sequential(*layers)
 
@@ -653,17 +631,11 @@ class LiteHRModule(BaseModule):
                 if j > i:
                     fuse_layer.append(
                         nn.Sequential(
-                            build_conv_layer(
-                                self.conv_cfg,
-                                in_channels[j],
-                                in_channels[i],
-                                kernel_size=1,
-                                stride=1,
-                                padding=0,
-                                bias=False),
+                            build_conv_layer(self.conv_cfg, in_channels[j], in_channels[i], kernel_size=1, stride=1, padding=0, bias=False),
                             build_norm_layer(self.norm_cfg, in_channels[i])[1],
-                            nn.Upsample(
-                                scale_factor=2**(j - i), mode='nearest')))
+                            nn.Upsample(scale_factor=2 ** (j - i), mode="nearest"),
+                        )
+                    )
                 elif j == i:
                     fuse_layer.append(None)
                 else:
@@ -680,19 +652,15 @@ class LiteHRModule(BaseModule):
                                         stride=2,
                                         padding=1,
                                         groups=in_channels[j],
-                                        bias=False),
-                                    build_norm_layer(self.norm_cfg,
-                                                     in_channels[j])[1],
+                                        bias=False,
+                                    ),
+                                    build_norm_layer(self.norm_cfg, in_channels[j])[1],
                                     build_conv_layer(
-                                        self.conv_cfg,
-                                        in_channels[j],
-                                        in_channels[i],
-                                        kernel_size=1,
-                                        stride=1,
-                                        padding=0,
-                                        bias=False),
-                                    build_norm_layer(self.norm_cfg,
-                                                     in_channels[i])[1]))
+                                        self.conv_cfg, in_channels[j], in_channels[i], kernel_size=1, stride=1, padding=0, bias=False
+                                    ),
+                                    build_norm_layer(self.norm_cfg, in_channels[i])[1],
+                                )
+                            )
                         else:
                             conv_downsamples.append(
                                 nn.Sequential(
@@ -704,20 +672,16 @@ class LiteHRModule(BaseModule):
                                         stride=2,
                                         padding=1,
                                         groups=in_channels[j],
-                                        bias=False),
-                                    build_norm_layer(self.norm_cfg,
-                                                     in_channels[j])[1],
+                                        bias=False,
+                                    ),
+                                    build_norm_layer(self.norm_cfg, in_channels[j])[1],
                                     build_conv_layer(
-                                        self.conv_cfg,
-                                        in_channels[j],
-                                        in_channels[j],
-                                        kernel_size=1,
-                                        stride=1,
-                                        padding=0,
-                                        bias=False),
-                                    build_norm_layer(self.norm_cfg,
-                                                     in_channels[j])[1],
-                                    nn.ReLU(inplace=True)))
+                                        self.conv_cfg, in_channels[j], in_channels[j], kernel_size=1, stride=1, padding=0, bias=False
+                                    ),
+                                    build_norm_layer(self.norm_cfg, in_channels[j])[1],
+                                    nn.ReLU(inplace=True),
+                                )
+                            )
                     fuse_layer.append(nn.Sequential(*conv_downsamples))
             fuse_layers.append(nn.ModuleList(fuse_layer))
 
@@ -728,9 +692,9 @@ class LiteHRModule(BaseModule):
         if self.num_branches == 1:
             return [self.layers[0](x[0])]
 
-        if self.module_type.upper() == 'LITE':
+        if self.module_type.upper() == "LITE":
             out = self.layers(x)
-        elif self.module_type.upper() == 'NAIVE':
+        elif self.module_type.upper() == "NAIVE":
             for i in range(self.num_branches):
                 x[i] = self.layers[i](x[i])
             out = x
@@ -809,20 +773,16 @@ class LiteHRNet(BaseBackbone):
         (1, 40, 8, 8)
     """
 
-    def __init__(self,
-                 extra,
-                 in_channels=3,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN'),
-                 norm_eval=False,
-                 with_cp=False,
-                 init_cfg=[
-                     dict(type='Normal', std=0.001, layer=['Conv2d']),
-                     dict(
-                         type='Constant',
-                         val=1,
-                         layer=['_BatchNorm', 'GroupNorm'])
-                 ]):
+    def __init__(
+        self,
+        extra,
+        in_channels=3,
+        conv_cfg=None,
+        norm_cfg=dict(type="BN"),
+        norm_eval=False,
+        with_cp=False,
+        init_cfg=[dict(type="Normal", std=0.001, layer=["Conv2d"]), dict(type="Constant", val=1, layer=["_BatchNorm", "GroupNorm"])],
+    ):
         super().__init__(init_cfg=init_cfg)
         self.extra = extra
         self.conv_cfg = conv_cfg
@@ -832,38 +792,35 @@ class LiteHRNet(BaseBackbone):
 
         self.stem = Stem(
             in_channels,
-            stem_channels=self.extra['stem']['stem_channels'],
-            out_channels=self.extra['stem']['out_channels'],
-            expand_ratio=self.extra['stem']['expand_ratio'],
+            stem_channels=self.extra["stem"]["stem_channels"],
+            out_channels=self.extra["stem"]["out_channels"],
+            expand_ratio=self.extra["stem"]["expand_ratio"],
             conv_cfg=self.conv_cfg,
-            norm_cfg=self.norm_cfg)
+            norm_cfg=self.norm_cfg,
+        )
 
-        self.num_stages = self.extra['num_stages']
-        self.stages_spec = self.extra['stages_spec']
+        self.num_stages = self.extra["num_stages"]
+        self.stages_spec = self.extra["stages_spec"]
 
         num_channels_last = [
             self.stem.out_channels,
         ]
         for i in range(self.num_stages):
-            num_channels = self.stages_spec['num_channels'][i]
+            num_channels = self.stages_spec["num_channels"][i]
             num_channels = [num_channels[i] for i in range(len(num_channels))]
-            setattr(
-                self, f'transition{i}',
-                self._make_transition_layer(num_channels_last, num_channels))
+            setattr(self, f"transition{i}", self._make_transition_layer(num_channels_last, num_channels))
 
-            stage, num_channels_last = self._make_stage(
-                self.stages_spec, i, num_channels, multiscale_output=True)
-            setattr(self, f'stage{i}', stage)
+            stage, num_channels_last = self._make_stage(self.stages_spec, i, num_channels, multiscale_output=True)
+            setattr(self, f"stage{i}", stage)
 
-        self.with_head = self.extra['with_head']
+        self.with_head = self.extra["with_head"]
         if self.with_head:
             self.head_layer = IterativeHead(
                 in_channels=num_channels_last,
                 norm_cfg=self.norm_cfg,
             )
 
-    def _make_transition_layer(self, num_channels_pre_layer,
-                               num_channels_cur_layer):
+    def _make_transition_layer(self, num_channels_pre_layer, num_channels_cur_layer):
         """Make transition layer."""
         num_branches_cur = len(num_channels_cur_layer)
         num_branches_pre = len(num_channels_pre_layer)
@@ -882,9 +839,9 @@ class LiteHRNet(BaseBackbone):
                                 stride=1,
                                 padding=1,
                                 groups=num_channels_pre_layer[i],
-                                bias=False),
-                            build_norm_layer(self.norm_cfg,
-                                             num_channels_pre_layer[i])[1],
+                                bias=False,
+                            ),
+                            build_norm_layer(self.norm_cfg, num_channels_pre_layer[i])[1],
                             build_conv_layer(
                                 self.conv_cfg,
                                 num_channels_pre_layer[i],
@@ -892,55 +849,41 @@ class LiteHRNet(BaseBackbone):
                                 kernel_size=1,
                                 stride=1,
                                 padding=0,
-                                bias=False),
-                            build_norm_layer(self.norm_cfg,
-                                             num_channels_cur_layer[i])[1],
-                            nn.ReLU()))
+                                bias=False,
+                            ),
+                            build_norm_layer(self.norm_cfg, num_channels_cur_layer[i])[1],
+                            nn.ReLU(),
+                        )
+                    )
                 else:
                     transition_layers.append(None)
             else:
                 conv_downsamples = []
                 for j in range(i + 1 - num_branches_pre):
                     in_channels = num_channels_pre_layer[-1]
-                    out_channels = num_channels_cur_layer[i] \
-                        if j == i - num_branches_pre else in_channels
+                    out_channels = num_channels_cur_layer[i] if j == i - num_branches_pre else in_channels
                     conv_downsamples.append(
                         nn.Sequential(
                             build_conv_layer(
-                                self.conv_cfg,
-                                in_channels,
-                                in_channels,
-                                kernel_size=3,
-                                stride=2,
-                                padding=1,
-                                groups=in_channels,
-                                bias=False),
+                                self.conv_cfg, in_channels, in_channels, kernel_size=3, stride=2, padding=1, groups=in_channels, bias=False
+                            ),
                             build_norm_layer(self.norm_cfg, in_channels)[1],
-                            build_conv_layer(
-                                self.conv_cfg,
-                                in_channels,
-                                out_channels,
-                                kernel_size=1,
-                                stride=1,
-                                padding=0,
-                                bias=False),
+                            build_conv_layer(self.conv_cfg, in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=False),
                             build_norm_layer(self.norm_cfg, out_channels)[1],
-                            nn.ReLU()))
+                            nn.ReLU(),
+                        )
+                    )
                 transition_layers.append(nn.Sequential(*conv_downsamples))
 
         return nn.ModuleList(transition_layers)
 
-    def _make_stage(self,
-                    stages_spec,
-                    stage_index,
-                    in_channels,
-                    multiscale_output=True):
-        num_modules = stages_spec['num_modules'][stage_index]
-        num_branches = stages_spec['num_branches'][stage_index]
-        num_blocks = stages_spec['num_blocks'][stage_index]
-        reduce_ratio = stages_spec['reduce_ratios'][stage_index]
-        with_fuse = stages_spec['with_fuse'][stage_index]
-        module_type = stages_spec['module_type'][stage_index]
+    def _make_stage(self, stages_spec, stage_index, in_channels, multiscale_output=True):
+        num_modules = stages_spec["num_modules"][stage_index]
+        num_branches = stages_spec["num_branches"][stage_index]
+        num_blocks = stages_spec["num_blocks"][stage_index]
+        reduce_ratio = stages_spec["reduce_ratios"][stage_index]
+        with_fuse = stages_spec["with_fuse"][stage_index]
+        module_type = stages_spec["module_type"][stage_index]
 
         modules = []
         for i in range(num_modules):
@@ -961,7 +904,9 @@ class LiteHRNet(BaseBackbone):
                     with_fuse=with_fuse,
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg,
-                    with_cp=self.with_cp))
+                    with_cp=self.with_cp,
+                )
+            )
             in_channels = modules[-1].in_channels
 
         return nn.Sequential(*modules), in_channels
@@ -973,8 +918,8 @@ class LiteHRNet(BaseBackbone):
         y_list = [x]
         for i in range(self.num_stages):
             x_list = []
-            transition = getattr(self, f'transition{i}')
-            for j in range(self.stages_spec['num_branches'][i]):
+            transition = getattr(self, f"transition{i}")
+            for j in range(self.stages_spec["num_branches"][i]):
                 if transition[j]:
                     if j >= len(y_list):
                         x_list.append(transition[j](y_list[-1]))
@@ -982,13 +927,13 @@ class LiteHRNet(BaseBackbone):
                         x_list.append(transition[j](y_list[j]))
                 else:
                     x_list.append(y_list[j])
-            y_list = getattr(self, f'stage{i}')(x_list)
+            y_list = getattr(self, f"stage{i}")(x_list)
 
         x = y_list
         if self.with_head:
             x = self.head_layer(x)
 
-        return (x[0], )
+        return (x[0],)
 
     def train(self, mode=True):
         """Convert the model into training mode."""

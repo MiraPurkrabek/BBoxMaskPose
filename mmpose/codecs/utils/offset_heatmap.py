@@ -55,7 +55,7 @@ def generate_offset_heatmap(
         x_offset = (mu[0] - x) / radius
         y_offset = (mu[1] - y) / radius
 
-        heatmaps[k, 0] = np.where(x_offset**2 + y_offset**2 <= 1, 1., 0.)
+        heatmaps[k, 0] = np.where(x_offset**2 + y_offset**2 <= 1, 1.0, 0.0)
         heatmaps[k, 1] = x_offset
         heatmaps[k, 2] = y_offset
 
@@ -108,16 +108,19 @@ def generate_displacement_heatmap(
     instance_size_map = np.zeros((H, W), dtype=np.float32)
 
     for n in range(N):
-        if (roots_visible[n] < 1 or (roots[n, 0] < 0 or roots[n, 1] < 0)
-                or (roots[n, 0] >= W or roots[n, 1] >= H)):
+        if roots_visible[n] < 1 or (roots[n, 0] < 0 or roots[n, 1] < 0) or (roots[n, 0] >= W or roots[n, 1] >= H):
             continue
 
         diagonal_length = diagonal_lengths[n]
 
         for k in range(K):
-            if keypoints_visible[n, k] < 1 or keypoints[n, k, 0] < 0 \
-                or keypoints[n, k, 1] < 0 or keypoints[n, k, 0] >= W \
-                    or keypoints[n, k, 1] >= H:
+            if (
+                keypoints_visible[n, k] < 1
+                or keypoints[n, k, 0] < 0
+                or keypoints[n, k, 1] < 0
+                or keypoints[n, k, 0] >= W
+                or keypoints[n, k, 1] >= H
+            ):
                 continue
 
             start_x = max(int(roots[n, 0] - radius), 0)
@@ -127,17 +130,13 @@ def generate_displacement_heatmap(
 
             for x in range(start_x, end_x):
                 for y in range(start_y, end_y):
-                    if displacements[2 * k, y,
-                                     x] != 0 or displacements[2 * k + 1, y,
-                                                              x] != 0:
+                    if displacements[2 * k, y, x] != 0 or displacements[2 * k + 1, y, x] != 0:
                         if diagonal_length > instance_size_map[y, x]:
                             # keep the gt displacement of smaller instance
                             continue
 
-                    displacement_weights[2 * k:2 * k + 2, y,
-                                         x] = 1 / diagonal_length
-                    displacements[2 * k:2 * k + 2, y,
-                                  x] = keypoints[n, k] - [x, y]
+                    displacement_weights[2 * k : 2 * k + 2, y, x] = 1 / diagonal_length
+                    displacements[2 * k : 2 * k + 2, y, x] = keypoints[n, k] - [x, y]
                     instance_size_map[y, x] = diagonal_length
 
     return displacements, displacement_weights

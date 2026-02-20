@@ -1,40 +1,43 @@
+# Copyright (c) authors of BBoxMaskPose (BMPv2). All rights reserved.
 import os
 import os.path as osp
 import platform
 import shutil
 import sys
 import warnings
+
 from setuptools import find_packages, setup
 
 try:
     import google.colab  # noqa
+
     ON_COLAB = True
 except ImportError:
     ON_COLAB = False
 
 
 def readme():
-    with open('README.md', encoding='utf-8') as f:
+    with open("README.md", encoding="utf-8") as f:
         content = f.read()
     return content
 
 
-version_file = 'version.py'
+version_file = "version.py"
 
 
 def get_version():
-    with open(version_file, 'r') as f:
-        exec(compile(f.read(), version_file, 'exec'))
+    with open(version_file, "r") as f:
+        exec(compile(f.read(), version_file, "exec"))
     import sys
 
     # return short version for sdist
-    if 'sdist' in sys.argv or 'bdist_wheel' in sys.argv:
-        return locals()['short_version']
+    if "sdist" in sys.argv or "bdist_wheel" in sys.argv:
+        return locals()["short_version"]
     else:
-        return locals()['__version__']
+        return locals()["__version__"]
 
 
-def parse_requirements(fname='requirements.txt', with_version=True):
+def parse_requirements(fname="requirements.txt", with_version=True):
     """Parse the package dependencies listed in a requirements file but strips
     specific versioning information.
 
@@ -51,71 +54,68 @@ def parse_requirements(fname='requirements.txt', with_version=True):
     import re
     import sys
     from os.path import exists
+
     require_fpath = fname
 
     def parse_line(line):
         """Parse information from a line in a requirements text file."""
-        if line.startswith('-r '):
+        if line.startswith("-r "):
             # Allow specifying requirements in other files
-            target = line.split(' ')[1]
+            target = line.split(" ")[1]
             for info in parse_require_file(target):
                 yield info
         else:
-            info = {'line': line}
-            if line.startswith('-e '):
-                info['package'] = line.split('#egg=')[1]
-            elif '@git+' in line:
-                info['package'] = line
+            info = {"line": line}
+            if line.startswith("-e "):
+                info["package"] = line.split("#egg=")[1]
+            elif "@git+" in line:
+                info["package"] = line
             else:
                 # Remove versioning from the package
-                pat = '(' + '|'.join(['>=', '==', '>']) + ')'
+                pat = "(" + "|".join([">=", "==", ">"]) + ")"
                 parts = re.split(pat, line, maxsplit=1)
                 parts = [p.strip() for p in parts]
 
-                info['package'] = parts[0]
+                info["package"] = parts[0]
                 if len(parts) > 1:
                     op, rest = parts[1:]
-                    if ';' in rest:
+                    if ";" in rest:
                         # Handle platform specific dependencies
                         # http://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-platform-specific-dependencies
-                        version, platform_deps = map(str.strip,
-                                                     rest.split(';'))
-                        info['platform_deps'] = platform_deps
+                        version, platform_deps = map(str.strip, rest.split(";"))
+                        info["platform_deps"] = platform_deps
                     else:
                         version = rest  # NOQA
-                    info['version'] = (op, version)
+                    info["version"] = (op, version)
 
-            if ON_COLAB and info['package'] == 'xtcocotools':
+            if ON_COLAB and info["package"] == "xtcocotools":
                 # Due to an incompatibility between the Colab platform and the
                 # pre-built xtcocotools PyPI package, it is necessary to
                 # compile xtcocotools from source on Colab.
-                info = dict(
-                    line=info['line'],
-                    package='xtcocotools@'
-                    'git+https://github.com/jin-s13/xtcocoapi')
+                info = dict(line=info["line"], package="xtcocotools@" "git+https://github.com/jin-s13/xtcocoapi")
 
             yield info
 
     def parse_require_file(fpath):
-        with open(fpath, 'r') as f:
+        with open(fpath, "r") as f:
             for line in f.readlines():
                 line = line.strip()
-                if line and not line.startswith('#'):
+                if line and not line.startswith("#"):
                     for info in parse_line(line):
                         yield info
 
     def gen_packages_items():
         if exists(require_fpath):
             for info in parse_require_file(require_fpath):
-                parts = [info['package']]
-                if with_version and 'version' in info:
-                    parts.extend(info['version'])
-                if not sys.version.startswith('3.4'):
+                parts = [info["package"]]
+                if with_version and "version" in info:
+                    parts.extend(info["version"])
+                if not sys.version.startswith("3.4"):
                     # apparently package_deps are broken in 3.4
-                    platform_deps = info.get('platform_deps')
+                    platform_deps = info.get("platform_deps")
                     if platform_deps is not None:
-                        parts.append(';' + platform_deps)
-                item = ''.join(parts)
+                        parts.append(";" + platform_deps)
+                item = "".join(parts)
                 yield item
 
     packages = list(gen_packages_items())
@@ -131,24 +131,22 @@ def add_mim_extension():
     """
 
     # parse installment mode
-    if 'develop' in sys.argv:
+    if "develop" in sys.argv:
         # installed by `pip install -e .`
-        if platform.system() == 'Windows':
-            mode = 'copy'
+        if platform.system() == "Windows":
+            mode = "copy"
         else:
-            mode = 'symlink'
-    elif 'sdist' in sys.argv or 'bdist_wheel' in sys.argv:
+            mode = "symlink"
+    elif "sdist" in sys.argv or "bdist_wheel" in sys.argv:
         # installed by `pip install .`
         # or create source distribution by `python setup.py sdist`
-        mode = 'copy'
+        mode = "copy"
     else:
         return
 
-    filenames = [
-        'tools', 'configs', 'demo', 'model-index.yml', 'dataset-index.yml'
-    ]
+    filenames = ["tools", "configs", "demo", "model-index.yml", "dataset-index.yml"]
     repo_path = osp.dirname(__file__)
-    mim_path = osp.join(repo_path, 'mmpose', '.mim')
+    mim_path = osp.join(repo_path, "mmpose", ".mim")
     os.makedirs(mim_path, exist_ok=True)
 
     for filename in filenames:
@@ -161,52 +159,53 @@ def add_mim_extension():
             elif osp.isdir(tar_path):
                 shutil.rmtree(tar_path)
 
-            if mode == 'symlink':
+            if mode == "symlink":
                 src_relpath = osp.relpath(src_path, osp.dirname(tar_path))
                 os.symlink(src_relpath, tar_path)
-            elif mode == 'copy':
+            elif mode == "copy":
                 if osp.isfile(src_path):
                     shutil.copyfile(src_path, tar_path)
                 elif osp.isdir(src_path):
                     shutil.copytree(src_path, tar_path)
                 else:
-                    warnings.warn(f'Cannot copy file {src_path}.')
+                    warnings.warn(f"Cannot copy file {src_path}.")
             else:
-                raise ValueError(f'Invalid mode {mode}')
+                raise ValueError(f"Invalid mode {mode}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     add_mim_extension()
     setup(
-        name='bbox-mask-pose',
+        name="bbox-mask-pose",
         version=get_version(),
-        description='BBoxMaskPose framework for itterative detection, segmentation and pose estimation.',
-        author='Miroslav Purkrabek',
-        author_email='mira.purkrabek@gmail.com',
-        keywords='computer vision, pose estimation, detection, segmentation, research, iccv 2025',
+        description="BBoxMaskPose framework for itterative detection, segmentation and pose estimation.",
+        author="Miroslav Purkrabek",
+        author_email="mira.purkrabek@gmail.com",
+        keywords="computer vision, pose estimation, detection, segmentation, research, iccv 2025",
         long_description=readme(),
-        long_description_content_type='text/markdown',
-        packages=find_packages(exclude=('configs', 'tools', 'demo', 'demos')),
+        long_description_content_type="text/markdown",
+        packages=find_packages(exclude=("configs", "tools", "demo", "demos")),
         include_package_data=True,
         package_data={
-            'mmpose.ops': ['*/*.so'],
-            'bboxmaskpose.sam2': ['*.so'],
-            'bboxmaskpose.sam2.*': ['*.so'],
+            "mmpose.ops": ["*/*.so"],
+            "bboxmaskpose.sam2": ["*.so"],
+            "bboxmaskpose.sam2.*": ["*.so"],
         },
         classifiers=[
-            'Development Status :: 4 - Beta',
-            'Operating System :: OS Independent',
-            'Programming Language :: Python :: 3',
+            "Development Status :: 4 - Beta",
+            "Operating System :: OS Independent",
+            "Programming Language :: Python :: 3",
         ],
-        url='https://github.com/MiraPurkrabek/BBoxMaskPose/',
-        license='General Public License 3.0',
-        python_requires='>=3.7',
-        install_requires=parse_requirements('requirements/runtime.txt'),
+        url="https://github.com/MiraPurkrabek/BBoxMaskPose/",
+        license="General Public License 3.0",
+        python_requires=">=3.7",
+        install_requires=parse_requirements("requirements/runtime.txt"),
         extras_require={
-            'all': parse_requirements('requirements.txt'),
-            'tests': parse_requirements('requirements/tests.txt'),
-            'optional': parse_requirements('requirements/optional.txt'),
-            'mim': parse_requirements('requirements/mminstall.txt'),
-            'sam2_extras': parse_requirements('requirements/sam2_extras.txt'),
+            "all": parse_requirements("requirements.txt"),
+            "tests": parse_requirements("requirements/tests.txt"),
+            "optional": parse_requirements("requirements/optional.txt"),
+            "mim": parse_requirements("requirements/mminstall.txt"),
+            "sam2_extras": parse_requirements("requirements/sam2_extras.txt"),
         },
-        zip_safe=False)
+        zip_safe=False,
+    )

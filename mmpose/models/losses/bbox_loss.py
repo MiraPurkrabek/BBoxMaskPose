@@ -20,23 +20,19 @@ class IoULoss(nn.Module):
             Default: 'log'
     """
 
-    def __init__(self,
-                 reduction='mean',
-                 mode='log',
-                 eps: float = 1e-16,
-                 loss_weight=1.):
+    def __init__(self, reduction="mean", mode="log", eps: float = 1e-16, loss_weight=1.0):
         super().__init__()
 
-        assert reduction in ('mean', 'sum', 'none'), f'the argument ' \
-            f'`reduction` should be either \'mean\', \'sum\' or \'none\', ' \
-            f'but got {reduction}'
+        assert reduction in ("mean", "sum", "none"), (
+            f"the argument " f"`reduction` should be either 'mean', 'sum' or 'none', " f"but got {reduction}"
+        )
 
-        assert mode in ('linear', 'square', 'log'), f'the argument ' \
-            f'`reduction` should be either \'linear\', \'square\' or ' \
-            f'\'log\', but got {mode}'
+        assert mode in ("linear", "square", "log"), (
+            f"the argument " f"`reduction` should be either 'linear', 'square' or " f"'log', but got {mode}"
+        )
 
         self.reduction = reduction
-        self.criterion = partial(F.cross_entropy, reduction='none')
+        self.criterion = partial(F.cross_entropy, reduction="none")
         self.loss_weight = loss_weight
         self.mode = mode
         self.eps = eps
@@ -52,14 +48,13 @@ class IoULoss(nn.Module):
             output (torch.Tensor[N, K]): Output classification.
             target (torch.Tensor[N, K]): Target classification.
         """
-        ious = bbox_overlaps(
-            output, target, is_aligned=True).clamp(min=self.eps)
+        ious = bbox_overlaps(output, target, is_aligned=True).clamp(min=self.eps)
 
-        if self.mode == 'linear':
+        if self.mode == "linear":
             loss = 1 - ious
-        elif self.mode == 'square':
+        elif self.mode == "square":
             loss = 1 - ious.pow(2)
-        elif self.mode == 'log':
+        elif self.mode == "log":
             loss = -ious.log()
         else:
             raise NotImplementedError
@@ -69,9 +64,9 @@ class IoULoss(nn.Module):
                 target_weight = target_weight.unsqueeze(-1)
             loss = loss * target_weight
 
-        if self.reduction == 'sum':
+        if self.reduction == "sum":
             loss = loss.sum()
-        elif self.reduction == 'mean':
+        elif self.reduction == "mean":
             loss = loss.mean()
 
         return loss * self.loss_weight

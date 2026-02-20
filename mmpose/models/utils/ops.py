@@ -9,12 +9,14 @@ from torch.nn import functional as F
 from mmpose.registry import MODELS
 
 
-def resize(input: torch.Tensor,
-           size: Optional[Union[Tuple[int, int], torch.Size]] = None,
-           scale_factor: Optional[float] = None,
-           mode: str = 'nearest',
-           align_corners: Optional[bool] = None,
-           warning: bool = True) -> torch.Tensor:
+def resize(
+    input: torch.Tensor,
+    size: Optional[Union[Tuple[int, int], torch.Size]] = None,
+    scale_factor: Optional[float] = None,
+    mode: str = "nearest",
+    align_corners: Optional[bool] = None,
+    warning: bool = True,
+) -> torch.Tensor:
     """Resize a given input tensor using specified size or scale_factor.
 
     Args:
@@ -38,14 +40,17 @@ def resize(input: torch.Tensor,
             input_h, input_w = tuple(int(x) for x in input.shape[2:])
             output_h, output_w = tuple(int(x) for x in size)
             if output_h > input_h or output_w > output_h:
-                if ((output_h > 1 and output_w > 1 and input_h > 1
-                     and input_w > 1) and (output_h - 1) % (input_h - 1)
-                        and (output_w - 1) % (input_w - 1)):
+                if (
+                    (output_h > 1 and output_w > 1 and input_h > 1 and input_w > 1)
+                    and (output_h - 1) % (input_h - 1)
+                    and (output_w - 1) % (input_w - 1)
+                ):
                     warnings.warn(
-                        f'When align_corners={align_corners}, '
-                        'the output would be more aligned if '
-                        f'input size {(input_h, input_w)} is `x+1` and '
-                        f'out size {(output_h, output_w)} is `nx+1`')
+                        f"When align_corners={align_corners}, "
+                        "the output would be more aligned if "
+                        f"input size {(input_h, input_w)} is `x+1` and "
+                        f"out size {(output_h, output_w)} is `nx+1`"
+                    )
 
     # Convert torch.Size to tuple if necessary
     if isinstance(size, torch.Size):
@@ -67,22 +72,20 @@ class FrozenBatchNorm2d(torch.nn.Module):
 
     def __init__(self, n, eps: int = 1e-5):
         super(FrozenBatchNorm2d, self).__init__()
-        self.register_buffer('weight', torch.ones(n))
-        self.register_buffer('bias', torch.zeros(n))
-        self.register_buffer('running_mean', torch.zeros(n))
-        self.register_buffer('running_var', torch.ones(n))
+        self.register_buffer("weight", torch.ones(n))
+        self.register_buffer("bias", torch.zeros(n))
+        self.register_buffer("running_mean", torch.zeros(n))
+        self.register_buffer("running_var", torch.ones(n))
         self.eps = eps
 
-    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict,
-                              missing_keys, unexpected_keys, error_msgs):
-        num_batches_tracked_key = prefix + 'num_batches_tracked'
+    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs):
+        num_batches_tracked_key = prefix + "num_batches_tracked"
         if num_batches_tracked_key in state_dict:
             del state_dict[num_batches_tracked_key]
 
-        super(FrozenBatchNorm2d,
-              self)._load_from_state_dict(state_dict, prefix, local_metadata,
-                                          strict, missing_keys,
-                                          unexpected_keys, error_msgs)
+        super(FrozenBatchNorm2d, self)._load_from_state_dict(
+            state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
+        )
 
     def forward(self, x):
         w = self.weight.reshape(1, -1, 1, 1)

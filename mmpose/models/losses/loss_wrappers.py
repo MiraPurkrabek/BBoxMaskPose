@@ -40,9 +40,9 @@ class MultipleLossWrapper(nn.Module):
             keypoint_weights (Tensor[N, K, D]):
                 Weights across different joint types.
         """
-        assert isinstance(input_list, list), ''
-        assert isinstance(target_list, list), ''
-        assert len(input_list) == len(target_list), ''
+        assert isinstance(input_list, list), ""
+        assert isinstance(target_list, list), ""
+        assert len(input_list) == len(target_list), ""
 
         losses = []
         for i in range(self.num_losses):

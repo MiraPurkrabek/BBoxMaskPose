@@ -5,6 +5,7 @@ from typing import Optional
 import numpy as np
 
 from mmpose.registry import DATASETS
+
 from ..base import BaseCocoStyleDataset
 
 
@@ -56,8 +57,7 @@ class CocoWholeBodyFaceDataset(BaseCocoStyleDataset):
             image. Default: 1000.
     """
 
-    METAINFO: dict = dict(
-        from_file='configs/_base_/datasets/coco_wholebody_face.py')
+    METAINFO: dict = dict(from_file="configs/_base_/datasets/coco_wholebody_face.py")
 
     def parse_data_info(self, raw_data_info: dict) -> Optional[dict]:
         """Parse raw CocoWholeBody Face annotation of an instance.
@@ -74,18 +74,18 @@ class CocoWholeBodyFaceDataset(BaseCocoStyleDataset):
             dict: Parsed instance annotation
         """
 
-        ann = raw_data_info['raw_ann_info']
-        img = raw_data_info['raw_img_info']
+        ann = raw_data_info["raw_ann_info"]
+        img = raw_data_info["raw_img_info"]
 
         # filter invalid instance
-        if not ann['face_valid'] or max(ann['face_kpts']) <= 0:
+        if not ann["face_valid"] or max(ann["face_kpts"]) <= 0:
             return None
 
-        img_path = osp.join(self.data_prefix['img'], img['file_name'])
-        img_w, img_h = img['width'], img['height']
+        img_path = osp.join(self.data_prefix["img"], img["file_name"])
+        img_w, img_h = img["width"], img["height"]
 
         # get bbox in shape [1, 4], formatted as xywh
-        x, y, w, h = ann['face_box']
+        x, y, w, h = ann["face_box"]
         x1 = np.clip(x, 0, img_w - 1)
         y1 = np.clip(y, 0, img_h - 1)
         x2 = np.clip(x + w, 0, img_w - 1)
@@ -94,22 +94,21 @@ class CocoWholeBodyFaceDataset(BaseCocoStyleDataset):
         bbox = np.array([x1, y1, x2, y2], dtype=np.float32).reshape(1, 4)
 
         # keypoints in shape [1, K, 2] and keypoints_visible in [1, K]
-        _keypoints = np.array(
-            ann['face_kpts'], dtype=np.float32).reshape(1, -1, 3)
+        _keypoints = np.array(ann["face_kpts"], dtype=np.float32).reshape(1, -1, 3)
         keypoints = _keypoints[..., :2]
         keypoints_visible = np.minimum(1, _keypoints[..., 2])
 
         num_keypoints = np.count_nonzero(keypoints.max(axis=2))
 
         data_info = {
-            'img_id': ann['image_id'],
-            'img_path': img_path,
-            'bbox': bbox,
-            'bbox_score': np.ones(1, dtype=np.float32),
-            'num_keypoints': num_keypoints,
-            'keypoints': keypoints,
-            'keypoints_visible': keypoints_visible,
-            'iscrowd': ann['iscrowd'],
-            'id': ann['id'],
+            "img_id": ann["image_id"],
+            "img_path": img_path,
+            "bbox": bbox,
+            "bbox_score": np.ones(1, dtype=np.float32),
+            "num_keypoints": num_keypoints,
+            "keypoints": keypoints,
+            "keypoints_visible": keypoints_visible,
+            "iscrowd": ann["iscrowd"],
+            "id": ann["id"],
         }
         return data_info

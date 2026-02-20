@@ -22,4 +22,4 @@ def get_root_logger(log_file=None, log_level=logging.INFO):
     Returns:
         logging.Logger: The root logger.
     """
-    return MMLogger('MMLogger', __name__.split('.')[0], log_file, log_level)
+    return MMLogger("MMLogger", __name__.split(".")[0], log_file, log_level)

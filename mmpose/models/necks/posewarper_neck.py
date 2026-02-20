@@ -9,10 +9,12 @@ from torch.nn.modules.batchnorm import _BatchNorm
 
 from mmpose.models.utils.ops import resize
 from mmpose.registry import MODELS
+
 from ..backbones.resnet import BasicBlock, Bottleneck
 
 try:
     from mmcv.ops import DeformConv2d
+
     has_mmcv_full = True
 except (ImportError, ModuleNotFoundError):
     has_mmcv_full = False
@@ -62,24 +64,27 @@ class PoseWarperNeck(nn.Module):
         im2col_step (int): the argument `im2col_step` in deformable conv,
             Default: 80.
     """
-    blocks_dict = {'BASIC': BasicBlock, 'BOTTLENECK': Bottleneck}
-    minimum_mmcv_version = '1.3.17'
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 inner_channels,
-                 deform_groups=17,
-                 dilations=(3, 6, 12, 18, 24),
-                 trans_conv_kernel=1,
-                 res_blocks_cfg=None,
-                 offsets_kernel=3,
-                 deform_conv_kernel=3,
-                 in_index=0,
-                 input_transform=None,
-                 freeze_trans_layer=True,
-                 norm_eval=False,
-                 im2col_step=80):
+    blocks_dict = {"BASIC": BasicBlock, "BOTTLENECK": Bottleneck}
+    minimum_mmcv_version = "1.3.17"
+
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        inner_channels,
+        deform_groups=17,
+        dilations=(3, 6, 12, 18, 24),
+        trans_conv_kernel=1,
+        res_blocks_cfg=None,
+        offsets_kernel=3,
+        deform_conv_kernel=3,
+        in_index=0,
+        input_transform=None,
+        freeze_trans_layer=True,
+        norm_eval=False,
+        im2col_step=80,
+    ):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -112,41 +117,35 @@ class PoseWarperNeck(nn.Module):
             self.trans_layer = nn.Identity()
         else:
             self.trans_layer = build_conv_layer(
-                cfg=dict(type='Conv2d'),
+                cfg=dict(type="Conv2d"),
                 in_channels=in_channels,
                 out_channels=out_channels,
                 kernel_size=kernel_size,
                 stride=1,
-                padding=padding)
+                padding=padding,
+            )
 
         # build chain of residual blocks
         if res_blocks_cfg is not None and not isinstance(res_blocks_cfg, dict):
-            raise TypeError('res_blocks_cfg should be dict or None.')
+            raise TypeError("res_blocks_cfg should be dict or None.")
 
         if res_blocks_cfg is None:
-            block_type = 'BASIC'
+            block_type = "BASIC"
             num_blocks = 20
         else:
-            block_type = res_blocks_cfg.get('block', 'BASIC')
-            num_blocks = res_blocks_cfg.get('num_blocks', 20)
+            block_type = res_blocks_cfg.get("block", "BASIC")
+            num_blocks = res_blocks_cfg.get("num_blocks", 20)
 
         block = self.blocks_dict[block_type]
 
         res_layers = []
         downsample = nn.Sequential(
             build_conv_layer(
-                cfg=dict(type='Conv2d'),
-                in_channels=out_channels,
-                out_channels=inner_channels,
-                kernel_size=1,
-                stride=1,
-                bias=False),
-            build_norm_layer(dict(type='BN'), inner_channels)[1])
-        res_layers.append(
-            block(
-                in_channels=out_channels,
-                out_channels=inner_channels,
-                downsample=downsample))
+                cfg=dict(type="Conv2d"), in_channels=out_channels, out_channels=inner_channels, kernel_size=1, stride=1, bias=False
+            ),
+            build_norm_layer(dict(type="BN"), inner_channels)[1],
+        )
+        res_layers.append(block(in_channels=out_channels, out_channels=inner_channels, downsample=downsample))
 
         for _ in range(1, num_blocks):
             res_layers.append(block(inner_channels, inner_channels))
@@ -154,14 +153,13 @@ class PoseWarperNeck(nn.Module):
 
         # build offset layers
         self.num_offset_layers = len(dilations)
-        assert self.num_offset_layers > 0, 'Number of offset layers ' \
-            'should be larger than 0.'
+        assert self.num_offset_layers > 0, "Number of offset layers " "should be larger than 0."
 
         target_offset_channels = 2 * offsets_kernel**2 * deform_groups
 
         offset_layers = [
             build_conv_layer(
-                cfg=dict(type='Conv2d'),
+                cfg=dict(type="Conv2d"),
                 in_channels=inner_channels,
                 out_channels=target_offset_channels,
                 kernel_size=offsets_kernel,
@@ -169,17 +167,18 @@ class PoseWarperNeck(nn.Module):
                 dilation=dilations[i],
                 padding=dilations[i],
                 bias=False,
-            ) for i in range(self.num_offset_layers)
+            )
+            for i in range(self.num_offset_layers)
         ]
         self.offset_layers = nn.ModuleList(offset_layers)
 
         # build deformable conv layers
-        assert digit_version(mmcv.__version__) >= \
-            digit_version(self.minimum_mmcv_version), \
-            f'Current MMCV version: {mmcv.__version__}, ' \
-            f'but MMCV >= {self.minimum_mmcv_version} is required, see ' \
-            f'https://github.com/open-mmlab/mmcv/issues/1440, ' \
-            f'Please install the latest MMCV.'
+        assert digit_version(mmcv.__version__) >= digit_version(self.minimum_mmcv_version), (
+            f"Current MMCV version: {mmcv.__version__}, "
+            f"but MMCV >= {self.minimum_mmcv_version} is required, see "
+            f"https://github.com/open-mmlab/mmcv/issues/1440, "
+            f"Please install the latest MMCV."
+        )
 
         if has_mmcv_full:
             deform_conv_layers = [
@@ -192,11 +191,11 @@ class PoseWarperNeck(nn.Module):
                     dilation=dilations[i],
                     deform_groups=deform_groups,
                     im2col_step=self.im2col_step,
-                ) for i in range(self.num_offset_layers)
+                )
+                for i in range(self.num_offset_layers)
             ]
         else:
-            raise ImportError('Please install the full version of mmcv '
-                              'to use `DeformConv2d`.')
+            raise ImportError("Please install the full version of mmcv " "to use `DeformConv2d`.")
 
         self.deform_conv_layers = nn.ModuleList(deform_conv_layers)
 
@@ -216,18 +215,11 @@ class PoseWarperNeck(nn.Module):
             elif isinstance(m, (_BatchNorm, nn.GroupNorm)):
                 constant_init(m, 1)
             elif isinstance(m, DeformConv2d):
-                filler = torch.zeros([
-                    m.weight.size(0),
-                    m.weight.size(1),
-                    m.weight.size(2),
-                    m.weight.size(3)
-                ],
-                                     dtype=torch.float32,
-                                     device=m.weight.device)
+                filler = torch.zeros(
+                    [m.weight.size(0), m.weight.size(1), m.weight.size(2), m.weight.size(3)], dtype=torch.float32, device=m.weight.device
+                )
                 for k in range(m.weight.size(0)):
-                    filler[k, k,
-                           int(m.weight.size(2) / 2),
-                           int(m.weight.size(3) / 2)] = 1.0
+                    filler[k, k, int(m.weight.size(2) / 2), int(m.weight.size(3) / 2)] = 1.0
                 m.weight = torch.nn.Parameter(filler)
                 m.weight.requires_grad = True
 
@@ -247,17 +239,13 @@ class PoseWarperNeck(nn.Module):
         if not isinstance(inputs, list):
             return inputs
 
-        if self.input_transform == 'resize_concat':
+        if self.input_transform == "resize_concat":
             inputs = [inputs[i] for i in self.in_index]
             upsampled_inputs = [
-                resize(
-                    input=x,
-                    size=inputs[0].shape[2:],
-                    mode='bilinear',
-                    align_corners=self.align_corners) for x in inputs
+                resize(input=x, size=inputs[0].shape[2:], mode="bilinear", align_corners=self.align_corners) for x in inputs
             ]
             inputs = torch.cat(upsampled_inputs, dim=1)
-        elif self.input_transform == 'multiple_select':
+        elif self.input_transform == "multiple_select":
             inputs = [inputs[i] for i in self.in_index]
         else:
             inputs = inputs[self.in_index]
@@ -265,9 +253,9 @@ class PoseWarperNeck(nn.Module):
         return inputs
 
     def forward(self, inputs, frame_weight):
-        assert isinstance(inputs, (list, tuple)), 'PoseWarperNeck inputs ' \
-            'should be list or tuple, even though the length is 1, ' \
-            'for unified processing.'
+        assert isinstance(inputs, (list, tuple)), (
+            "PoseWarperNeck inputs " "should be list or tuple, even though the length is 1, " "for unified processing."
+        )
 
         output_heatmap = 0
         if len(inputs) > 1:
@@ -275,20 +263,16 @@ class PoseWarperNeck(nn.Module):
             inputs = [self.trans_layer(input) for input in inputs]
 
             # calculate difference features
-            diff_features = [
-                self.offset_feats(inputs[0] - input) for input in inputs
-            ]
+            diff_features = [self.offset_feats(inputs[0] - input) for input in inputs]
 
             for i in range(len(inputs)):
                 if frame_weight[i] == 0:
                     continue
                 warped_heatmap = 0
                 for j in range(self.num_offset_layers):
-                    offset = (self.offset_layers[j](diff_features[i]))
-                    warped_heatmap_tmp = self.deform_conv_layers[j](inputs[i],
-                                                                    offset)
-                    warped_heatmap += warped_heatmap_tmp / \
-                        self.num_offset_layers
+                    offset = self.offset_layers[j](diff_features[i])
+                    warped_heatmap_tmp = self.deform_conv_layers[j](inputs[i], offset)
+                    warped_heatmap += warped_heatmap_tmp / self.num_offset_layers
 
                 output_heatmap += warped_heatmap * frame_weight[i]
 
@@ -314,8 +298,7 @@ class PoseWarperNeck(nn.Module):
             for i in range(num_frames):
                 if frame_weight[i] == 0:
                     continue
-                output_heatmap += warped_heatmap[i * batch_size:(i + 1) *
-                                                 batch_size] * frame_weight[i]
+                output_heatmap += warped_heatmap[i * batch_size : (i + 1) * batch_size] * frame_weight[i]
 
         return output_heatmap
 

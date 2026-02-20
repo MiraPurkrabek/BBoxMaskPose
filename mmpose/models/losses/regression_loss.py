@@ -9,6 +9,7 @@ import torch.nn.functional as F
 
 from mmpose.datasets.datasets.utils import parse_pose_metainfo
 from mmpose.registry import MODELS
+
 from ..utils.realnvp import RealNVP
 
 
@@ -32,11 +33,7 @@ class RLELoss(nn.Module):
             Options: "laplace" or "gaussian"
     """
 
-    def __init__(self,
-                 use_target_weight=False,
-                 size_average=True,
-                 residual=True,
-                 q_distribution='laplace'):
+    def __init__(self, use_target_weight=False, size_average=True, residual=True, q_distribution="laplace"):
         super(RLELoss, self).__init__()
         self.size_average = size_average
         self.use_target_weight = use_target_weight
@@ -66,17 +63,15 @@ class RLELoss(nn.Module):
         # (B, K, 2)
         log_phi = self.flow_model.log_prob(error.reshape(-1, 2))
         log_phi = log_phi.reshape(target.shape[0], target.shape[1], 1)
-        log_sigma = torch.log(sigma).reshape(target.shape[0], target.shape[1],
-                                             2)
+        log_sigma = torch.log(sigma).reshape(target.shape[0], target.shape[1], 2)
         nf_loss = log_sigma - log_phi
 
         if self.residual:
-            assert self.q_distribution in ['laplace', 'gaussian']
-            if self.q_distribution == 'laplace':
+            assert self.q_distribution in ["laplace", "gaussian"]
+            if self.q_distribution == "laplace":
                 loss_q = torch.log(sigma * 2) + torch.abs(error)
             else:
-                loss_q = torch.log(
-                    sigma * math.sqrt(2 * math.pi)) + 0.5 * error**2
+                loss_q = torch.log(sigma * math.sqrt(2 * math.pi)) + 0.5 * error**2
 
             loss = nf_loss + loss_q
         else:
@@ -102,7 +97,7 @@ class SmoothL1Loss(nn.Module):
         loss_weight (float): Weight of the loss. Default: 1.0.
     """
 
-    def __init__(self, use_target_weight=False, loss_weight=1.):
+    def __init__(self, use_target_weight=False, loss_weight=1.0):
         super().__init__()
         self.criterion = F.smooth_l1_loss
         self.use_target_weight = use_target_weight
@@ -130,8 +125,7 @@ class SmoothL1Loss(nn.Module):
             for i in range(output.ndim - target_weight.ndim):
                 target_weight = target_weight.unsqueeze(-1)
 
-            loss = self.criterion(output * target_weight,
-                                  target * target_weight)
+            loss = self.criterion(output * target_weight, target * target_weight)
         else:
             loss = self.criterion(output, target)
 
@@ -148,7 +142,7 @@ class L1LogLoss(nn.Module):
         loss_weight (float): Weight of the loss. Default: 1.0.
     """
 
-    def __init__(self, use_target_weight=False, loss_weight=1.):
+    def __init__(self, use_target_weight=False, loss_weight=1.0):
         super().__init__()
         self.criterion = F.smooth_l1_loss
         self.use_target_weight = use_target_weight
@@ -179,8 +173,7 @@ class L1LogLoss(nn.Module):
             for i in range(output.ndim - target_weight.ndim):
                 target_weight = target_weight.unsqueeze(-1)
 
-            loss = self.criterion(output * target_weight,
-                                  target * target_weight)
+            loss = self.criterion(output * target_weight, target * target_weight)
         else:
             loss = self.criterion(output, target)
 
@@ -201,23 +194,18 @@ class SoftWeightSmoothL1Loss(nn.Module):
         loss_weight (float): Weight of the loss. Default: 1.0.
     """
 
-    def __init__(self,
-                 use_target_weight=False,
-                 supervise_empty=True,
-                 beta=1.0,
-                 loss_weight=1.):
+    def __init__(self, use_target_weight=False, supervise_empty=True, beta=1.0, loss_weight=1.0):
         super().__init__()
 
-        reduction = 'none' if use_target_weight else 'mean'
-        self.criterion = partial(
-            self.smooth_l1_loss, reduction=reduction, beta=beta)
+        reduction = "none" if use_target_weight else "mean"
+        self.criterion = partial(self.smooth_l1_loss, reduction=reduction, beta=beta)
 
         self.supervise_empty = supervise_empty
         self.use_target_weight = use_target_weight
         self.loss_weight = loss_weight
 
     @staticmethod
-    def smooth_l1_loss(input, target, reduction='none', beta=1.0):
+    def smooth_l1_loss(input, target, reduction="none", beta=1.0):
         """Re-implement torch.nn.functional.smooth_l1_loss with beta to support
         pytorch <= 1.6."""
         delta = input - target
@@ -225,15 +213,14 @@ class SoftWeightSmoothL1Loss(nn.Module):
         delta[mask] = (delta[mask]).pow(2) / (2 * beta)
         delta[~mask] = delta[~mask].abs() - beta / 2
 
-        if reduction == 'mean':
+        if reduction == "mean":
             return delta.mean()
-        elif reduction == 'sum':
+        elif reduction == "sum":
             return delta.sum()
-        elif reduction == 'none':
+        elif reduction == "none":
             return delta
         else:
-            raise ValueError(f'reduction must be \'mean\', \'sum\' or '
-                             f'\'none\', but got \'{reduction}\'')
+            raise ValueError(f"reduction must be 'mean', 'sum' or " f"'none', but got '{reduction}'")
 
     def forward(self, output, target, target_weight=None):
         """Forward function.
@@ -281,11 +268,7 @@ class WingLoss(nn.Module):
         loss_weight (float): Weight of the loss. Default: 1.0.
     """
 
-    def __init__(self,
-                 omega=10.0,
-                 epsilon=2.0,
-                 use_target_weight=False,
-                 loss_weight=1.):
+    def __init__(self, omega=10.0, epsilon=2.0, use_target_weight=False, loss_weight=1.0):
         super().__init__()
         self.omega = omega
         self.epsilon = epsilon
@@ -309,9 +292,7 @@ class WingLoss(nn.Module):
             target (torch.Tensor[N, K, D]): Target regression.
         """
         delta = (target - pred).abs()
-        losses = torch.where(
-            delta < self.omega,
-            self.omega * torch.log(1.0 + delta / self.epsilon), delta - self.C)
+        losses = torch.where(delta < self.omega, self.omega * torch.log(1.0 + delta / self.epsilon), delta - self.C)
         return torch.mean(torch.sum(losses, dim=[1, 2]), dim=0)
 
     def forward(self, output, target, target_weight=None):
@@ -330,8 +311,7 @@ class WingLoss(nn.Module):
         """
         if self.use_target_weight:
             assert target_weight is not None
-            loss = self.criterion(output * target_weight,
-                                  target * target_weight)
+            loss = self.criterion(output * target_weight, target * target_weight)
         else:
             loss = self.criterion(output, target)
 
@@ -356,12 +336,7 @@ class SoftWingLoss(nn.Module):
         loss_weight (float): Weight of the loss. Default: 1.0.
     """
 
-    def __init__(self,
-                 omega1=2.0,
-                 omega2=20.0,
-                 epsilon=0.5,
-                 use_target_weight=False,
-                 loss_weight=1.):
+    def __init__(self, omega1=2.0, omega2=20.0, epsilon=0.5, use_target_weight=False, loss_weight=1.0):
         super().__init__()
         self.omega1 = omega1
         self.omega2 = omega2
@@ -371,8 +346,7 @@ class SoftWingLoss(nn.Module):
 
         # constant that smoothly links the piecewise-defined linear
         # and nonlinear parts
-        self.B = self.omega1 - self.omega2 * math.log(1.0 + self.omega1 /
-                                                      self.epsilon)
+        self.B = self.omega1 - self.omega2 * math.log(1.0 + self.omega1 / self.epsilon)
 
     def criterion(self, pred, target):
         """Criterion of wingloss.
@@ -387,9 +361,7 @@ class SoftWingLoss(nn.Module):
             target (torch.Tensor[N, K, D]): Target regression.
         """
         delta = (target - pred).abs()
-        losses = torch.where(
-            delta < self.omega1, delta,
-            self.omega2 * torch.log(1.0 + delta / self.epsilon) + self.B)
+        losses = torch.where(delta < self.omega1, delta, self.omega2 * torch.log(1.0 + delta / self.epsilon) + self.B)
         return torch.mean(torch.sum(losses, dim=[1, 2]), dim=0)
 
     def forward(self, output, target, target_weight=None):
@@ -408,8 +380,7 @@ class SoftWingLoss(nn.Module):
         """
         if self.use_target_weight:
             assert target_weight is not None
-            loss = self.criterion(output * target_weight,
-                                  target * target_weight)
+            loss = self.criterion(output * target_weight, target * target_weight)
         else:
             loss = self.criterion(output, target)
 
@@ -426,11 +397,7 @@ class MPJPEVelocityJointLoss(nn.Module):
         lambda_3d_velocity (float): Factor of the velocity loss. Default: 20.0.
     """
 
-    def __init__(self,
-                 use_target_weight=False,
-                 loss_weight=1.,
-                 lambda_scale=0.5,
-                 lambda_3d_velocity=20.0):
+    def __init__(self, use_target_weight=False, loss_weight=1.0, lambda_scale=0.5, lambda_3d_velocity=20.0):
         super().__init__()
         self.use_target_weight = use_target_weight
         self.loss_weight = loss_weight
@@ -451,45 +418,27 @@ class MPJPEVelocityJointLoss(nn.Module):
             target_weight (torch.Tensor[N,K,D]):
                 Weights across different joint types.
         """
-        norm_output = torch.mean(
-            torch.sum(torch.square(output), dim=-1, keepdim=True),
-            dim=-2,
-            keepdim=True)
-        norm_target = torch.mean(
-            torch.sum(target * output, dim=-1, keepdim=True),
-            dim=-2,
-            keepdim=True)
+        norm_output = torch.mean(torch.sum(torch.square(output), dim=-1, keepdim=True), dim=-2, keepdim=True)
+        norm_target = torch.mean(torch.sum(target * output, dim=-1, keepdim=True), dim=-2, keepdim=True)
 
         velocity_output = output[..., 1:, :, :] - output[..., :-1, :, :]
         velocity_target = target[..., 1:, :, :] - target[..., :-1, :, :]
 
         if self.use_target_weight:
             assert target_weight is not None
-            mpjpe = torch.mean(
-                torch.norm((output - target) * target_weight, dim=-1))
+            mpjpe = torch.mean(torch.norm((output - target) * target_weight, dim=-1))
 
-            nmpjpe = torch.mean(
-                torch.norm(
-                    (norm_target / norm_output * output - target) *
-                    target_weight,
-                    dim=-1))
+            nmpjpe = torch.mean(torch.norm((norm_target / norm_output * output - target) * target_weight, dim=-1))
 
-            loss_3d_velocity = torch.mean(
-                torch.norm(
-                    (velocity_output - velocity_target) * target_weight,
-                    dim=-1))
+            loss_3d_velocity = torch.mean(torch.norm((velocity_output - velocity_target) * target_weight, dim=-1))
         else:
             mpjpe = torch.mean(torch.norm(output - target, dim=-1))
 
-            nmpjpe = torch.mean(
-                torch.norm(
-                    norm_target / norm_output * output - target, dim=-1))
+            nmpjpe = torch.mean(torch.norm(norm_target / norm_output * output - target, dim=-1))
 
-            loss_3d_velocity = torch.mean(
-                torch.norm(velocity_output - velocity_target, dim=-1))
+            loss_3d_velocity = torch.mean(torch.norm(velocity_output - velocity_target, dim=-1))
 
-        loss = mpjpe + nmpjpe * self.lambda_scale + \
-            loss_3d_velocity * self.lambda_3d_velocity
+        loss = mpjpe + nmpjpe * self.lambda_scale + loss_3d_velocity * self.lambda_3d_velocity
 
         return loss * self.loss_weight
 
@@ -504,7 +453,7 @@ class MPJPELoss(nn.Module):
         loss_weight (float): Weight of the loss. Default: 1.0.
     """
 
-    def __init__(self, use_target_weight=False, loss_weight=1.):
+    def __init__(self, use_target_weight=False, loss_weight=1.0):
         super().__init__()
         self.use_target_weight = use_target_weight
         self.loss_weight = loss_weight
@@ -526,8 +475,7 @@ class MPJPELoss(nn.Module):
 
         if self.use_target_weight:
             assert target_weight is not None
-            loss = torch.mean(
-                torch.norm((output - target) * target_weight, dim=-1))
+            loss = torch.mean(torch.norm((output - target) * target_weight, dim=-1))
         else:
             loss = torch.mean(torch.norm(output - target, dim=-1))
 
@@ -538,15 +486,12 @@ class MPJPELoss(nn.Module):
 class L1Loss(nn.Module):
     """L1Loss loss."""
 
-    def __init__(self,
-                 reduction='mean',
-                 use_target_weight=False,
-                 loss_weight=1.):
+    def __init__(self, reduction="mean", use_target_weight=False, loss_weight=1.0):
         super().__init__()
 
-        assert reduction in ('mean', 'sum', 'none'), f'the argument ' \
-            f'`reduction` should be either \'mean\', \'sum\' or \'none\', ' \
-            f'but got {reduction}'
+        assert reduction in ("mean", "sum", "none"), (
+            f"the argument " f"`reduction` should be either 'mean', 'sum' or 'none', " f"but got {reduction}"
+        )
 
         self.criterion = partial(F.l1_loss, reduction=reduction)
         self.use_target_weight = use_target_weight
@@ -569,8 +514,7 @@ class L1Loss(nn.Module):
             assert target_weight is not None
             for _ in range(target.ndim - target_weight.ndim):
                 target_weight = target_weight.unsqueeze(-1)
-            loss = self.criterion(output * target_weight,
-                                  target * target_weight)
+            loss = self.criterion(output * target_weight, target * target_weight)
         else:
             loss = self.criterion(output, target)
 
@@ -581,7 +525,7 @@ class L1Loss(nn.Module):
 class MSELoss(nn.Module):
     """MSE loss for coordinate regression."""
 
-    def __init__(self, use_target_weight=False, loss_weight=1.):
+    def __init__(self, use_target_weight=False, loss_weight=1.0):
         super().__init__()
         self.criterion = F.mse_loss
         self.use_target_weight = use_target_weight
@@ -603,8 +547,7 @@ class MSELoss(nn.Module):
 
         if self.use_target_weight:
             assert target_weight is not None
-            loss = self.criterion(output * target_weight,
-                                  target * target_weight)
+            loss = self.criterion(output * target_weight, target * target_weight)
         else:
             loss = self.criterion(output, target)
 
@@ -622,7 +565,7 @@ class BoneLoss(nn.Module):
         loss_weight (float): Weight of the loss. Default: 1.0.
     """
 
-    def __init__(self, joint_parents, use_target_weight=False, loss_weight=1.):
+    def __init__(self, joint_parents, use_target_weight=False, loss_weight=1.0):
         super().__init__()
         self.joint_parents = joint_parents
         self.use_target_weight = use_target_weight
@@ -647,20 +590,13 @@ class BoneLoss(nn.Module):
             target_weight (torch.Tensor[N, K-1]):
                 Weights across different bone types.
         """
-        output_bone = torch.norm(
-            output - output[:, self.joint_parents, :],
-            dim=-1)[:, self.non_root_indices]
-        target_bone = torch.norm(
-            target - target[:, self.joint_parents, :],
-            dim=-1)[:, self.non_root_indices]
+        output_bone = torch.norm(output - output[:, self.joint_parents, :], dim=-1)[:, self.non_root_indices]
+        target_bone = torch.norm(target - target[:, self.joint_parents, :], dim=-1)[:, self.non_root_indices]
         if self.use_target_weight:
             assert target_weight is not None
-            loss = torch.mean(
-                torch.abs((output_bone * target_weight).mean(dim=0) -
-                          (target_bone * target_weight).mean(dim=0)))
+            loss = torch.mean(torch.abs((output_bone * target_weight).mean(dim=0) - (target_bone * target_weight).mean(dim=0)))
         else:
-            loss = torch.mean(
-                torch.abs(output_bone.mean(dim=0) - target_bone.mean(dim=0)))
+            loss = torch.mean(torch.abs(output_bone.mean(dim=0) - target_bone.mean(dim=0)))
 
         return loss * self.loss_weight
 
@@ -688,16 +624,10 @@ class SemiSupervisionLoss(nn.Module):
             * warmup_epochs
     """
 
-    def __init__(self,
-                 joint_parents,
-                 projection_loss_weight=1.,
-                 bone_loss_weight=1.,
-                 warmup_iterations=0):
+    def __init__(self, joint_parents, projection_loss_weight=1.0, bone_loss_weight=1.0, warmup_iterations=0):
         super().__init__()
-        self.criterion_projection = MPJPELoss(
-            loss_weight=projection_loss_weight)
-        self.criterion_bone = BoneLoss(
-            joint_parents, loss_weight=bone_loss_weight)
+        self.criterion_projection = MPJPELoss(loss_weight=projection_loss_weight)
+        self.criterion_bone = BoneLoss(joint_parents, loss_weight=bone_loss_weight)
         self.warmup_iterations = warmup_iterations
         self.num_iterations = 0
 
@@ -720,11 +650,8 @@ class SemiSupervisionLoss(nn.Module):
             k = intrinsics[..., 4:7]
             p = intrinsics[..., 7:9]
 
-            r2 = torch.sum(_x[:, :, :2]**2, dim=-1, keepdim=True)
-            radial = 1 + torch.sum(
-                k * torch.cat((r2, r2**2, r2**3), dim=-1),
-                dim=-1,
-                keepdim=True)
+            r2 = torch.sum(_x[:, :, :2] ** 2, dim=-1, keepdim=True)
+            radial = 1 + torch.sum(k * torch.cat((r2, r2**2, r2**3), dim=-1), dim=-1, keepdim=True)
             tan = torch.sum(p * _x, dim=-1, keepdim=True)
             _x = _x * (radial + tan) + p * r2
         _x = f * _x + c
@@ -737,22 +664,21 @@ class SemiSupervisionLoss(nn.Module):
         if self.num_iterations <= self.warmup_iterations:
             return losses
 
-        labeled_pose = output['labeled_pose']
-        unlabeled_pose = output['unlabeled_pose']
-        unlabeled_traj = output['unlabeled_traj']
-        unlabeled_target_2d = target['unlabeled_target_2d']
-        intrinsics = target['intrinsics']
+        labeled_pose = output["labeled_pose"]
+        unlabeled_pose = output["unlabeled_pose"]
+        unlabeled_traj = output["unlabeled_traj"]
+        unlabeled_target_2d = target["unlabeled_target_2d"]
+        intrinsics = target["intrinsics"]
 
         # projection loss
         unlabeled_output = unlabeled_pose + unlabeled_traj
         unlabeled_output_2d = self.project_joints(unlabeled_output, intrinsics)
-        loss_proj = self.criterion_projection(unlabeled_output_2d,
-                                              unlabeled_target_2d, None)
-        losses['proj_loss'] = loss_proj
+        loss_proj = self.criterion_projection(unlabeled_output_2d, unlabeled_target_2d, None)
+        losses["proj_loss"] = loss_proj
 
         # bone loss
         loss_bone = self.criterion_bone(unlabeled_pose, labeled_pose, None)
-        losses['bone_loss'] = loss_bone
+        losses["bone_loss"] = loss_bone
 
         return losses
 
@@ -784,22 +710,18 @@ class OKSLoss(nn.Module):
             with number of visible keypoints. Defaults to False.
     """
 
-    def __init__(self,
-                 metainfo: Optional[str] = None,
-                 reduction='mean',
-                 mode='linear',
-                 eps=1e-8,
-                 norm_target_weight=False,
-                 loss_weight=1.):
+    def __init__(
+        self, metainfo: Optional[str] = None, reduction="mean", mode="linear", eps=1e-8, norm_target_weight=False, loss_weight=1.0
+    ):
         super().__init__()
 
-        assert reduction in ('mean', 'sum', 'none'), f'the argument ' \
-            f'`reduction` should be either \'mean\', \'sum\' or \'none\', ' \
-            f'but got {reduction}'
+        assert reduction in ("mean", "sum", "none"), (
+            f"the argument " f"`reduction` should be either 'mean', 'sum' or 'none', " f"but got {reduction}"
+        )
 
-        assert mode in ('linear', 'square', 'log'), f'the argument ' \
-            f'`reduction` should be either \'linear\', \'square\' or ' \
-            f'\'log\', but got {mode}'
+        assert mode in ("linear", "square", "log"), (
+            f"the argument " f"`reduction` should be either 'linear', 'square' or " f"'log', but got {mode}"
+        )
 
         self.reduction = reduction
         self.loss_weight = loss_weight
@@ -809,9 +731,9 @@ class OKSLoss(nn.Module):
 
         if metainfo is not None:
             metainfo = parse_pose_metainfo(dict(from_file=metainfo))
-            sigmas = metainfo.get('sigmas', None)
+            sigmas = metainfo.get("sigmas", None)
             if sigmas is not None:
-                self.register_buffer('sigmas', torch.as_tensor(sigmas))
+                self.register_buffer("sigmas", torch.as_tensor(sigmas))
 
     def forward(self, output, target, target_weight=None, areas=None):
         """Forward function.
@@ -830,33 +752,32 @@ class OKSLoss(nn.Module):
         dist = torch.norm(output - target, dim=-1)
         if areas is not None:
             dist = dist / areas.pow(0.5).clip(min=self.eps).unsqueeze(-1)
-        if hasattr(self, 'sigmas'):
-            sigmas = self.sigmas.reshape(*((1, ) * (dist.ndim - 1)), -1)
+        if hasattr(self, "sigmas"):
+            sigmas = self.sigmas.reshape(*((1,) * (dist.ndim - 1)), -1)
             dist = dist / (sigmas * 2)
 
         oks = torch.exp(-dist.pow(2) / 2)
 
         if target_weight is not None:
             if self.norm_target_weight:
-                target_weight = target_weight / target_weight.sum(
-                    dim=-1, keepdims=True).clip(min=self.eps)
+                target_weight = target_weight / target_weight.sum(dim=-1, keepdims=True).clip(min=self.eps)
             else:
                 target_weight = target_weight / target_weight.size(-1)
             oks = oks * target_weight
         oks = oks.sum(dim=-1)
 
-        if self.mode == 'linear':
+        if self.mode == "linear":
             loss = 1 - oks
-        elif self.mode == 'square':
+        elif self.mode == "square":
             loss = 1 - oks.pow(2)
-        elif self.mode == 'log':
+        elif self.mode == "log":
             loss = -oks.log()
         else:
             raise NotImplementedError()
 
-        if self.reduction == 'sum':
+        if self.reduction == "sum":
             loss = loss.sum()
-        elif self.reduction == 'mean':
+        elif self.reduction == "mean":
             loss = loss.mean()
 
         return loss * self.loss_weight

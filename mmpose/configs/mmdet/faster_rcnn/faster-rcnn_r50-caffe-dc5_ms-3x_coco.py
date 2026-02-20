@@ -1,4 +1,4 @@
-_base_ = './faster-rcnn_r50-caffe-dc5_ms-1x_coco.py'
+_base_ = "./faster-rcnn_r50-caffe-dc5_ms-1x_coco.py"
 
 # MMEngine support the following two ways, users can choose
 # according to convenience

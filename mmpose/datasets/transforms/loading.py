@@ -5,7 +5,6 @@ import numpy as np
 from mmcv.transforms import LoadImageFromFile
 
 from mmpose.registry import TRANSFORMS
-
 from mmpose.structures.keypoint import fix_bbox_aspect_ratio
 
 
@@ -55,51 +54,48 @@ class LoadImage(LoadImageFromFile):
             dict: The result dict.
         """
         try:
-            if 'img' not in results:
+            if "img" not in results:
                 # Load image from file by :meth:`LoadImageFromFile.transform`
                 results = super().transform(results)
             else:
-                img = results['img']
+                img = results["img"]
                 assert isinstance(img, np.ndarray)
                 if self.to_float32:
                     img = img.astype(np.float32)
 
-                if 'img_path' not in results:
-                    results['img_path'] = None
-                results['img_shape'] = img.shape[:2]
-                results['ori_shape'] = img.shape[:2]
+                if "img_path" not in results:
+                    results["img_path"] = None
+                results["img_shape"] = img.shape[:2]
+                results["ori_shape"] = img.shape[:2]
 
             if self.pad_to_aspect_ratio:
                 # Pad image with zeros to ensure activation map is not cut off
-                abox_xyxy = fix_bbox_aspect_ratio(
-                    results['bbox'], aspect_ratio=3/4, padding=1.25, bbox_format='xyxy').flatten()
-                
-                x_pad = np.array([max(0, -abox_xyxy[0]), max(0, abox_xyxy[2] - results['img_shape'][1])], dtype=int)
-                y_pad = np.array([max(0, -abox_xyxy[1]), max(0, abox_xyxy[3] - results['img_shape'][0])], dtype=int)
+                abox_xyxy = fix_bbox_aspect_ratio(results["bbox"], aspect_ratio=3 / 4, padding=1.25, bbox_format="xyxy").flatten()
 
-                img = results['img']
-                img = np.pad(img, ((y_pad[0], y_pad[1]), (x_pad[0], x_pad[1]), (0, 0)), mode='constant', constant_values=255)
-                results['img'] = img
-                
+                x_pad = np.array([max(0, -abox_xyxy[0]), max(0, abox_xyxy[2] - results["img_shape"][1])], dtype=int)
+                y_pad = np.array([max(0, -abox_xyxy[1]), max(0, abox_xyxy[3] - results["img_shape"][0])], dtype=int)
+
+                img = results["img"]
+                img = np.pad(img, ((y_pad[0], y_pad[1]), (x_pad[0], x_pad[1]), (0, 0)), mode="constant", constant_values=255)
+                results["img"] = img
+
                 # Update bbox
-                bbox = np.array(results['bbox']).flatten()
+                bbox = np.array(results["bbox"]).flatten()
                 bbox[:2] += np.array([x_pad[0], y_pad[0]])
                 bbox[2:] += np.array([x_pad[0], y_pad[0]])
-                results['bbox'] = bbox.reshape(np.array(results['bbox']).shape)
+                results["bbox"] = bbox.reshape(np.array(results["bbox"]).shape)
 
                 # Update keypoints
-                kpts = np.array(results['keypoints']).reshape(-1, 2)
+                kpts = np.array(results["keypoints"]).reshape(-1, 2)
                 kpts[:, :2] += np.array([x_pad[0], y_pad[0]])
-                results['keypoints'] = kpts.reshape(np.array(results['keypoints']).shape)
+                results["keypoints"] = kpts.reshape(np.array(results["keypoints"]).shape)
 
                 # Update img_shape and ori_shape
-                results['img_shape'] = img.shape[:2]
-                results['ori_shape'] = img.shape[:2]
+                results["img_shape"] = img.shape[:2]
+                results["ori_shape"] = img.shape[:2]
 
         except Exception as e:
-            e = type(e)(
-                f'`{str(e)}` occurs when loading `{results["img_path"]}`.'
-                'Please check whether the file exists.')
+            e = type(e)(f'`{str(e)}` occurs when loading `{results["img_path"]}`.' "Please check whether the file exists.")
             raise e
 
         return results

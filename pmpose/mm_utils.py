@@ -1,3 +1,5 @@
+# Copyright (c) authors of BBoxMaskPose (BMPv2). All rights reserved.
+
 """
 This module provides high-level interfaces to run MMDetection and MMPose
 models sequentially. Users can call run_MMDetector and run_MMPose from

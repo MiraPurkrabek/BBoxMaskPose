@@ -38,13 +38,13 @@ services:
     # ----------------------------------------------------------------------
     volumes:
       # Input: Mount directory containing images for processing (read-only)
-      - ./demo/data:/app/input:ro
+      - ./data:/app/input:ro
 
       # Output: Mount directory for saving results (read-write)
-      - ./outputs:/app/outputs:rw
+      - ./demos/outputs:/app/outputs:rw
 
       # Configuration: Mount custom config files if needed (read-only)
-      - ./configs:/app/configs:ro
+      - ./bboxmaskpose/configs:/app/configs:ro
 
     # ----------------------------------------------------------------------
     # Environment Variables
@@ -60,7 +60,7 @@ services:
     # Runs the demo on the sample OCHuman image
     # Override this command to process different images
     # ----------------------------------------------------------------------
-    command: [ "python", "demo/bmp_demo.py", "configs/bmp_D3.yaml", "/app/input/004806.jpg", "--output-root", "/app/outputs" ]
+    command: [ "python", "demos/BMP_demo.py", "--image", "/app/input/004806.jpg", "--output", "/app/outputs" ]
 
 # ==============================================================================
 # Usage Examples

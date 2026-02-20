@@ -7,6 +7,7 @@ from mmcv.cnn import ConvModule, DepthwiseSeparableConvModule
 from mmengine.model import BaseModule
 
 from mmpose.registry import MODELS
+
 from ..utils import CSPLayer
 
 
@@ -32,22 +33,18 @@ class YOLOXPAFPN(BaseModule):
             Default: None.
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 num_csp_blocks=3,
-                 use_depthwise=False,
-                 upsample_cfg=dict(scale_factor=2, mode='nearest'),
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN', momentum=0.03, eps=0.001),
-                 act_cfg=dict(type='Swish'),
-                 init_cfg=dict(
-                     type='Kaiming',
-                     layer='Conv2d',
-                     a=math.sqrt(5),
-                     distribution='uniform',
-                     mode='fan_in',
-                     nonlinearity='leaky_relu')):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        num_csp_blocks=3,
+        use_depthwise=False,
+        upsample_cfg=dict(scale_factor=2, mode="nearest"),
+        conv_cfg=None,
+        norm_cfg=dict(type="BN", momentum=0.03, eps=0.001),
+        act_cfg=dict(type="Swish"),
+        init_cfg=dict(type="Kaiming", layer="Conv2d", a=math.sqrt(5), distribution="uniform", mode="fan_in", nonlinearity="leaky_relu"),
+    ):
         super(YOLOXPAFPN, self).__init__(init_cfg)
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -60,13 +57,8 @@ class YOLOXPAFPN(BaseModule):
         self.top_down_blocks = nn.ModuleList()
         for idx in range(len(in_channels) - 1, 0, -1):
             self.reduce_layers.append(
-                ConvModule(
-                    in_channels[idx],
-                    in_channels[idx - 1],
-                    1,
-                    conv_cfg=conv_cfg,
-                    norm_cfg=norm_cfg,
-                    act_cfg=act_cfg))
+                ConvModule(in_channels[idx], in_channels[idx - 1], 1, conv_cfg=conv_cfg, norm_cfg=norm_cfg, act_cfg=act_cfg)
+            )
             self.top_down_blocks.append(
                 CSPLayer(
                     in_channels[idx - 1] * 2,
@@ -76,22 +68,17 @@ class YOLOXPAFPN(BaseModule):
                     use_depthwise=use_depthwise,
                     conv_cfg=conv_cfg,
                     norm_cfg=norm_cfg,
-                    act_cfg=act_cfg))
+                    act_cfg=act_cfg,
+                )
+            )
 
         # build bottom-up blocks
         self.downsamples = nn.ModuleList()
         self.bottom_up_blocks = nn.ModuleList()
         for idx in range(len(in_channels) - 1):
             self.downsamples.append(
-                conv(
-                    in_channels[idx],
-                    in_channels[idx],
-                    3,
-                    stride=2,
-                    padding=1,
-                    conv_cfg=conv_cfg,
-                    norm_cfg=norm_cfg,
-                    act_cfg=act_cfg))
+                conv(in_channels[idx], in_channels[idx], 3, stride=2, padding=1, conv_cfg=conv_cfg, norm_cfg=norm_cfg, act_cfg=act_cfg)
+            )
             self.bottom_up_blocks.append(
                 CSPLayer(
                     in_channels[idx] * 2,
@@ -101,18 +88,13 @@ class YOLOXPAFPN(BaseModule):
                     use_depthwise=use_depthwise,
                     conv_cfg=conv_cfg,
                     norm_cfg=norm_cfg,
-                    act_cfg=act_cfg))
+                    act_cfg=act_cfg,
+                )
+            )
 
         self.out_convs = nn.ModuleList()
         for i in range(len(in_channels)):
-            self.out_convs.append(
-                ConvModule(
-                    in_channels[i],
-                    out_channels,
-                    1,
-                    conv_cfg=conv_cfg,
-                    norm_cfg=norm_cfg,
-                    act_cfg=act_cfg))
+            self.out_convs.append(ConvModule(in_channels[i], out_channels, 1, conv_cfg=conv_cfg, norm_cfg=norm_cfg, act_cfg=act_cfg))
 
     def forward(self, inputs):
         """
@@ -129,14 +111,12 @@ class YOLOXPAFPN(BaseModule):
         for idx in range(len(self.in_channels) - 1, 0, -1):
             feat_heigh = inner_outs[0]
             feat_low = inputs[idx - 1]
-            feat_heigh = self.reduce_layers[len(self.in_channels) - 1 - idx](
-                feat_heigh)
+            feat_heigh = self.reduce_layers[len(self.in_channels) - 1 - idx](feat_heigh)
             inner_outs[0] = feat_heigh
 
             upsample_feat = self.upsample(feat_heigh)
 
-            inner_out = self.top_down_blocks[len(self.in_channels) - 1 - idx](
-                torch.cat([upsample_feat, feat_low], 1))
+            inner_out = self.top_down_blocks[len(self.in_channels) - 1 - idx](torch.cat([upsample_feat, feat_low], 1))
             inner_outs.insert(0, inner_out)
 
         # bottom-up path
@@ -145,8 +125,7 @@ class YOLOXPAFPN(BaseModule):
             feat_low = outs[-1]
             feat_height = inner_outs[idx + 1]
             downsample_feat = self.downsamples[idx](feat_low)
-            out = self.bottom_up_blocks[idx](
-                torch.cat([downsample_feat, feat_height], 1))
+            out = self.bottom_up_blocks[idx](torch.cat([downsample_feat, feat_height], 1))
             outs.append(out)
 
         # out convs

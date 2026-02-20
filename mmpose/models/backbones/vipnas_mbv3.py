@@ -5,6 +5,7 @@ from mmcv.cnn import ConvModule
 from torch.nn.modules.batchnorm import _BatchNorm
 
 from mmpose.registry import MODELS
+
 from .base_backbone import BaseBackbone
 from .utils import InvertedResidual
 
@@ -58,16 +59,13 @@ class ViPNAS_MobileNetV3(BaseBackbone):
         group=[None, 8, 120, 20, 100, 280, 240],
         att=[None, True, True, False, True, True, True],
         stride=[2, 1, 2, 2, 2, 1, 2],
-        act=['HSwish', 'ReLU', 'ReLU', 'ReLU', 'HSwish', 'HSwish', 'HSwish'],
+        act=["HSwish", "ReLU", "ReLU", "ReLU", "HSwish", "HSwish", "HSwish"],
         conv_cfg=None,
-        norm_cfg=dict(type='BN'),
+        norm_cfg=dict(type="BN"),
         frozen_stages=-1,
         norm_eval=False,
         with_cp=False,
-        init_cfg=[
-            dict(type='Normal', std=0.001, layer=['Conv2d']),
-            dict(type='Constant', val=1, layer=['_BatchNorm', 'GroupNorm'])
-        ],
+        init_cfg=[dict(type="Normal", std=0.001, layer=["Conv2d"]), dict(type="Constant", val=1, layer=["_BatchNorm", "GroupNorm"])],
     ):
         # Protect mutable default arguments
         norm_cfg = copy.deepcopy(norm_cfg)
@@ -94,7 +92,8 @@ class ViPNAS_MobileNetV3(BaseBackbone):
             padding=self.ks[0] // 2,
             conv_cfg=conv_cfg,
             norm_cfg=norm_cfg,
-            act_cfg=dict(type=self.act[0]))
+            act_cfg=dict(type=self.act[0]),
+        )
 
         self.layers = self._make_layer()
 
@@ -105,11 +104,7 @@ class ViPNAS_MobileNetV3(BaseBackbone):
             mid_channels = self.wid[i + 1] * self.expan[i + 1]
 
             if self.att[i + 1]:
-                se_cfg = dict(
-                    channels=mid_channels,
-                    ratio=4,
-                    act_cfg=(dict(type='ReLU'),
-                             dict(type='HSigmoid', bias=1.0, divisor=2.0)))
+                se_cfg = dict(channels=mid_channels, ratio=4, act_cfg=(dict(type="ReLU"), dict(type="HSigmoid", bias=1.0, divisor=2.0)))
             else:
                 se_cfg = None
 
@@ -138,9 +133,10 @@ class ViPNAS_MobileNetV3(BaseBackbone):
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg,
                     act_cfg=dict(type=self.act[i + 1]),
-                    with_cp=self.with_cp)
+                    with_cp=self.with_cp,
+                )
                 layer_index += 1
-                layer_name = f'layer{layer_index}'
+                layer_name = f"layer{layer_index}"
                 self.add_module(layer_name, layer)
                 layers.append(layer_name)
         return layers
@@ -152,14 +148,14 @@ class ViPNAS_MobileNetV3(BaseBackbone):
             layer = getattr(self, layer_name)
             x = layer(x)
 
-        return (x, )
+        return (x,)
 
     def _freeze_stages(self):
         if self.frozen_stages >= 0:
             for param in self.conv1.parameters():
                 param.requires_grad = False
         for i in range(1, self.frozen_stages + 1):
-            layer = getattr(self, f'layer{i}')
+            layer = getattr(self, f"layer{i}")
             layer.eval()
             for param in layer.parameters():
                 param.requires_grad = False

@@ -1,34 +1,28 @@
-_base_ = [
-    '../_base_/datasets/coco_instance.py',
-    '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
-]
+_base_ = ["../_base_/datasets/coco_instance.py", "../_base_/schedules/schedule_1x.py", "../_base_/default_runtime.py"]
 
 # model settings
 model = dict(
-    type='SOLOv2',
+    type="SOLOv2",
     data_preprocessor=dict(
-        type='DetDataPreprocessor',
+        type="DetDataPreprocessor",
         mean=[123.675, 116.28, 103.53],
         std=[58.395, 57.12, 57.375],
         bgr_to_rgb=True,
         pad_mask=True,
-        pad_size_divisor=32),
+        pad_size_divisor=32,
+    ),
     backbone=dict(
-        type='ResNet',
+        type="ResNet",
         depth=50,
         num_stages=4,
         out_indices=(0, 1, 2, 3),
         frozen_stages=1,
-        init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50'),
-        style='pytorch'),
-    neck=dict(
-        type='FPN',
-        in_channels=[256, 512, 1024, 2048],
-        out_channels=256,
-        start_level=0,
-        num_outs=5),
+        init_cfg=dict(type="Pretrained", checkpoint="torchvision://resnet50"),
+        style="pytorch",
+    ),
+    neck=dict(type="FPN", in_channels=[256, 512, 1024, 2048], out_channels=256, start_level=0, num_outs=5),
     mask_head=dict(
-        type='SOLOV2Head',
+        type="SOLOV2Head",
         num_classes=80,
         in_channels=256,
         feat_channels=512,
@@ -44,27 +38,19 @@ model = dict(
             end_level=3,
             out_channels=256,
             mask_stride=4,
-            norm_cfg=dict(type='GN', num_groups=32, requires_grad=True)),
-        loss_mask=dict(type='DiceLoss', use_sigmoid=True, loss_weight=3.0),
-        loss_cls=dict(
-            type='FocalLoss',
-            use_sigmoid=True,
-            gamma=2.0,
-            alpha=0.25,
-            loss_weight=1.0)),
+            norm_cfg=dict(type="GN", num_groups=32, requires_grad=True),
+        ),
+        loss_mask=dict(type="DiceLoss", use_sigmoid=True, loss_weight=3.0),
+        loss_cls=dict(type="FocalLoss", use_sigmoid=True, gamma=2.0, alpha=0.25, loss_weight=1.0),
+    ),
     # model training and testing settings
     test_cfg=dict(
-        nms_pre=500,
-        score_thr=0.1,
-        mask_thr=0.5,
-        filter_thr=0.05,
-        kernel='gaussian',  # gaussian/linear
-        sigma=2.0,
-        max_per_img=100))
+        nms_pre=500, score_thr=0.1, mask_thr=0.5, filter_thr=0.05, kernel="gaussian", sigma=2.0, max_per_img=100  # gaussian/linear
+    ),
+)
 
 # optimizer
-optim_wrapper = dict(
-    optimizer=dict(lr=0.01), clip_grad=dict(max_norm=35, norm_type=2))
+optim_wrapper = dict(optimizer=dict(lr=0.01), clip_grad=dict(max_norm=35, norm_type=2))
 
-val_evaluator = dict(metric='segm')
+val_evaluator = dict(metric="segm")
 test_evaluator = val_evaluator

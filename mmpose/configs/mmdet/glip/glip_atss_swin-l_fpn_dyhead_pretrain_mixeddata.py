@@ -1,4 +1,4 @@
-_base_ = './glip_atss_swin-t_a_fpn_dyhead_pretrain_obj365.py'
+_base_ = "./glip_atss_swin-t_a_fpn_dyhead_pretrain_obj365.py"
 
 model = dict(
     backbone=dict(
@@ -9,4 +9,5 @@ model = dict(
         drop_path_rate=0.4,
     ),
     neck=dict(in_channels=[384, 768, 1536]),
-    bbox_head=dict(early_fuse=True, num_dyhead_blocks=8))
+    bbox_head=dict(early_fuse=True, num_dyhead_blocks=8),
+)

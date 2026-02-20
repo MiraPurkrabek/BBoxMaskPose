@@ -8,11 +8,13 @@ from mmengine.fileio import dump, load
 from mmengine.logging import MMLogger
 
 from mmpose.registry import METRICS
+
 from .coco_metric import CocoMetric
 
 try:
     from poseval import eval_helpers
     from poseval.evaluateAP import evaluateAP
+
     has_poseval = True
 except (ImportError, ModuleNotFoundError):
     has_poseval = False
@@ -69,23 +71,26 @@ class PoseTrack18Metric(CocoMetric):
             If not specified, a temp file will be created. Defaults to ``None``
         **kwargs: Keyword parameters passed to :class:`mmeval.BaseMetric`
     """
-    default_prefix: Optional[str] = 'posetrack18'
 
-    def __init__(self,
-                 ann_file: Optional[str] = None,
-                 score_mode: str = 'bbox_keypoint',
-                 keypoint_score_thr: float = 0.2,
-                 nms_mode: str = 'oks_nms',
-                 nms_thr: float = 0.9,
-                 format_only: bool = False,
-                 outfile_prefix: Optional[str] = None,
-                 collect_device: str = 'cpu',
-                 prefix: Optional[str] = None) -> None:
+    default_prefix: Optional[str] = "posetrack18"
+
+    def __init__(
+        self,
+        ann_file: Optional[str] = None,
+        score_mode: str = "bbox_keypoint",
+        keypoint_score_thr: float = 0.2,
+        nms_mode: str = "oks_nms",
+        nms_thr: float = 0.9,
+        format_only: bool = False,
+        outfile_prefix: Optional[str] = None,
+        collect_device: str = "cpu",
+        prefix: Optional[str] = None,
+    ) -> None:
         # raise an error to avoid long time running without getting results
         if not has_poseval:
-            raise ImportError('Please install ``poseval`` package for '
-                              'evaluation on PoseTrack dataset '
-                              '(see `requirements/optional.txt`)')
+            raise ImportError(
+                "Please install ``poseval`` package for " "evaluation on PoseTrack dataset " "(see `requirements/optional.txt`)"
+            )
         super().__init__(
             ann_file=ann_file,
             score_mode=score_mode,
@@ -95,10 +100,10 @@ class PoseTrack18Metric(CocoMetric):
             format_only=format_only,
             outfile_prefix=outfile_prefix,
             collect_device=collect_device,
-            prefix=prefix)
+            prefix=prefix,
+        )
 
-    def results2json(self, keypoints: Dict[int, list],
-                     outfile_prefix: str) -> str:
+    def results2json(self, keypoints: Dict[int, list], outfile_prefix: str) -> str:
         """Dump the keypoint detection results into a json file.
 
         Args:
@@ -114,59 +119,83 @@ class PoseTrack18Metric(CocoMetric):
         categories = []
 
         cat = {}
-        cat['supercategory'] = 'person'
-        cat['id'] = 1
-        cat['name'] = 'person'
-        cat['keypoints'] = [
-            'nose', 'head_bottom', 'head_top', 'left_ear', 'right_ear',
-            'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow',
-            'left_wrist', 'right_wrist', 'left_hip', 'right_hip', 'left_knee',
-            'right_knee', 'left_ankle', 'right_ankle'
+        cat["supercategory"] = "person"
+        cat["id"] = 1
+        cat["name"] = "person"
+        cat["keypoints"] = [
+            "nose",
+            "head_bottom",
+            "head_top",
+            "left_ear",
+            "right_ear",
+            "left_shoulder",
+            "right_shoulder",
+            "left_elbow",
+            "right_elbow",
+            "left_wrist",
+            "right_wrist",
+            "left_hip",
+            "right_hip",
+            "left_knee",
+            "right_knee",
+            "left_ankle",
+            "right_ankle",
         ]
-        cat['skeleton'] = [[16, 14], [14, 12], [17, 15], [15, 13], [12, 13],
-                           [6, 12], [7, 13], [6, 7], [6, 8], [7, 9], [8, 10],
-                           [9, 11], [2, 3], [1, 2], [1, 3], [2, 4], [3, 5],
-                           [4, 6], [5, 7]]
+        cat["skeleton"] = [
+            [16, 14],
+            [14, 12],
+            [17, 15],
+            [15, 13],
+            [12, 13],
+            [6, 12],
+            [7, 13],
+            [6, 7],
+            [6, 8],
+            [7, 9],
+            [8, 10],
+            [9, 11],
+            [2, 3],
+            [1, 2],
+            [1, 3],
+            [2, 4],
+            [3, 5],
+            [4, 6],
+            [5, 7],
+        ]
         categories.append(cat)
 
         # path of directory for official gt files
-        gt_folder = osp.join(
-            osp.dirname(self.ann_file),
-            osp.splitext(self.ann_file.split('_')[-1])[0])
+        gt_folder = osp.join(osp.dirname(self.ann_file), osp.splitext(self.ann_file.split("_")[-1])[0])
         # the json file for each video sequence
-        json_files = [
-            pos for pos in os.listdir(gt_folder) if pos.endswith('.json')
-        ]
+        json_files = [pos for pos in os.listdir(gt_folder) if pos.endswith(".json")]
 
         for json_file in json_files:
             gt = load(osp.join(gt_folder, json_file))
             annotations = []
             images = []
 
-            for image in gt['images']:
+            for image in gt["images"]:
                 img = {}
-                img['id'] = image['id']
-                img['file_name'] = image['file_name']
+                img["id"] = image["id"]
+                img["file_name"] = image["file_name"]
                 images.append(img)
 
-                img_kpts = keypoints[img['id']]
+                img_kpts = keypoints[img["id"]]
 
                 for track_id, img_kpt in enumerate(img_kpts):
                     ann = {}
-                    ann['image_id'] = img_kpt['img_id']
-                    ann['keypoints'] = np.array(
-                        img_kpt['keypoints']).reshape(-1).tolist()
-                    ann['scores'] = np.array(ann['keypoints']).reshape(
-                        [-1, 3])[:, 2].tolist()
-                    ann['score'] = float(img_kpt['score'])
-                    ann['track_id'] = track_id
+                    ann["image_id"] = img_kpt["img_id"]
+                    ann["keypoints"] = np.array(img_kpt["keypoints"]).reshape(-1).tolist()
+                    ann["scores"] = np.array(ann["keypoints"]).reshape([-1, 3])[:, 2].tolist()
+                    ann["score"] = float(img_kpt["score"])
+                    ann["track_id"] = track_id
                     annotations.append(ann)
 
             pred_file = osp.join(osp.dirname(outfile_prefix), json_file)
             info = {}
-            info['images'] = images
-            info['categories'] = categories
-            info['annotations'] = annotations
+            info["images"] = images
+            info["categories"] = categories
+            info["annotations"] = annotations
 
             dump(info, pred_file, sort_keys=True, indent=4)
 
@@ -186,34 +215,29 @@ class PoseTrack18Metric(CocoMetric):
 
         # path of directory for official gt files
         # 'xxx/posetrack18_train.json' -> 'xxx/train/'
-        gt_folder = osp.join(
-            osp.dirname(self.ann_file),
-            osp.splitext(self.ann_file.split('_')[-1])[0])
+        gt_folder = osp.join(osp.dirname(self.ann_file), osp.splitext(self.ann_file.split("_")[-1])[0])
         pred_folder = osp.dirname(outfile_prefix)
 
-        argv = ['', gt_folder + '/', pred_folder + '/']
+        argv = ["", gt_folder + "/", pred_folder + "/"]
 
-        logger.info('Loading data')
+        logger.info("Loading data")
         gtFramesAll, prFramesAll = eval_helpers.load_data_dir(argv)
 
-        logger.info(f'# gt frames  : {len(gtFramesAll)}')
-        logger.info(f'# pred frames: {len(prFramesAll)}')
+        logger.info(f"# gt frames  : {len(gtFramesAll)}")
+        logger.info(f"# pred frames: {len(prFramesAll)}")
 
         # evaluate per-frame multi-person pose estimation (AP)
         # compute AP
-        logger.info('Evaluation of per-frame multi-person pose estimation')
+        logger.info("Evaluation of per-frame multi-person pose estimation")
         apAll, _, _ = evaluateAP(gtFramesAll, prFramesAll, None, False, False)
 
         # print AP
-        logger.info('Average Precision (AP) metric:')
+        logger.info("Average Precision (AP) metric:")
         eval_helpers.printTable(apAll)
 
         stats = eval_helpers.getCum(apAll)
 
-        stats_names = [
-            'Head AP', 'Shou AP', 'Elb AP', 'Wri AP', 'Hip AP', 'Knee AP',
-            'Ankl AP', 'AP'
-        ]
+        stats_names = ["Head AP", "Shou AP", "Elb AP", "Wri AP", "Hip AP", "Knee AP", "Ankl AP", "AP"]
 
         info_str = list(zip(stats_names, stats))
 

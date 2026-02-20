@@ -9,8 +9,8 @@ from mmpose.registry import TASK_UTILS
 from mmpose.structures.bbox import bbox_overlaps
 
 
-def cast_tensor_type(x, scale=1., dtype=None):
-    if dtype == 'fp16':
+def cast_tensor_type(x, scale=1.0, dtype=None):
+    if dtype == "fp16":
         # scale is for preventing overflows
         x = (x / scale).half()
     return x
@@ -20,12 +20,12 @@ def cast_tensor_type(x, scale=1., dtype=None):
 class BBoxOverlaps2D:
     """2D Overlaps (e.g. IoUs, GIoUs) Calculator."""
 
-    def __init__(self, scale=1., dtype=None):
+    def __init__(self, scale=1.0, dtype=None):
         self.scale = scale
         self.dtype = dtype
 
     @torch.no_grad()
-    def __call__(self, bboxes1, bboxes2, mode='iou', is_aligned=False):
+    def __call__(self, bboxes1, bboxes2, mode="iou", is_aligned=False):
         """Calculate IoU between 2D bboxes.
 
         Args:
@@ -52,7 +52,7 @@ class BBoxOverlaps2D:
         if bboxes1.size(-1) == 5:
             bboxes1 = bboxes1[..., :4]
 
-        if self.dtype == 'fp16':
+        if self.dtype == "fp16":
             # change tensor type to save cpu and cuda memory and keep speed
             bboxes1 = cast_tensor_type(bboxes1, self.scale, self.dtype)
             bboxes2 = cast_tensor_type(bboxes2, self.scale, self.dtype)
@@ -66,8 +66,7 @@ class BBoxOverlaps2D:
 
     def __repr__(self):
         """str: a string describing the module"""
-        repr_str = self.__class__.__name__ + f'(' \
-            f'scale={self.scale}, dtype={self.dtype})'
+        repr_str = self.__class__.__name__ + f"(" f"scale={self.scale}, dtype={self.dtype})"
         return repr_str
 
 
@@ -75,34 +74,27 @@ class BBoxOverlaps2D:
 class PoseOKS:
     """OKS score Calculator."""
 
-    def __init__(self,
-                 metainfo: Optional[str] = 'configs/_base_/datasets/coco.py'):
+    def __init__(self, metainfo: Optional[str] = "configs/_base_/datasets/coco.py"):
 
         if metainfo is not None:
             metainfo = parse_pose_metainfo(dict(from_file=metainfo))
-            sigmas = metainfo.get('sigmas', None)
+            sigmas = metainfo.get("sigmas", None)
             if sigmas is not None:
                 self.sigmas = torch.as_tensor(sigmas)
 
     @torch.no_grad()
-    def __call__(self,
-                 output: Tensor,
-                 target: Tensor,
-                 target_weights: Tensor,
-                 areas: Tensor,
-                 eps: float = 1e-8) -> Tensor:
+    def __call__(self, output: Tensor, target: Tensor, target_weights: Tensor, areas: Tensor, eps: float = 1e-8) -> Tensor:
 
         dist = torch.norm(output - target, dim=-1)
-        areas = areas.reshape(*((1, ) * (dist.ndim - 2)), -1, 1)
+        areas = areas.reshape(*((1,) * (dist.ndim - 2)), -1, 1)
         dist = dist / areas.pow(0.5).clip(min=eps)
 
-        if hasattr(self, 'sigmas'):
+        if hasattr(self, "sigmas"):
             if self.sigmas.device != dist.device:
                 self.sigmas = self.sigmas.to(dist.device)
-            sigmas = self.sigmas.reshape(*((1, ) * (dist.ndim - 1)), -1)
+            sigmas = self.sigmas.reshape(*((1,) * (dist.ndim - 1)), -1)
             dist = dist / (sigmas * 2)
 
-        target_weights = target_weights / target_weights.sum(
-            dim=-1, keepdims=True).clip(min=eps)
+        target_weights = target_weights / target_weights.sum(dim=-1, keepdims=True).clip(min=eps)
         oks = (torch.exp(-dist.pow(2) / 2) * target_weights).sum(dim=-1)
         return oks

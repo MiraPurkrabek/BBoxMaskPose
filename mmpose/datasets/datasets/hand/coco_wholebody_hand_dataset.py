@@ -4,10 +4,11 @@ from typing import List, Tuple
 
 import numpy as np
 from mmengine.fileio import exists, get_local_path
-from xtcocotools.coco import COCO
 
 from mmpose.registry import DATASETS
 from mmpose.structures.bbox import bbox_xywh2xyxy
+from xtcocotools.coco import COCO
+
 from ..base import BaseCocoStyleDataset
 
 
@@ -81,14 +82,12 @@ class CocoWholeBodyHandDataset(BaseCocoStyleDataset):
             image. Default: 1000.
     """
 
-    METAINFO: dict = dict(
-        from_file='configs/_base_/datasets/coco_wholebody_hand.py')
+    METAINFO: dict = dict(from_file="configs/_base_/datasets/coco_wholebody_hand.py")
 
     def _load_annotations(self) -> Tuple[List[dict], List[dict]]:
         """Load data from annotations in COCO format."""
 
-        assert exists(self.ann_file), (
-            f'Annotation file `{self.ann_file}` does not exist')
+        assert exists(self.ann_file), f"Annotation file `{self.ann_file}` does not exist"
 
         with get_local_path(self.ann_file) as local_path:
             self.coco = COCO(local_path)
@@ -99,51 +98,46 @@ class CocoWholeBodyHandDataset(BaseCocoStyleDataset):
         for img_id in self.coco.getImgIds():
             img = self.coco.loadImgs(img_id)[0]
 
-            img.update({
-                'img_id':
-                img_id,
-                'img_path':
-                osp.join(self.data_prefix['img'], img['file_name']),
-            })
+            img.update(
+                {
+                    "img_id": img_id,
+                    "img_path": osp.join(self.data_prefix["img"], img["file_name"]),
+                }
+            )
             image_list.append(img)
 
             ann_ids = self.coco.getAnnIds(imgIds=img_id, iscrowd=False)
             anns = self.coco.loadAnns(ann_ids)
             for ann in anns:
-                for type in ['left', 'right']:
+                for type in ["left", "right"]:
                     # filter invalid hand annotations, there might be two
                     # valid instances (left and right hand) in one image
-                    if ann[f'{type}hand_valid'] and max(
-                            ann[f'{type}hand_kpts']) > 0:
+                    if ann[f"{type}hand_valid"] and max(ann[f"{type}hand_kpts"]) > 0:
 
-                        bbox_xywh = np.array(
-                            ann[f'{type}hand_box'],
-                            dtype=np.float32).reshape(1, 4)
+                        bbox_xywh = np.array(ann[f"{type}hand_box"], dtype=np.float32).reshape(1, 4)
 
                         bbox = bbox_xywh2xyxy(bbox_xywh)
 
-                        _keypoints = np.array(
-                            ann[f'{type}hand_kpts'],
-                            dtype=np.float32).reshape(1, -1, 3)
+                        _keypoints = np.array(ann[f"{type}hand_kpts"], dtype=np.float32).reshape(1, -1, 3)
                         keypoints = _keypoints[..., :2]
                         keypoints_visible = np.minimum(1, _keypoints[..., 2])
 
                         num_keypoints = np.count_nonzero(keypoints.max(axis=2))
 
                         instance_info = {
-                            'img_id': ann['image_id'],
-                            'img_path': img['img_path'],
-                            'bbox': bbox,
-                            'bbox_score': np.ones(1, dtype=np.float32),
-                            'num_keypoints': num_keypoints,
-                            'keypoints': keypoints,
-                            'keypoints_visible': keypoints_visible,
-                            'iscrowd': ann['iscrowd'],
-                            'segmentation': ann['segmentation'],
-                            'id': id,
+                            "img_id": ann["image_id"],
+                            "img_path": img["img_path"],
+                            "bbox": bbox,
+                            "bbox_score": np.ones(1, dtype=np.float32),
+                            "num_keypoints": num_keypoints,
+                            "keypoints": keypoints,
+                            "keypoints_visible": keypoints_visible,
+                            "iscrowd": ann["iscrowd"],
+                            "segmentation": ann["segmentation"],
+                            "id": id,
                         }
                         instance_list.append(instance_info)
                         id = id + 1
 
-        instance_list = sorted(instance_list, key=lambda x: x['id'])
+        instance_list = sorted(instance_list, key=lambda x: x["id"])
         return instance_list, image_list

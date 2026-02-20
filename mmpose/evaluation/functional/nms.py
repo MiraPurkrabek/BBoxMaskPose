@@ -55,12 +55,9 @@ def nms(dets: np.ndarray, thr: float) -> List[int]:
     return keep
 
 
-def oks_iou(g: np.ndarray,
-            d: np.ndarray,
-            a_g: float,
-            a_d: np.ndarray,
-            sigmas: Optional[np.ndarray] = None,
-            vis_thr: Optional[float] = None) -> np.ndarray:
+def oks_iou(
+    g: np.ndarray, d: np.ndarray, a_g: float, a_d: np.ndarray, sigmas: Optional[np.ndarray] = None, vis_thr: Optional[float] = None
+) -> np.ndarray:
     """Calculate oks ious.
 
     Note:
@@ -89,11 +86,8 @@ def oks_iou(g: np.ndarray,
         np.ndarray: The oks ious.
     """
     if sigmas is None:
-        sigmas = np.array([
-            .26, .25, .25, .35, .35, .79, .79, .72, .72, .62, .62, 1.07, 1.07,
-            .87, .87, .89, .89
-        ]) / 10.0
-    vars = (sigmas * 2)**2
+        sigmas = np.array([0.26, 0.25, 0.25, 0.35, 0.35, 0.79, 0.79, 0.72, 0.72, 0.62, 0.62, 1.07, 1.07, 0.87, 0.87, 0.89, 0.89]) / 10.0
+    vars = (sigmas * 2) ** 2
     xg = g[0::3]
     yg = g[1::3]
     vg = g[2::3]
@@ -112,11 +106,9 @@ def oks_iou(g: np.ndarray,
     return ious
 
 
-def oks_nms(kpts_db: List[dict],
-            thr: float,
-            sigmas: Optional[np.ndarray] = None,
-            vis_thr: Optional[float] = None,
-            score_per_joint: bool = False):
+def oks_nms(
+    kpts_db: List[dict], thr: float, sigmas: Optional[np.ndarray] = None, vis_thr: Optional[float] = None, score_per_joint: bool = False
+):
     """OKS NMS implementations.
 
     Args:
@@ -140,12 +132,12 @@ def oks_nms(kpts_db: List[dict],
         return []
 
     if score_per_joint:
-        scores = np.array([k['score'].mean() for k in kpts_db])
+        scores = np.array([k["score"].mean() for k in kpts_db])
     else:
-        scores = np.array([k['score'] for k in kpts_db])
+        scores = np.array([k["score"] for k in kpts_db])
 
-    kpts = np.array([k['keypoints'].flatten() for k in kpts_db])
-    areas = np.array([k['area'] for k in kpts_db])
+    kpts = np.array([k["keypoints"].flatten() for k in kpts_db])
+    areas = np.array([k["area"] for k in kpts_db])
 
     order = scores.argsort()[::-1]
 
@@ -154,8 +146,7 @@ def oks_nms(kpts_db: List[dict],
         i = order[0]
         keep.append(i)
 
-        oks_ovr = oks_iou(kpts[i], kpts[order[1:]], areas[i], areas[order[1:]],
-                          sigmas, vis_thr)
+        oks_ovr = oks_iou(kpts[i], kpts[order[1:]], areas[i], areas[order[1:]], sigmas, vis_thr)
 
         inds = np.where(oks_ovr <= thr)[0]
         order = order[inds + 1]
@@ -165,10 +156,7 @@ def oks_nms(kpts_db: List[dict],
     return keep
 
 
-def _rescore(overlap: np.ndarray,
-             scores: np.ndarray,
-             thr: float,
-             type: str = 'gaussian'):
+def _rescore(overlap: np.ndarray, scores: np.ndarray, thr: float, type: str = "gaussian"):
     """Rescoring mechanism gaussian or linear.
 
     Args:
@@ -182,23 +170,25 @@ def _rescore(overlap: np.ndarray,
         np.ndarray: indexes to keep
     """
     assert len(overlap) == len(scores)
-    assert type in ['gaussian', 'linear']
+    assert type in ["gaussian", "linear"]
 
-    if type == 'linear':
+    if type == "linear":
         inds = np.where(overlap >= thr)[0]
         scores[inds] = scores[inds] * (1 - overlap[inds])
     else:
-        scores = scores * np.exp(-overlap**2 / thr)
+        scores = scores * np.exp(-(overlap**2) / thr)
 
     return scores
 
 
-def soft_oks_nms(kpts_db: List[dict],
-                 thr: float,
-                 max_dets: int = 20,
-                 sigmas: Optional[np.ndarray] = None,
-                 vis_thr: Optional[float] = None,
-                 score_per_joint: bool = False):
+def soft_oks_nms(
+    kpts_db: List[dict],
+    thr: float,
+    max_dets: int = 20,
+    sigmas: Optional[np.ndarray] = None,
+    vis_thr: Optional[float] = None,
+    score_per_joint: bool = False,
+):
     """Soft OKS NMS implementations.
 
     Args:
@@ -223,12 +213,12 @@ def soft_oks_nms(kpts_db: List[dict],
         return []
 
     if score_per_joint:
-        scores = np.array([k['score'].mean() for k in kpts_db])
+        scores = np.array([k["score"].mean() for k in kpts_db])
     else:
-        scores = np.array([k['score'] for k in kpts_db])
+        scores = np.array([k["score"] for k in kpts_db])
 
-    kpts = np.array([k['keypoints'].flatten() for k in kpts_db])
-    areas = np.array([k['area'] for k in kpts_db])
+    kpts = np.array([k["keypoints"].flatten() for k in kpts_db])
+    areas = np.array([k["area"] for k in kpts_db])
 
     order = scores.argsort()[::-1]
     scores = scores[order]
@@ -238,8 +228,7 @@ def soft_oks_nms(kpts_db: List[dict],
     while len(order) > 0 and keep_cnt < max_dets:
         i = order[0]
 
-        oks_ovr = oks_iou(kpts[i], kpts[order[1:]], areas[i], areas[order[1:]],
-                          sigmas, vis_thr)
+        oks_ovr = oks_iou(kpts[i], kpts[order[1:]], areas[i], areas[order[1:]], sigmas, vis_thr)
 
         order = order[1:]
         scores = _rescore(oks_ovr, scores[1:], thr)
@@ -282,22 +271,21 @@ def nearby_joints_nms(
         np.ndarray: indexes to keep.
     """
 
-    assert dist_thr > 0, '`dist_thr` must be greater than 0.'
+    assert dist_thr > 0, "`dist_thr` must be greater than 0."
     if len(kpts_db) == 0:
         return []
 
     if score_per_joint:
-        scores = np.array([k['score'].mean() for k in kpts_db])
+        scores = np.array([k["score"].mean() for k in kpts_db])
     else:
-        scores = np.array([k['score'] for k in kpts_db])
+        scores = np.array([k["score"] for k in kpts_db])
 
-    kpts = np.array([k['keypoints'] for k in kpts_db])
+    kpts = np.array([k["keypoints"] for k in kpts_db])
 
     num_people, num_joints, _ = kpts.shape
     if num_nearby_joints_thr is None:
         num_nearby_joints_thr = num_joints // 2
-    assert num_nearby_joints_thr < num_joints, '`num_nearby_joints_thr` must '\
-        'be less than the number of joints.'
+    assert num_nearby_joints_thr < num_joints, "`num_nearby_joints_thr` must " "be less than the number of joints."
 
     # compute distance threshold
     pose_area = kpts.max(axis=1) - kpts.min(axis=1)
@@ -326,17 +314,13 @@ def nearby_joints_nms(
 
     # limit the number of output instances
     if max_dets > 0 and len(keep_pose_inds) > max_dets:
-        sub_inds = np.argsort(scores[keep_pose_inds])[-1:-max_dets - 1:-1]
+        sub_inds = np.argsort(scores[keep_pose_inds])[-1 : -max_dets - 1 : -1]
         keep_pose_inds = [keep_pose_inds[i] for i in sub_inds]
 
     return keep_pose_inds
 
 
-def nms_torch(bboxes: Tensor,
-              scores: Tensor,
-              threshold: float = 0.65,
-              iou_calculator=bbox_overlaps,
-              return_group: bool = False):
+def nms_torch(bboxes: Tensor, scores: Tensor, threshold: float = 0.65, iou_calculator=bbox_overlaps, return_group: bool = False):
     """Perform Non-Maximum Suppression (NMS) on a set of bounding boxes using
     their corresponding scores.
 

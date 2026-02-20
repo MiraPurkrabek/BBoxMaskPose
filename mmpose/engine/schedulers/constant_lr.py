@@ -1,6 +1,5 @@
 # Copyright (c) OpenMMLab. All rights reserved.
-from mmengine.optim.scheduler import \
-    ConstantParamScheduler as MMENGINE_ConstantParamScheduler
+from mmengine.optim.scheduler import ConstantParamScheduler as MMENGINE_ConstantParamScheduler
 from mmengine.optim.scheduler.lr_scheduler import LRSchedulerMixin
 
 from mmpose.registry import PARAM_SCHEDULERS
@@ -34,26 +33,23 @@ class ConstantParamScheduler(MMENGINE_ConstantParamScheduler):
             Defaults to False.
     """
 
-    def __init__(self,
-                 optimizer,
-                 param_name: str,
-                 factor: float = 1.0 / 3,
-                 begin: int = 0,
-                 end: int = INF,
-                 last_step: int = -1,
-                 by_epoch: bool = True,
-                 verbose: bool = False):
+    def __init__(
+        self,
+        optimizer,
+        param_name: str,
+        factor: float = 1.0 / 3,
+        begin: int = 0,
+        end: int = INF,
+        last_step: int = -1,
+        by_epoch: bool = True,
+        verbose: bool = False,
+    ):
 
         self.factor = factor
         self.total_iters = end - begin - 1
         super(MMENGINE_ConstantParamScheduler, self).__init__(
-            optimizer,
-            param_name=param_name,
-            begin=begin,
-            end=end,
-            last_step=last_step,
-            by_epoch=by_epoch,
-            verbose=verbose)
+            optimizer, param_name=param_name, begin=begin, end=end, last_step=last_step, by_epoch=by_epoch, verbose=verbose
+        )
 
 
 @PARAM_SCHEDULERS.register_module()

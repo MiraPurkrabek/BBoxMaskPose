@@ -10,9 +10,10 @@ from mmengine.dataset import ConcatDataset, RepeatDataset
 
 from mmpose.registry import DATASETS
 
-if platform.system() != 'Windows':
+if platform.system() != "Windows":
     # https://github.com/pytorch/pytorch/issues/973
     import resource
+
     rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
     base_soft_limit = rlimit[0]
     hard_limit = rlimit[1]
@@ -21,32 +22,32 @@ if platform.system() != 'Windows':
 
 
 def _concat_dataset(cfg, default_args=None):
-    types = cfg['type']
-    ann_files = cfg['ann_file']
-    img_prefixes = cfg.get('img_prefix', None)
-    dataset_infos = cfg.get('dataset_info', None)
+    types = cfg["type"]
+    ann_files = cfg["ann_file"]
+    img_prefixes = cfg.get("img_prefix", None)
+    dataset_infos = cfg.get("dataset_info", None)
 
-    num_joints = cfg['data_cfg'].get('num_joints', None)
-    dataset_channel = cfg['data_cfg'].get('dataset_channel', None)
+    num_joints = cfg["data_cfg"].get("num_joints", None)
+    dataset_channel = cfg["data_cfg"].get("dataset_channel", None)
 
     datasets = []
     num_dset = len(ann_files)
     for i in range(num_dset):
         cfg_copy = copy.deepcopy(cfg)
-        cfg_copy['ann_file'] = ann_files[i]
+        cfg_copy["ann_file"] = ann_files[i]
 
         if isinstance(types, (list, tuple)):
-            cfg_copy['type'] = types[i]
+            cfg_copy["type"] = types[i]
         if isinstance(img_prefixes, (list, tuple)):
-            cfg_copy['img_prefix'] = img_prefixes[i]
+            cfg_copy["img_prefix"] = img_prefixes[i]
         if isinstance(dataset_infos, (list, tuple)):
-            cfg_copy['dataset_info'] = dataset_infos[i]
+            cfg_copy["dataset_info"] = dataset_infos[i]
 
         if isinstance(num_joints, (list, tuple)):
-            cfg_copy['data_cfg']['num_joints'] = num_joints[i]
+            cfg_copy["data_cfg"]["num_joints"] = num_joints[i]
 
         if is_seq_of(dataset_channel, list):
-            cfg_copy['data_cfg']['dataset_channel'] = dataset_channel[i]
+            cfg_copy["data_cfg"]["dataset_channel"] = dataset_channel[i]
 
         datasets.append(build_dataset(cfg_copy, default_args))
 
@@ -67,13 +68,11 @@ def build_dataset(cfg, default_args=None):
 
     if isinstance(cfg, (list, tuple)):
         dataset = ConcatDataset([build_dataset(c, default_args) for c in cfg])
-    elif cfg['type'] == 'ConcatDataset':
-        dataset = ConcatDataset(
-            [build_dataset(c, default_args) for c in cfg['datasets']])
-    elif cfg['type'] == 'RepeatDataset':
-        dataset = RepeatDataset(
-            build_dataset(cfg['dataset'], default_args), cfg['times'])
-    elif isinstance(cfg.get('ann_file'), (list, tuple)):
+    elif cfg["type"] == "ConcatDataset":
+        dataset = ConcatDataset([build_dataset(c, default_args) for c in cfg["datasets"]])
+    elif cfg["type"] == "RepeatDataset":
+        dataset = RepeatDataset(build_dataset(cfg["dataset"], default_args), cfg["times"])
+    elif isinstance(cfg.get("ann_file"), (list, tuple)):
         dataset = _concat_dataset(cfg, default_args)
     else:
         dataset = build_from_cfg(cfg, DATASETS, default_args)

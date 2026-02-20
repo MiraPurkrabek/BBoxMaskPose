@@ -17,6 +17,7 @@ from mmengine.structures import InstanceData
 from mmpose.evaluation.functional import nms
 from mmpose.registry import INFERENCERS
 from mmpose.structures import PoseDataSample, merge_data_samples
+
 from .base_mmpose_inferencer import BaseMMPoseInferencer
 
 InstanceList = List[InstanceData]
@@ -56,38 +57,35 @@ class Hand3DInferencer(BaseMMPoseInferencer):
             detection model. Defaults to None.
     """
 
-    preprocess_kwargs: set = {'bbox_thr', 'nms_thr', 'bboxes'}
-    forward_kwargs: set = {'disable_rebase_keypoint'}
+    preprocess_kwargs: set = {"bbox_thr", "nms_thr", "bboxes"}
+    forward_kwargs: set = {"disable_rebase_keypoint"}
     visualize_kwargs: set = {
-        'return_vis',
-        'show',
-        'wait_time',
-        'draw_bbox',
-        'radius',
-        'thickness',
-        'kpt_thr',
-        'vis_out_dir',
-        'num_instances',
+        "return_vis",
+        "show",
+        "wait_time",
+        "draw_bbox",
+        "radius",
+        "thickness",
+        "kpt_thr",
+        "vis_out_dir",
+        "num_instances",
     }
-    postprocess_kwargs: set = {'pred_out_dir', 'return_datasample'}
+    postprocess_kwargs: set = {"pred_out_dir", "return_datasample"}
 
-    def __init__(self,
-                 model: Union[ModelType, str],
-                 weights: Optional[str] = None,
-                 device: Optional[str] = None,
-                 scope: Optional[str] = 'mmpose',
-                 det_model: Optional[Union[ModelType, str]] = None,
-                 det_weights: Optional[str] = None,
-                 det_cat_ids: Optional[Union[int, Tuple]] = None,
-                 show_progress: bool = False) -> None:
+    def __init__(
+        self,
+        model: Union[ModelType, str],
+        weights: Optional[str] = None,
+        device: Optional[str] = None,
+        scope: Optional[str] = "mmpose",
+        det_model: Optional[Union[ModelType, str]] = None,
+        det_weights: Optional[str] = None,
+        det_cat_ids: Optional[Union[int, Tuple]] = None,
+        show_progress: bool = False,
+    ) -> None:
 
         init_default_scope(scope)
-        super().__init__(
-            model=model,
-            weights=weights,
-            device=device,
-            scope=scope,
-            show_progress=show_progress)
+        super().__init__(model=model, weights=weights, device=device, scope=scope, show_progress=show_progress)
         self.model = revert_sync_batchnorm(self.model)
 
         # assign dataset metainfo to self.visualizer
@@ -104,13 +102,14 @@ class Hand3DInferencer(BaseMMPoseInferencer):
         self._video_input = False
         self._buffer = defaultdict(list)
 
-    def preprocess_single(self,
-                          input: InputType,
-                          index: int,
-                          bbox_thr: float = 0.3,
-                          nms_thr: float = 0.3,
-                          bboxes: Union[List[List], List[np.ndarray],
-                                        np.ndarray] = []):
+    def preprocess_single(
+        self,
+        input: InputType,
+        index: int,
+        bbox_thr: float = 0.3,
+        nms_thr: float = 0.3,
+        bboxes: Union[List[List], List[np.ndarray], np.ndarray] = [],
+    ):
         """Process a single input into a model-feedable format.
 
         Args:
@@ -128,42 +127,38 @@ class Hand3DInferencer(BaseMMPoseInferencer):
         if isinstance(input, str):
             data_info = dict(img_path=input)
         else:
-            data_info = dict(img=input, img_path=f'{index}.jpg'.rjust(10, '0'))
+            data_info = dict(img=input, img_path=f"{index}.jpg".rjust(10, "0"))
         data_info.update(self.model.dataset_meta)
 
         if self.detector is not None:
             try:
-                det_results = self.detector(
-                    input, return_datasamples=True)['predictions']
+                det_results = self.detector(input, return_datasamples=True)["predictions"]
             except ValueError:
                 print_log(
-                    'Support for mmpose and mmdet versions up to 3.1.0 '
-                    'will be discontinued in upcoming releases. To '
-                    'ensure ongoing compatibility, please upgrade to '
-                    'mmdet version 3.2.0 or later.',
-                    logger='current',
-                    level=logging.WARNING)
-                det_results = self.detector(
-                    input, return_datasample=True)['predictions']
+                    "Support for mmpose and mmdet versions up to 3.1.0 "
+                    "will be discontinued in upcoming releases. To "
+                    "ensure ongoing compatibility, please upgrade to "
+                    "mmdet version 3.2.0 or later.",
+                    logger="current",
+                    level=logging.WARNING,
+                )
+                det_results = self.detector(input, return_datasample=True)["predictions"]
             pred_instance = det_results[0].pred_instances.cpu().numpy()
-            bboxes = np.concatenate(
-                (pred_instance.bboxes, pred_instance.scores[:, None]), axis=1)
+            bboxes = np.concatenate((pred_instance.bboxes, pred_instance.scores[:, None]), axis=1)
 
             label_mask = np.zeros(len(bboxes), dtype=np.uint8)
             for cat_id in self.det_cat_ids:
-                label_mask = np.logical_or(label_mask,
-                                           pred_instance.labels == cat_id)
+                label_mask = np.logical_or(label_mask, pred_instance.labels == cat_id)
 
-            bboxes = bboxes[np.logical_and(label_mask,
-                                           pred_instance.scores > bbox_thr)]
+            bboxes = bboxes[np.logical_and(label_mask, pred_instance.scores > bbox_thr)]
             bboxes = bboxes[nms(bboxes, nms_thr)]
 
         data_infos = []
         if len(bboxes) > 0:
             for bbox in bboxes:
                 inst = data_info.copy()
-                inst['bbox'] = bbox[None, :4]
-                inst['bbox_score'] = bbox[4:5]
+                inst["bbox"] = bbox[None, :4]
+                inst["bbox_score"] = bbox[4:5]
                 data_infos.append(self.pipeline(inst))
         else:
             inst = data_info.copy()
@@ -173,16 +168,14 @@ class Hand3DInferencer(BaseMMPoseInferencer):
                 input = mmcv.imread(input)
             h, w = input.shape[:2]
 
-            inst['bbox'] = np.array([[0, 0, w, h]], dtype=np.float32)
-            inst['bbox_score'] = np.ones(1, dtype=np.float32)
+            inst["bbox"] = np.array([[0, 0, w, h]], dtype=np.float32)
+            inst["bbox_score"] = np.ones(1, dtype=np.float32)
             data_infos.append(self.pipeline(inst))
 
         return data_infos
 
     @torch.no_grad()
-    def forward(self,
-                inputs: Union[dict, tuple],
-                disable_rebase_keypoint: bool = False):
+    def forward(self, inputs: Union[dict, tuple], disable_rebase_keypoint: bool = False):
         """Performs a forward pass through the model.
 
         Args:
@@ -220,8 +213,7 @@ class Hand3DInferencer(BaseMMPoseInferencer):
             if scores.max() > 1:
                 scores /= 255
 
-            res_2d.pred_instances.set_field(keypoints[..., :2].copy(),
-                                            'keypoints')
+            res_2d.pred_instances.set_field(keypoints[..., :2].copy(), "keypoints")
 
             # rotate the keypoint to make z-axis correspondent to height
             # for better visualization
@@ -231,8 +223,7 @@ class Hand3DInferencer(BaseMMPoseInferencer):
             # rebase height (z-axis)
             if not disable_rebase_keypoint:
                 valid = scores > 0
-                keypoints[..., 2] -= np.min(
-                    keypoints[valid, 2], axis=-1, keepdims=True)
+                keypoints[..., 2] -= np.min(keypoints[valid, 2], axis=-1, keepdims=True)
 
             data_samples[idx].pred_instances.keypoints = keypoints
             data_samples[idx].pred_instances.keypoint_scores = scores
@@ -241,7 +232,7 @@ class Hand3DInferencer(BaseMMPoseInferencer):
         data_samples = [merge_data_samples(data_samples)]
         data_samples_2d = merge_data_samples(data_samples_2d)
 
-        self._buffer['pose2d_results'] = data_samples_2d
+        self._buffer["pose2d_results"] = data_samples_2d
 
         return data_samples
 
@@ -257,8 +248,8 @@ class Hand3DInferencer(BaseMMPoseInferencer):
         thickness: int = 1,
         kpt_thr: float = 0.3,
         num_instances: int = 1,
-        vis_out_dir: str = '',
-        window_name: str = '',
+        vis_out_dir: str = "",
+        window_name: str = "",
     ) -> List[np.ndarray]:
         """Visualize predictions.
 
@@ -287,9 +278,8 @@ class Hand3DInferencer(BaseMMPoseInferencer):
         if (not return_vis) and (not show) and (not vis_out_dir):
             return
 
-        if getattr(self, 'visualizer', None) is None:
-            raise ValueError('Visualization needs the "visualizer" term'
-                             'defined in the config, but got None.')
+        if getattr(self, "visualizer", None) is None:
+            raise ValueError('Visualization needs the "visualizer" term' "defined in the config, but got None.")
 
         self.visualizer.radius = radius
         self.visualizer.line_width = thickness
@@ -298,13 +288,12 @@ class Hand3DInferencer(BaseMMPoseInferencer):
 
         for single_input, pred in zip(inputs, preds):
             if isinstance(single_input, str):
-                img = mmcv.imread(single_input, channel_order='rgb')
+                img = mmcv.imread(single_input, channel_order="rgb")
             elif isinstance(single_input, np.ndarray):
                 img = mmcv.bgr2rgb(single_input)
             else:
-                raise ValueError('Unsupported input type: '
-                                 f'{type(single_input)}')
-            img_name = os.path.basename(pred.metainfo['img_path'])
+                raise ValueError("Unsupported input type: " f"{type(single_input)}")
+            img_name = os.path.basename(pred.metainfo["img_path"])
 
             # since visualization and inference utilize the same process,
             # the wait time is reduced when a video input is utilized,
@@ -318,7 +307,7 @@ class Hand3DInferencer(BaseMMPoseInferencer):
                 window_name,
                 img,
                 data_sample=pred,
-                det_data_sample=self._buffer['pose2d_results'],
+                det_data_sample=self._buffer["pose2d_results"],
                 draw_gt=False,
                 draw_bbox=draw_bbox,
                 show=show,
@@ -328,7 +317,8 @@ class Hand3DInferencer(BaseMMPoseInferencer):
                 axis_limit=200,
                 axis_elev=15,
                 kpt_thr=kpt_thr,
-                num_instances=num_instances)
+                num_instances=num_instances,
+            )
             results.append(visualization)
 
             if vis_out_dir:

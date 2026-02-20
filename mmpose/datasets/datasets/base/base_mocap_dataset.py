@@ -14,6 +14,7 @@ from mmengine.logging import print_log
 from mmengine.utils import is_abs
 
 from mmpose.registry import DATASETS
+
 from ..utils import parse_pose_metainfo
 
 
@@ -65,47 +66,43 @@ class BaseMocapDataset(BaseDataset):
 
     METAINFO: dict = dict()
 
-    def __init__(self,
-                 ann_file: str = '',
-                 seq_len: int = 1,
-                 multiple_target: int = 0,
-                 causal: bool = True,
-                 subset_frac: float = 1.0,
-                 camera_param_file: Optional[str] = None,
-                 data_mode: str = 'topdown',
-                 metainfo: Optional[dict] = None,
-                 data_root: Optional[str] = None,
-                 data_prefix: dict = dict(img=''),
-                 filter_cfg: Optional[dict] = None,
-                 indices: Optional[Union[int, Sequence[int]]] = None,
-                 serialize_data: bool = True,
-                 pipeline: List[Union[dict, Callable]] = [],
-                 test_mode: bool = False,
-                 lazy_init: bool = False,
-                 max_refetch: int = 1000):
+    def __init__(
+        self,
+        ann_file: str = "",
+        seq_len: int = 1,
+        multiple_target: int = 0,
+        causal: bool = True,
+        subset_frac: float = 1.0,
+        camera_param_file: Optional[str] = None,
+        data_mode: str = "topdown",
+        metainfo: Optional[dict] = None,
+        data_root: Optional[str] = None,
+        data_prefix: dict = dict(img=""),
+        filter_cfg: Optional[dict] = None,
+        indices: Optional[Union[int, Sequence[int]]] = None,
+        serialize_data: bool = True,
+        pipeline: List[Union[dict, Callable]] = [],
+        test_mode: bool = False,
+        lazy_init: bool = False,
+        max_refetch: int = 1000,
+    ):
 
-        if data_mode not in {'topdown', 'bottomup'}:
-            raise ValueError(
-                f'{self.__class__.__name__} got invalid data_mode: '
-                f'{data_mode}. Should be "topdown" or "bottomup".')
+        if data_mode not in {"topdown", "bottomup"}:
+            raise ValueError(f"{self.__class__.__name__} got invalid data_mode: " f'{data_mode}. Should be "topdown" or "bottomup".')
         self.data_mode = data_mode
 
         _ann_file = ann_file
         if not is_abs(_ann_file):
             _ann_file = osp.join(data_root, _ann_file)
-        assert exists(_ann_file), (
-            f'Annotation file `{_ann_file}` does not exist.')
+        assert exists(_ann_file), f"Annotation file `{_ann_file}` does not exist."
 
         self._load_ann_file(_ann_file)
 
         self.camera_param_file = camera_param_file
         if self.camera_param_file:
             if not is_abs(self.camera_param_file):
-                self.camera_param_file = osp.join(data_root,
-                                                  self.camera_param_file)
-            assert exists(self.camera_param_file), (
-                f'Camera parameters file `{self.camera_param_file}` does not '
-                'exist.')
+                self.camera_param_file = osp.join(data_root, self.camera_param_file)
+            assert exists(self.camera_param_file), f"Camera parameters file `{self.camera_param_file}` does not " "exist."
             self.camera_param = load(self.camera_param_file)
 
         self.seq_len = seq_len
@@ -113,12 +110,9 @@ class BaseMocapDataset(BaseDataset):
 
         self.multiple_target = multiple_target
         if self.multiple_target:
-            assert (self.seq_len == 1), (
-                'Multi-target data sample only supports seq_len=1.')
+            assert self.seq_len == 1, "Multi-target data sample only supports seq_len=1."
 
-        assert 0 < subset_frac <= 1, (
-            f'Unsupported `subset_frac` {subset_frac}. Supported range '
-            'is (0, 1].')
+        assert 0 < subset_frac <= 1, f"Unsupported `subset_frac` {subset_frac}. Supported range " "is (0, 1]."
         self.subset_frac = subset_frac
 
         self.sequence_indices = self.get_sequence_indices()
@@ -134,7 +128,8 @@ class BaseMocapDataset(BaseDataset):
             pipeline=pipeline,
             test_mode=test_mode,
             lazy_init=lazy_init,
-            max_refetch=max_refetch)
+            max_refetch=max_refetch,
+        )
 
     def _load_ann_file(self, ann_file: str) -> dict:
         """Load annotation file to get image information.
@@ -164,8 +159,7 @@ class BaseMocapDataset(BaseDataset):
             metainfo = deepcopy(cls.METAINFO)
 
         if not isinstance(metainfo, dict):
-            raise TypeError(
-                f'metainfo should be a dict, but got {type(metainfo)}')
+            raise TypeError(f"metainfo should be a dict, but got {type(metainfo)}")
 
         # parse pose metainfo if it has been assigned
         if metainfo:
@@ -202,15 +196,10 @@ class BaseMocapDataset(BaseDataset):
         data_info = super().get_data_info(idx)
 
         # Add metainfo items that are required in the pipeline and the model
-        metainfo_keys = [
-            'upper_body_ids', 'lower_body_ids', 'flip_pairs',
-            'dataset_keypoint_weights', 'flip_indices', 'skeleton_links'
-        ]
+        metainfo_keys = ["upper_body_ids", "lower_body_ids", "flip_pairs", "dataset_keypoint_weights", "flip_indices", "skeleton_links"]
 
         for key in metainfo_keys:
-            assert key not in data_info, (
-                f'"{key}" is a reserved key for `metainfo`, but already '
-                'exists in the `data_info`.')
+            assert key not in data_info, f'"{key}" is a reserved key for `metainfo`, but already ' "exists in the `data_info`."
 
             data_info[key] = deepcopy(self._metainfo[key])
 
@@ -222,34 +211,29 @@ class BaseMocapDataset(BaseDataset):
 
         instance_list, image_list = self._load_annotations()
 
-        if self.data_mode == 'topdown':
+        if self.data_mode == "topdown":
             data_list = self._get_topdown_data_infos(instance_list)
         else:
-            data_list = self._get_bottomup_data_infos(instance_list,
-                                                      image_list)
+            data_list = self._get_bottomup_data_infos(instance_list, image_list)
 
         return data_list
 
     def get_img_info(self, img_idx, img_name):
         try:
-            with get_local_path(osp.join(self.data_prefix['img'],
-                                         img_name)) as local_path:
+            with get_local_path(osp.join(self.data_prefix["img"], img_name)) as local_path:
                 im = cv2.imread(local_path)
                 h, w, _ = im.shape
         except:  # noqa: E722
-            print_log(
-                f'Failed to read image {img_name}.',
-                logger='current',
-                level=logging.DEBUG)
+            print_log(f"Failed to read image {img_name}.", logger="current", level=logging.DEBUG)
             return None
 
         img = {
-            'file_name': img_name,
-            'height': h,
-            'width': w,
-            'id': img_idx,
-            'img_id': img_idx,
-            'img_path': osp.join(self.data_prefix['img'], img_name),
+            "file_name": img_name,
+            "height": h,
+            "width": w,
+            "id": img_idx,
+            "img_id": img_idx,
+            "img_path": osp.join(self.data_prefix["img"], img_name),
         }
         return img
 
@@ -267,47 +251,44 @@ class BaseMocapDataset(BaseDataset):
         """
         sequence_indices = []
         if self.seq_len == 1:
-            num_imgs = len(self.ann_data['imgname'])
+            num_imgs = len(self.ann_data["imgname"])
             sequence_indices = [[idx] for idx in range(num_imgs)]
         else:
-            raise NotImplementedError('Multi-frame data sample unsupported!')
+            raise NotImplementedError("Multi-frame data sample unsupported!")
 
         if self.multiple_target > 0:
             sequence_indices_merged = []
             for i in range(0, len(sequence_indices), self.multiple_target):
                 if i + self.multiple_target > len(sequence_indices):
                     break
-                sequence_indices_merged.append(
-                    list(
-                        itertools.chain.from_iterable(
-                            sequence_indices[i:i + self.multiple_target])))
+                sequence_indices_merged.append(list(itertools.chain.from_iterable(sequence_indices[i : i + self.multiple_target])))
             sequence_indices = sequence_indices_merged
         return sequence_indices
 
     def _load_annotations(self) -> Tuple[List[dict], List[dict]]:
         """Load data from annotations in COCO format."""
-        num_keypoints = self.metainfo['num_keypoints']
+        num_keypoints = self.metainfo["num_keypoints"]
 
-        img_names = self.ann_data['imgname']
+        img_names = self.ann_data["imgname"]
         num_imgs = len(img_names)
 
-        if 'S' in self.ann_data.keys():
-            kpts_3d = self.ann_data['S']
+        if "S" in self.ann_data.keys():
+            kpts_3d = self.ann_data["S"]
         else:
             kpts_3d = np.zeros((num_imgs, num_keypoints, 4), dtype=np.float32)
 
-        if 'part' in self.ann_data.keys():
-            kpts_2d = self.ann_data['part']
+        if "part" in self.ann_data.keys():
+            kpts_2d = self.ann_data["part"]
         else:
             kpts_2d = np.zeros((num_imgs, num_keypoints, 3), dtype=np.float32)
 
-        if 'center' in self.ann_data.keys():
-            centers = self.ann_data['center']
+        if "center" in self.ann_data.keys():
+            centers = self.ann_data["center"]
         else:
             centers = np.zeros((num_imgs, 2), dtype=np.float32)
 
-        if 'scale' in self.ann_data.keys():
-            scales = self.ann_data['scale'].astype(np.float32)
+        if "scale" in self.ann_data.keys():
+            scales = self.ann_data["scale"].astype(np.float32)
         else:
             scales = np.zeros(num_imgs, dtype=np.float32)
 
@@ -319,9 +300,7 @@ class BaseMocapDataset(BaseDataset):
             if self.multiple_target:
                 expected_num_frames = self.multiple_target
 
-            assert len(frame_ids) == (expected_num_frames), (
-                f'Expected `frame_ids` == {expected_num_frames}, but '
-                f'got {len(frame_ids)} ')
+            assert len(frame_ids) == (expected_num_frames), f"Expected `frame_ids` == {expected_num_frames}, but " f"got {len(frame_ids)} "
 
             _img_names = img_names[frame_ids]
 
@@ -338,30 +317,30 @@ class BaseMocapDataset(BaseDataset):
                 target_idx = list(range(self.multiple_target))
 
             instance_info = {
-                'num_keypoints': num_keypoints,
-                'keypoints': keypoints,
-                'keypoints_visible': keypoints_visible,
-                'keypoints_3d': keypoints_3d,
-                'keypoints_3d_visible': keypoints_3d_visible,
-                'scale': scales[idx],
-                'center': centers[idx].astype(np.float32).reshape(1, -1),
-                'id': idx,
-                'category_id': 1,
-                'iscrowd': 0,
-                'img_paths': list(_img_names),
-                'img_ids': frame_ids,
-                'lifting_target': keypoints_3d[target_idx],
-                'lifting_target_visible': keypoints_3d_visible[target_idx],
-                'target_img_path': _img_names[target_idx],
+                "num_keypoints": num_keypoints,
+                "keypoints": keypoints,
+                "keypoints_visible": keypoints_visible,
+                "keypoints_3d": keypoints_3d,
+                "keypoints_3d_visible": keypoints_3d_visible,
+                "scale": scales[idx],
+                "center": centers[idx].astype(np.float32).reshape(1, -1),
+                "id": idx,
+                "category_id": 1,
+                "iscrowd": 0,
+                "img_paths": list(_img_names),
+                "img_ids": frame_ids,
+                "lifting_target": keypoints_3d[target_idx],
+                "lifting_target_visible": keypoints_3d_visible[target_idx],
+                "target_img_path": _img_names[target_idx],
             }
 
             if self.camera_param_file:
                 _cam_param = self.get_camera_param(_img_names[0])
-                instance_info['camera_param'] = _cam_param
+                instance_info["camera_param"] = _cam_param
 
             instance_list.append(instance_info)
 
-        if self.data_mode == 'bottomup':
+        if self.data_mode == "bottomup":
             for idx, imgname in enumerate(img_names):
                 img_info = self.get_img_info(idx, imgname)
                 image_list.append(img_info)
@@ -380,14 +359,14 @@ class BaseMocapDataset(BaseDataset):
         """Check a data info is an instance with valid bbox and keypoint
         annotations."""
         # crowd annotation
-        if 'iscrowd' in data_info and data_info['iscrowd']:
+        if "iscrowd" in data_info and data_info["iscrowd"]:
             return False
         # invalid keypoints
-        if 'num_keypoints' in data_info and data_info['num_keypoints'] == 0:
+        if "num_keypoints" in data_info and data_info["num_keypoints"] == 0:
             return False
         # invalid keypoints
-        if 'keypoints' in data_info:
-            if np.max(data_info['keypoints']) <= 0:
+        if "keypoints" in data_info:
+            if np.max(data_info["keypoints"]) <= 0:
                 return False
         return True
 
@@ -398,8 +377,7 @@ class BaseMocapDataset(BaseDataset):
 
         return data_list_tp
 
-    def _get_bottomup_data_infos(self, instance_list: List[Dict],
-                                 image_list: List[Dict]) -> List[Dict]:
+    def _get_bottomup_data_infos(self, instance_list: List[Dict], image_list: List[Dict]) -> List[Dict]:
         """Organize the data list in bottom-up mode."""
 
         # bottom-up data list
@@ -408,17 +386,16 @@ class BaseMocapDataset(BaseDataset):
         used_img_ids = set()
 
         # group instances by img_id
-        for img_ids, data_infos in groupby(instance_list,
-                                           lambda x: x['img_ids']):
+        for img_ids, data_infos in groupby(instance_list, lambda x: x["img_ids"]):
             for img_id in img_ids:
                 used_img_ids.add(img_id)
             data_infos = list(data_infos)
 
             # image data
-            img_paths = data_infos[0]['img_paths']
+            img_paths = data_infos[0]["img_paths"]
             data_info_bu = {
-                'img_ids': img_ids,
-                'img_paths': img_paths,
+                "img_ids": img_ids,
+                "img_paths": img_paths,
             }
 
             for key in data_infos[0].keys():
@@ -431,22 +408,21 @@ class BaseMocapDataset(BaseDataset):
             # The segmentation annotation of invalid objects will be used
             # to generate valid region mask in the pipeline.
             invalid_segs = []
-            for data_info_invalid in filterfalse(self._is_valid_instance,
-                                                 data_infos):
-                if 'segmentation' in data_info_invalid:
-                    invalid_segs.append(data_info_invalid['segmentation'])
-            data_info_bu['invalid_segs'] = invalid_segs
+            for data_info_invalid in filterfalse(self._is_valid_instance, data_infos):
+                if "segmentation" in data_info_invalid:
+                    invalid_segs.append(data_info_invalid["segmentation"])
+            data_info_bu["invalid_segs"] = invalid_segs
 
             data_list_bu.append(data_info_bu)
 
         # add images without instance for evaluation
         if self.test_mode:
             for img_info in image_list:
-                if img_info['img_id'] not in used_img_ids:
+                if img_info["img_id"] not in used_img_ids:
                     data_info_bu = {
-                        'img_ids': [img_info['img_id']],
-                        'img_path': [img_info['img_path']],
-                        'id': list(),
+                        "img_ids": [img_info["img_id"]],
+                        "img_path": [img_info["img_path"]],
+                        "id": list(),
                     }
                     data_list_bu.append(data_info_bu)
 

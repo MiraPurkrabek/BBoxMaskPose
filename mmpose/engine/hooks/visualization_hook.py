@@ -3,11 +3,10 @@ import os
 import warnings
 from typing import Optional, Sequence
 
-import numpy as np
-
 import mmcv
 import mmengine
 import mmengine.fileio as fileio
+import numpy as np
 from mmengine.hooks import Hook
 from mmengine.runner import Runner
 from mmengine.visualization import Visualizer
@@ -55,7 +54,7 @@ class PoseVisualizationHook(Hook):
         interval: int = 50,
         kpt_thr: float = 0.3,
         show: bool = False,
-        wait_time: float = 0.,
+        wait_time: float = 0.0,
         out_dir: Optional[str] = None,
         backend_args: Optional[dict] = None,
     ):
@@ -66,10 +65,12 @@ class PoseVisualizationHook(Hook):
         if self.show:
             # No need to think about vis backends.
             self._visualizer._vis_backends = {}
-            warnings.warn('The show is True, it means that only '
-                          'the prediction results are visualized '
-                          'without storing data, so vis_backends '
-                          'needs to be excluded.')
+            warnings.warn(
+                "The show is True, it means that only "
+                "the prediction results are visualized "
+                "without storing data, so vis_backends "
+                "needs to be excluded."
+            )
 
         self.wait_time = wait_time
         self.enable = enable
@@ -77,8 +78,7 @@ class PoseVisualizationHook(Hook):
         self._test_index = 0
         self.backend_args = backend_args
 
-    def after_val_iter(self, runner: Runner, batch_idx: int, data_batch: dict,
-                       outputs: Sequence[PoseDataSample]) -> None:
+    def after_val_iter(self, runner: Runner, batch_idx: int, data_batch: dict, outputs: Sequence[PoseDataSample]) -> None:
         """Run after every ``self.interval`` validation iterations.
 
         Args:
@@ -97,9 +97,9 @@ class PoseVisualizationHook(Hook):
         total_curr_iter = runner.iter + batch_idx
 
         # Visualize only the first data
-        img_path = data_batch['data_samples'][0].get('img_path')
+        img_path = data_batch["data_samples"][0].get("img_path")
         img_bytes = fileio.get(img_path, backend_args=self.backend_args)
-        img = mmcv.imfrombytes(img_bytes, channel_order='rgb')
+        img = mmcv.imfrombytes(img_bytes, channel_order="rgb")
         data_sample = outputs[0]
 
         # revert the heatmap on the original image
@@ -107,7 +107,7 @@ class PoseVisualizationHook(Hook):
 
         if total_curr_iter % self.interval == 0:
             self._visualizer.add_datasample(
-                os.path.basename(img_path) if self.show else 'val_img',
+                os.path.basename(img_path) if self.show else "val_img",
                 img,
                 data_sample=data_sample,
                 draw_gt=False,
@@ -116,10 +116,10 @@ class PoseVisualizationHook(Hook):
                 show=self.show,
                 wait_time=self.wait_time,
                 kpt_thr=self.kpt_thr,
-                step=total_curr_iter)
+                step=total_curr_iter,
+            )
 
-    def after_test_iter(self, runner: Runner, batch_idx: int, data_batch: dict,
-                        outputs: Sequence[PoseDataSample]) -> None:
+    def after_test_iter(self, runner: Runner, batch_idx: int, data_batch: dict, outputs: Sequence[PoseDataSample]) -> None:
         """Run after every testing iterations.
 
         Args:
@@ -132,8 +132,7 @@ class PoseVisualizationHook(Hook):
             return
 
         if self.out_dir is not None:
-            self.out_dir = os.path.join(runner.work_dir, runner.timestamp,
-                                        self.out_dir)
+            self.out_dir = os.path.join(runner.work_dir, runner.timestamp, self.out_dir)
             mmengine.mkdir_or_exist(self.out_dir)
 
         self._visualizer.set_dataset_meta(runner.test_evaluator.dataset_meta)
@@ -141,32 +140,28 @@ class PoseVisualizationHook(Hook):
         for data_sample in outputs:
             self._test_index += 1
 
-            img_path = data_sample.get('img_path')
+            img_path = data_sample.get("img_path")
             img_bytes = fileio.get(img_path, backend_args=self.backend_args)
-            img = mmcv.imfrombytes(img_bytes, channel_order='rgb')
+            img = mmcv.imfrombytes(img_bytes, channel_order="rgb")
 
             # img = pad_img_to_amap(img, data_sample)
-            
+
             data_sample = merge_data_samples([data_sample])
 
             # Resize image to heatmap size
-            if data_sample.get('_pred_heatmaps') is not None:
+            if data_sample.get("_pred_heatmaps") is not None:
                 heatmap_size = data_sample._pred_heatmaps.shape
                 img = mmcv.imresize(img, heatmap_size[::-1])
 
             out_file = None
             if self.out_dir is not None:
-                out_file_name, postfix = os.path.basename(img_path).rsplit(
-                    '.', 1)
-                index = len([
-                    fname for fname in os.listdir(self.out_dir)
-                    if fname.startswith(out_file_name)
-                ])
-                out_file = f'{out_file_name}_{index}.{postfix}'
+                out_file_name, postfix = os.path.basename(img_path).rsplit(".", 1)
+                index = len([fname for fname in os.listdir(self.out_dir) if fname.startswith(out_file_name)])
+                out_file = f"{out_file_name}_{index}.{postfix}"
                 out_file = os.path.join(self.out_dir, out_file)
 
             self._visualizer.add_datasample(
-                os.path.basename(img_path) if self.show else 'test_img',
+                os.path.basename(img_path) if self.show else "test_img",
                 img,
                 data_sample=data_sample,
                 show=self.show,
@@ -176,29 +171,27 @@ class PoseVisualizationHook(Hook):
                 wait_time=self.wait_time,
                 kpt_thr=self.kpt_thr,
                 out_file=out_file,
-                step=self._test_index)
+                step=self._test_index,
+            )
 
 
 def pad_img_to_amap(img, data_sample):
     bbox_xywh = None
-    if 'raw_ann_info' in data_sample:
-        bbox_xywh = data_sample.raw_ann_info['bbox']
-    elif 'pred_instances' in data_sample:
+    if "raw_ann_info" in data_sample:
+        bbox_xywh = data_sample.raw_ann_info["bbox"]
+    elif "pred_instances" in data_sample:
         bbox_xywh = data_sample.pred_instances.bboxes.flatten()
-    
+
     if bbox_xywh is None:
         return img
 
-    bbox_xyxy = np.array([
-        bbox_xywh[0], bbox_xywh[1],
-        bbox_xywh[0] + bbox_xywh[2], bbox_xywh[1] + bbox_xywh[3]
-    ])
-    abox_xyxy = fix_bbox_aspect_ratio(bbox_xyxy, aspect_ratio=3/4, padding=1.25, bbox_format='xyxy')
+    bbox_xyxy = np.array([bbox_xywh[0], bbox_xywh[1], bbox_xywh[0] + bbox_xywh[2], bbox_xywh[1] + bbox_xywh[3]])
+    abox_xyxy = fix_bbox_aspect_ratio(bbox_xyxy, aspect_ratio=3 / 4, padding=1.25, bbox_format="xyxy")
     abox_xyxy = abox_xyxy.flatten()
 
     x_pad = np.array([max(0, -abox_xyxy[0]), max(0, abox_xyxy[2] - img.shape[1])], dtype=int)
     y_pad = np.array([max(0, -abox_xyxy[1]), max(0, abox_xyxy[3] - img.shape[0])], dtype=int)
-    img = np.pad(img, ((y_pad[0], y_pad[1]), (x_pad[0], x_pad[1]), (0, 0)), mode='constant')
+    img = np.pad(img, ((y_pad[0], y_pad[1]), (x_pad[0], x_pad[1]), (0, 0)), mode="constant")
 
     kpts = data_sample.pred_instances.keypoints[0].reshape(-1, 2)
     kpts[:, :2] += np.array([x_pad[0], y_pad[0]])

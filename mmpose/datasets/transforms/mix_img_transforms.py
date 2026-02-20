@@ -11,8 +11,7 @@ from mmengine.dataset.base_dataset import Compose
 from numpy import random
 
 from mmpose.registry import TRANSFORMS
-from mmpose.structures import (bbox_clip_border, flip_bbox, flip_keypoints,
-                               keypoint_clip_border)
+from mmpose.structures import bbox_clip_border, flip_bbox, flip_keypoints, keypoint_clip_border
 
 
 class MixImageTransform(BaseTransform, metaclass=ABCMeta):
@@ -25,9 +24,7 @@ class MixImageTransform(BaseTransform, metaclass=ABCMeta):
             Defaults to 1.0.
     """
 
-    def __init__(self,
-                 pre_transform: Optional[Sequence[str]] = None,
-                 prob: float = 1.0):
+    def __init__(self, pre_transform: Optional[Sequence[str]] = None, prob: float = 1.0):
 
         self.prob = prob
 
@@ -45,15 +42,15 @@ class MixImageTransform(BaseTransform, metaclass=ABCMeta):
 
         if random.uniform(0, 1) < self.prob:
 
-            dataset = results.pop('dataset', None)
+            dataset = results.pop("dataset", None)
 
-            results['mixed_data_list'] = self._get_mixed_data_list(dataset)
+            results["mixed_data_list"] = self._get_mixed_data_list(dataset)
             results = self.apply_mix(results)
 
-            if 'mixed_data_list' in results:
-                results.pop('mixed_data_list')
+            if "mixed_data_list" in results:
+                results.pop("mixed_data_list")
 
-            results['dataset'] = dataset
+            results["dataset"] = dataset
 
         return results
 
@@ -66,19 +63,15 @@ class MixImageTransform(BaseTransform, metaclass=ABCMeta):
         Returns:
             List[dict]: A list of dictionaries containing mixed data samples.
         """
-        indexes = [
-            random.randint(0, len(dataset)) for _ in range(self.num_aux_image)
-        ]
+        indexes = [random.randint(0, len(dataset)) for _ in range(self.num_aux_image)]
 
-        mixed_data_list = [
-            copy.deepcopy(dataset.get_data_info(index)) for index in indexes
-        ]
+        mixed_data_list = [copy.deepcopy(dataset.get_data_info(index)) for index in indexes]
 
         if self.pre_transform is not None:
             for i, data in enumerate(mixed_data_list):
-                data.update({'dataset': dataset})
+                data.update({"dataset": dataset})
                 _results = self.pre_transform(data)
-                _results.pop('dataset')
+                _results.pop("dataset")
                 mixed_data_list[i] = _results
 
         return mixed_data_list
@@ -168,29 +161,26 @@ class Mosaic(MixImageTransform):
     def apply_mix(self, results: dict) -> dict:
         """Apply mosaic augmentation to the input data."""
 
-        assert 'mixed_data_list' in results
-        mixed_data_list = results.pop('mixed_data_list')
+        assert "mixed_data_list" in results
+        mixed_data_list = results.pop("mixed_data_list")
         assert len(mixed_data_list) == self.num_aux_image
 
         img, annos = self._create_mosaic_image(results, mixed_data_list)
-        bboxes = annos['bboxes']
-        kpts = annos['keypoints']
-        kpts_vis = annos['keypoints_visible']
+        bboxes = annos["bboxes"]
+        kpts = annos["keypoints"]
+        kpts_vis = annos["keypoints_visible"]
 
-        bboxes = bbox_clip_border(bboxes, (2 * self.img_scale[0],
-                                           2 * self.img_scale[1]))
-        kpts, kpts_vis = keypoint_clip_border(kpts, kpts_vis,
-                                              (2 * self.img_scale[0],
-                                               2 * self.img_scale[1]))
+        bboxes = bbox_clip_border(bboxes, (2 * self.img_scale[0], 2 * self.img_scale[1]))
+        kpts, kpts_vis = keypoint_clip_border(kpts, kpts_vis, (2 * self.img_scale[0], 2 * self.img_scale[1]))
 
-        results['img'] = img
-        results['img_shape'] = img.shape
-        results['bbox'] = bboxes
-        results['category_id'] = annos['category_id']
-        results['bbox_score'] = annos['bbox_scores']
-        results['keypoints'] = kpts
-        results['keypoints_visible'] = kpts_vis
-        results['area'] = annos['area']
+        results["img"] = img
+        results["img_shape"] = img.shape
+        results["bbox"] = bboxes
+        results["category_id"] = annos["category_id"]
+        results["bbox_score"] = annos["bbox_scores"]
+        results["keypoints"] = kpts
+        results["keypoints_visible"] = kpts_vis
+        results["area"] = annos["area"]
 
         return results
 
@@ -200,28 +190,23 @@ class Mosaic(MixImageTransform):
 
         # init mosaic image
         img_scale_w, img_scale_h = self.img_scale
-        mosaic_img = np.full((int(img_scale_h * 2), int(img_scale_w * 2), 3),
-                             self.pad_val,
-                             dtype=results['img'].dtype)
+        mosaic_img = np.full((int(img_scale_h * 2), int(img_scale_w * 2), 3), self.pad_val, dtype=results["img"].dtype)
 
         # calculate mosaic center
-        center = (int(random.uniform(*self.center_range) * img_scale_w),
-                  int(random.uniform(*self.center_range) * img_scale_h))
+        center = (int(random.uniform(*self.center_range) * img_scale_w), int(random.uniform(*self.center_range) * img_scale_h))
 
         annos = defaultdict(list)
-        locs = ('top_left', 'top_right', 'bottom_left', 'bottom_right')
+        locs = ("top_left", "top_right", "bottom_left", "bottom_right")
         for loc, data in zip(locs, (results, *mixed_data_list)):
 
             # process image
-            img = data['img']
+            img = data["img"]
             h, w = img.shape[:2]
             scale_ratio = min(img_scale_h / h, img_scale_w / w)
-            img = mmcv.imresize(img,
-                                (int(w * scale_ratio), int(h * scale_ratio)))
+            img = mmcv.imresize(img, (int(w * scale_ratio), int(h * scale_ratio)))
 
             # paste
-            paste_coord, crop_coord = self._mosaic_combine(
-                loc, center, img.shape[:2][::-1])
+            paste_coord, crop_coord = self._mosaic_combine(loc, center, img.shape[:2][::-1])
             x1_p, y1_p, x2_p, y2_p = paste_coord
             x1_c, y1_c, x2_c, y2_c = crop_coord
 
@@ -231,31 +216,31 @@ class Mosaic(MixImageTransform):
             padh = y1_p - y1_c
 
             # merge annotations
-            if 'bbox' in data:
-                bboxes = data['bbox']
+            if "bbox" in data:
+                bboxes = data["bbox"]
 
                 # rescale & translate
                 bboxes *= scale_ratio
                 bboxes[..., ::2] += padw
                 bboxes[..., 1::2] += padh
 
-                annos['bboxes'].append(bboxes)
-                annos['bbox_scores'].append(data['bbox_score'])
-                annos['category_id'].append(data['category_id'])
+                annos["bboxes"].append(bboxes)
+                annos["bbox_scores"].append(data["bbox_score"])
+                annos["category_id"].append(data["category_id"])
 
-            if 'keypoints' in data:
-                kpts = data['keypoints']
+            if "keypoints" in data:
+                kpts = data["keypoints"]
 
                 # rescale & translate
                 kpts *= scale_ratio
                 kpts[..., 0] += padw
                 kpts[..., 1] += padh
 
-                annos['keypoints'].append(kpts)
-                annos['keypoints_visible'].append(data['keypoints_visible'])
+                annos["keypoints"].append(kpts)
+                annos["keypoints_visible"].append(data["keypoints_visible"])
 
-            if 'area' in data:
-                annos['area'].append(data['area'] * scale_ratio**2)
+            if "area" in data:
+                annos["area"].append(data["area"] * scale_ratio**2)
 
         for key in annos:
             annos[key] = np.concatenate(annos[key])
@@ -267,36 +252,33 @@ class Mosaic(MixImageTransform):
         """Determine the overall coordinates of the mosaic image and the
         specific coordinates of the cropped sub-image."""
 
-        assert loc in ('top_left', 'top_right', 'bottom_left', 'bottom_right')
+        assert loc in ("top_left", "top_right", "bottom_left", "bottom_right")
 
         x1, y1, x2, y2 = 0, 0, 0, 0
         cx, cy = center
         w, h = img_shape
 
-        if loc == 'top_left':
+        if loc == "top_left":
             x1, y1, x2, y2 = max(cx - w, 0), max(cy - h, 0), cx, cy
             crop_coord = w - (x2 - x1), h - (y2 - y1), w, h
-        elif loc == 'top_right':
-            x1, y1, x2, y2 = cx, max(cy - h, 0), min(cx + w,
-                                                     self.img_scale[0] * 2), cy
+        elif loc == "top_right":
+            x1, y1, x2, y2 = cx, max(cy - h, 0), min(cx + w, self.img_scale[0] * 2), cy
             crop_coord = 0, h - (y2 - y1), min(w, x2 - x1), h
-        elif loc == 'bottom_left':
-            x1, y1, x2, y2 = max(cx - w,
-                                 0), cy, cx, min(self.img_scale[1] * 2, cy + h)
+        elif loc == "bottom_left":
+            x1, y1, x2, y2 = max(cx - w, 0), cy, cx, min(self.img_scale[1] * 2, cy + h)
             crop_coord = w - (x2 - x1), 0, w, min(y2 - y1, h)
         else:
-            x1, y1, x2, y2 = cx, cy, min(cx + w, self.img_scale[0] *
-                                         2), min(self.img_scale[1] * 2, cy + h)
+            x1, y1, x2, y2 = cx, cy, min(cx + w, self.img_scale[0] * 2), min(self.img_scale[1] * 2, cy + h)
             crop_coord = 0, 0, min(w, x2 - x1), min(y2 - y1, h)
 
         return (x1, y1, x2, y2), crop_coord
 
     def __repr__(self) -> str:
         repr_str = self.__class__.__name__
-        repr_str += f'(img_scale={self.img_scale}, '
-        repr_str += f'center_range={self.center_range}, '
-        repr_str += f'pad_val={self.pad_val}, '
-        repr_str += f'prob={self.prob})'
+        repr_str += f"(img_scale={self.img_scale}, "
+        repr_str += f"center_range={self.center_range}, "
+        repr_str += f"pad_val={self.pad_val}, "
+        repr_str += f"prob={self.prob})"
         return repr_str
 
 
@@ -361,16 +343,19 @@ class YOLOXMixUp(MixImageTransform):
         prob (float): Probability of applying the mixup transformation.
             Defaults to 1.0.
     """
+
     num_aux_image = 1
 
-    def __init__(self,
-                 img_scale: Tuple[int, int] = (640, 640),
-                 ratio_range: Tuple[float, float] = (0.5, 1.5),
-                 flip_ratio: float = 0.5,
-                 pad_val: float = 114.0,
-                 bbox_clip_border: bool = True,
-                 pre_transform: Sequence[dict] = None,
-                 prob: float = 1.0):
+    def __init__(
+        self,
+        img_scale: Tuple[int, int] = (640, 640),
+        ratio_range: Tuple[float, float] = (0.5, 1.5),
+        flip_ratio: float = 0.5,
+        pad_val: float = 114.0,
+        bbox_clip_border: bool = True,
+        pre_transform: Sequence[dict] = None,
+        prob: float = 1.0,
+    ):
         assert isinstance(img_scale, tuple)
         super().__init__(pre_transform=pre_transform, prob=prob)
         self.img_scale = img_scale
@@ -382,30 +367,30 @@ class YOLOXMixUp(MixImageTransform):
     def apply_mix(self, results: dict) -> dict:
         """YOLOX MixUp transform function."""
 
-        assert 'mixed_data_list' in results
-        mixed_data_list = results.pop('mixed_data_list')
+        assert "mixed_data_list" in results
+        mixed_data_list = results.pop("mixed_data_list")
         assert len(mixed_data_list) == self.num_aux_image
 
-        if mixed_data_list[0]['keypoints'].shape[0] == 0:
+        if mixed_data_list[0]["keypoints"].shape[0] == 0:
             return results
 
         img, annos = self._create_mixup_image(results, mixed_data_list)
-        bboxes = annos['bboxes']
-        kpts = annos['keypoints']
-        kpts_vis = annos['keypoints_visible']
+        bboxes = annos["bboxes"]
+        kpts = annos["keypoints"]
+        kpts_vis = annos["keypoints_visible"]
 
         h, w = img.shape[:2]
         bboxes = bbox_clip_border(bboxes, (w, h))
         kpts, kpts_vis = keypoint_clip_border(kpts, kpts_vis, (w, h))
 
-        results['img'] = img.astype(np.uint8)
-        results['img_shape'] = img.shape
-        results['bbox'] = bboxes
-        results['category_id'] = annos['category_id']
-        results['bbox_score'] = annos['bbox_scores']
-        results['keypoints'] = kpts
-        results['keypoints_visible'] = kpts_vis
-        results['area'] = annos['area']
+        results["img"] = img.astype(np.uint8)
+        results["img_shape"] = img.shape
+        results["bbox"] = bboxes
+        results["category_id"] = annos["category_id"]
+        results["bbox_score"] = annos["bbox_scores"]
+        results["keypoints"] = kpts
+        results["keypoints_visible"] = kpts_vis
+        results["area"] = annos["area"]
 
         return results
 
@@ -414,27 +399,23 @@ class YOLOXMixUp(MixImageTransform):
         two input images."""
 
         aux_results = mixed_data_list[0]
-        aux_img = aux_results['img']
+        aux_img = aux_results["img"]
 
         # init mixup image
-        out_img = np.ones((self.img_scale[1], self.img_scale[0], 3),
-                          dtype=aux_img.dtype) * self.pad_val
+        out_img = np.ones((self.img_scale[1], self.img_scale[0], 3), dtype=aux_img.dtype) * self.pad_val
         annos = defaultdict(list)
 
         # Calculate scale ratio and resize aux_img
-        scale_ratio = min(self.img_scale[1] / aux_img.shape[0],
-                          self.img_scale[0] / aux_img.shape[1])
-        aux_img = mmcv.imresize(aux_img, (int(aux_img.shape[1] * scale_ratio),
-                                          int(aux_img.shape[0] * scale_ratio)))
+        scale_ratio = min(self.img_scale[1] / aux_img.shape[0], self.img_scale[0] / aux_img.shape[1])
+        aux_img = mmcv.imresize(aux_img, (int(aux_img.shape[1] * scale_ratio), int(aux_img.shape[0] * scale_ratio)))
 
         # Set the resized aux_img in the top-left of out_img
-        out_img[:aux_img.shape[0], :aux_img.shape[1]] = aux_img
+        out_img[: aux_img.shape[0], : aux_img.shape[1]] = aux_img
 
         # random rescale
         jit_factor = random.uniform(*self.ratio_range)
         scale_ratio *= jit_factor
-        out_img = mmcv.imresize(out_img, (int(out_img.shape[1] * jit_factor),
-                                          int(out_img.shape[0] * jit_factor)))
+        out_img = mmcv.imresize(out_img, (int(out_img.shape[1] * jit_factor), int(out_img.shape[0] * jit_factor)))
 
         # random flip
         is_filp = random.uniform(0, 1) > self.flip_ratio
@@ -442,7 +423,7 @@ class YOLOXMixUp(MixImageTransform):
             out_img = out_img[:, ::-1, :]
 
         # random crop
-        ori_img = results['img']
+        ori_img = results["img"]
         aux_h, aux_w = out_img.shape[:2]
         h, w = ori_img.shape[:2]
         padded_img = np.ones((max(aux_h, h), max(aux_w, w), 3)) * self.pad_val
@@ -451,41 +432,34 @@ class YOLOXMixUp(MixImageTransform):
 
         dy = random.randint(0, max(0, padded_img.shape[0] - h) + 1)
         dx = random.randint(0, max(0, padded_img.shape[1] - w) + 1)
-        padded_cropped_img = padded_img[dy:dy + h, dx:dx + w]
+        padded_cropped_img = padded_img[dy : dy + h, dx : dx + w]
 
         # mix up
         mixup_img = 0.5 * ori_img + 0.5 * padded_cropped_img
 
         # merge annotations
         # bboxes
-        bboxes = aux_results['bbox'].copy()
+        bboxes = aux_results["bbox"].copy()
         bboxes *= scale_ratio
         bboxes = bbox_clip_border(bboxes, (aux_w, aux_h))
         if is_filp:
-            bboxes = flip_bbox(bboxes, [aux_w, aux_h], 'xyxy')
+            bboxes = flip_bbox(bboxes, [aux_w, aux_h], "xyxy")
         bboxes[..., ::2] -= dx
         bboxes[..., 1::2] -= dy
-        annos['bboxes'] = [results['bbox'], bboxes]
-        annos['bbox_scores'] = [
-            results['bbox_score'], aux_results['bbox_score']
-        ]
-        annos['category_id'] = [
-            results['category_id'], aux_results['category_id']
-        ]
+        annos["bboxes"] = [results["bbox"], bboxes]
+        annos["bbox_scores"] = [results["bbox_score"], aux_results["bbox_score"]]
+        annos["category_id"] = [results["category_id"], aux_results["category_id"]]
 
         # keypoints
-        kpts = aux_results['keypoints'] * scale_ratio
-        kpts, kpts_vis = keypoint_clip_border(kpts,
-                                              aux_results['keypoints_visible'],
-                                              (aux_w, aux_h))
+        kpts = aux_results["keypoints"] * scale_ratio
+        kpts, kpts_vis = keypoint_clip_border(kpts, aux_results["keypoints_visible"], (aux_w, aux_h))
         if is_filp:
-            kpts, kpts_vis = flip_keypoints(kpts, kpts_vis, (aux_w, aux_h),
-                                            aux_results['flip_indices'])
+            kpts, kpts_vis = flip_keypoints(kpts, kpts_vis, (aux_w, aux_h), aux_results["flip_indices"])
         kpts[..., 0] -= dx
         kpts[..., 1] -= dy
-        annos['keypoints'] = [results['keypoints'], kpts]
-        annos['keypoints_visible'] = [results['keypoints_visible'], kpts_vis]
-        annos['area'] = [results['area'], aux_results['area'] * scale_ratio**2]
+        annos["keypoints"] = [results["keypoints"], kpts]
+        annos["keypoints_visible"] = [results["keypoints_visible"], kpts_vis]
+        annos["area"] = [results["area"], aux_results["area"] * scale_ratio**2]
 
         for key in annos:
             annos[key] = np.concatenate(annos[key])
@@ -494,8 +468,8 @@ class YOLOXMixUp(MixImageTransform):
 
     def __repr__(self) -> str:
         repr_str = self.__class__.__name__
-        repr_str += f'(img_scale={self.img_scale}, '
-        repr_str += f'ratio_range={self.ratio_range}, '
-        repr_str += f'flip_ratio={self.flip_ratio}, '
-        repr_str += f'pad_val={self.pad_val})'
+        repr_str += f"(img_scale={self.img_scale}, "
+        repr_str += f"ratio_range={self.ratio_range}, "
+        repr_str += f"flip_ratio={self.flip_ratio}, "
+        repr_str += f"pad_val={self.pad_val})"
         return repr_str

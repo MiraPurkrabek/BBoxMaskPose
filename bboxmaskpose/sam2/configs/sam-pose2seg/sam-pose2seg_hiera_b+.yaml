@@ -8,11 +8,8 @@ model:
     scalp: 1
     trunk:
       _target_: bboxmaskpose.sam2.modeling.backbones.hieradet.Hiera
-      embed_dim: 96
-      num_heads: 1
-      stages: [1, 2, 11, 2]
-      global_att_blocks: [7, 10, 13]
-      window_pos_embed_bkg_spatial_size: [7, 7]
+      embed_dim: 112
+      num_heads: 2
     neck:
       _target_: bboxmaskpose.sam2.modeling.backbones.image_encoder.FpnNeck
       position_encoding:
@@ -22,7 +19,7 @@ model:
         scale: null
         temperature: 10000
       d_model: 256
-      backbone_channel_list: [768, 384, 192, 96]
+      backbone_channel_list: [896, 448, 224, 112]
       fpn_top_down_levels: [2, 3]  # output level 0 and 1 directly use the backbone features
       fpn_interp_model: nearest
 
@@ -39,7 +36,7 @@ model:
       self_attention:
         _target_: bboxmaskpose.sam2.modeling.sam.transformer.RoPEAttention
         rope_theta: 10000.0
-        feat_sizes: [32, 32]
+        feat_sizes: [64, 64]
         embedding_dim: 256
         num_heads: 1
         downsample_rate: 1
@@ -50,7 +47,7 @@ model:
       cross_attention:
         _target_: bboxmaskpose.sam2.modeling.sam.transformer.RoPEAttention
         rope_theta: 10000.0
-        feat_sizes: [32, 32]
+        feat_sizes: [64, 64]
         rope_k_repeat: True
         embedding_dim: 256
         num_heads: 1
@@ -115,14 +112,7 @@ model:
   multimask_min_pt_num: 0
   multimask_max_pt_num: 1
   use_mlp_for_obj_ptr_proj: true
+
+  n_kpts_encoder: 8
   # Compilation flag
-  compile_image_encoder: False
-  # SAMURAI
-  samurai_mode: true
-  stable_frames_threshold: 15
-  stable_ious_threshold: 0.3
-  min_obj_score_logits: -1
-  kf_score_weight: 0.25
-  memory_bank_iou_threshold: 0.5
-  memory_bank_obj_score_threshold: 0.0
-  memory_bank_kf_score_threshold: 0.0
+  # compile_image_encoder: False

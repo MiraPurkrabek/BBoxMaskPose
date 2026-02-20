@@ -1,18 +1,49 @@
+# Copyright (c) Miroslav Purkrabek. All rights reserved.
 import os
+
 import cv2
 import numpy as np
+from pycocotools import mask as Mask
 
 from bboxmaskpose.sam2.distinctipy import get_colors
 
-from pycocotools import mask as Mask
 
+def batch_visualize_masks(
+    args,
+    image,
+    masks_rle,
+    image_kpts,
+    bboxes_xyxy,
+    dt_bboxes,
+    gt_masks_raw,
+    bbox_ious,
+    mask_ious,
+    image_path=None,
+    mask_out=False,
+    alpha=1.0,
+):
+    """
+    Visualize predicted and ground-truth masks side by side on an image.
 
-def batch_visualize_masks(args, image, masks_rle, image_kpts, bboxes_xyxy, dt_bboxes, gt_masks_raw, bbox_ious, mask_ious, image_path=None, mask_out=False, alpha=1.0):
+    Args:
+        args: Configuration object with debug_folder and num_pos_keypoints.
+        image (np.ndarray): BGR image array.
+        masks_rle (list): Predicted masks in RLE format.
+        image_kpts (np.ndarray or None): Keypoints array of shape (N, K, 3).
+        bboxes_xyxy (np.ndarray or None): GT bounding boxes in [x1,y1,x2,y2].
+        dt_bboxes (np.ndarray or None): Detected bounding boxes in [x,y,w,h].
+        gt_masks_raw (list): Ground-truth masks in RLE format (or None per entry).
+        bbox_ious (list): IoU scores per bbox instance.
+        mask_ious (list): IoU scores per mask instance.
+        image_path (str or None): Optional path to derive the save filename.
+        mask_out (bool): If True, renders a masked-out image instead of colored masks.
+        alpha (float): Blending factor for mask overlay.
+    """
     # Decode dt_masks_rle
     dt_masks = []
     for mask_rle in masks_rle:
         mask = Mask.decode(mask_rle)
-        dt_masks.append(mask) 
+        dt_masks.append(mask)
     dt_masks = np.array(dt_masks)
 
     # Decode gt_masks_raw
@@ -31,13 +62,13 @@ def batch_visualize_masks(args, image, masks_rle, image_kpts, bboxes_xyxy, dt_bb
     # Generate random color for each mask
     if mask_out:
         dt_mask_image = dt_masks.max(axis=0)
-        dt_mask_image = (~ dt_mask_image.astype(bool)).astype(np.uint8)
+        dt_mask_image = (~dt_mask_image.astype(bool)).astype(np.uint8)
         dt_mask_image = cv2.resize(dt_mask_image, (image.shape[1], image.shape[0]), interpolation=cv2.INTER_NEAREST)
         dt_mask_image = image * dt_mask_image[:, :, None]
-        dt_mask_image = cv2.addWeighted(image, 1-alpha, dt_mask_image, alpha, 0)
+        dt_mask_image = cv2.addWeighted(image, 1 - alpha, dt_mask_image, alpha, 0)
     else:
         colors = (np.array(get_colors(dt_masks.shape[0])) * 255).astype(int)
-        
+
         # colors = np.random.randint(0, 255, (dt_masks.shape[0], 3))
         # # Make sure no colors are too dark
         # np.clip(colors, 50, 255, out=colors)
@@ -53,7 +84,7 @@ def batch_visualize_masks(args, image, masks_rle, image_kpts, bboxes_xyxy, dt_bb
         # # Remove masks that are too small
         # dt_masks_area = dt_masks.any(axis=3).sum(axis=(1, 2))
         # dt_masks[dt_masks_area < 300*300] = 0
-            
+
         # Collapse masks to 3 channels
         dt_mask_image = dt_masks.max(axis=0)
         gt_mask_image = gt_masks.max(axis=0)
@@ -114,14 +145,16 @@ def batch_visualize_masks(args, image, masks_rle, image_kpts, bboxes_xyxy, dt_bb
         save_name = os.path.basename(image_path)
     else:
         save_name = "batch_bbox_{:06.2f}_mask_{:06.2f}_{:02d}kpts_{:06d}.jpg".format(
-            bbox_ious.mean(), mask_ious.mean(), args.num_pos_keypoints, np.random.randint(1000000),
+            bbox_ious.mean(),
+            mask_ious.mean(),
+            args.num_pos_keypoints,
+            np.random.randint(1000000),
         )
 
-    if 'debug_folder' not in args:
+    if "debug_folder" not in args:
         args.debug_folder = "debug"
 
     if mask_out:
-        cv2.imwrite(os.path.join(args.debug_folder, save_name), dt_mask_image)               
+        cv2.imwrite(os.path.join(args.debug_folder, save_name), dt_mask_image)
     else:
-        cv2.imwrite(os.path.join(args.debug_folder, save_name), np.hstack([gt_mask_image, dt_mask_image]))      
-  
+        cv2.imwrite(os.path.join(args.debug_folder, save_name), np.hstack([gt_mask_image, dt_mask_image]))

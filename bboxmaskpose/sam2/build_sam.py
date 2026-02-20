@@ -6,14 +6,15 @@
 
 import logging
 import os
+import urllib.parse as urlparse
 
 import torch
-from hydra import compose, initialize_config_dir
-from hydra.utils import instantiate
-from hydra.core.global_hydra import GlobalHydra
-from omegaconf import OmegaConf
 
 import bboxmaskpose.sam2 as sam2
+from hydra import compose, initialize_config_dir
+from hydra.core.global_hydra import GlobalHydra
+from hydra.utils import instantiate
+from omegaconf import OmegaConf
 
 # Check if the user is running Python from the parent directory of the sam2 repo
 # (i.e. the directory where this repo is cloned into) -- this is not supported since
@@ -98,7 +99,6 @@ def build_sam2(
     # Hydra expects config_name WITHOUT .yaml
     config_name = os.path.basename(config_file).replace(".yaml", "")
 
-
     # Read config and init model
     try:
         with initialize_config_dir(version_base=None, config_dir=str(config_dir)):
@@ -107,7 +107,7 @@ def build_sam2(
     except Exception as e:
         logging.error(f"Error loading config: {e}")
         cfg = compose(config_name=config_file, overrides=hydra_overrides_extra)
-    
+
     OmegaConf.resolve(cfg)
     model = instantiate(cfg.model, _recursive_=True)
     _load_checkpoint(model, ckpt_path)
@@ -176,14 +176,23 @@ def build_sam2_hf(model_id, **kwargs):
 
 def build_sam2_video_predictor_hf(model_id, **kwargs):
     config_name, ckpt_path = _hf_download(model_id)
-    return build_sam2_video_predictor(
-        config_file=config_name, ckpt_path=ckpt_path, **kwargs
-    )
+    return build_sam2_video_predictor(config_file=config_name, ckpt_path=ckpt_path, **kwargs)
+
+
+def _is_url(path: str) -> bool:
+    return urlparse.urlparse(path).scheme != ""
 
 
 def _load_checkpoint(model, ckpt_path):
     if ckpt_path is not None:
-        sd = torch.load(ckpt_path, map_location="cpu", weights_only=True)["model"]
+
+        if _is_url(ckpt_path):
+            sd = torch.hub.load_state_dict_from_url(ckpt_path, map_location="cpu", weights_only=True)["model"]
+        elif os.path.exists(ckpt_path):
+            sd = torch.load(ckpt_path, map_location="cpu", weights_only=True)["model"]
+        else:
+            raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
+
         missing_keys, unexpected_keys = model.load_state_dict(sd)
         if missing_keys:
             logging.error(missing_keys)
@@ -191,4 +200,5 @@ def _load_checkpoint(model, ckpt_path):
         if unexpected_keys:
             logging.error(unexpected_keys)
             raise RuntimeError()
+
         logging.info("Loaded checkpoint sucessfully")

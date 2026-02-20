@@ -7,6 +7,7 @@ from mmcv.cnn import ConvModule
 from mmengine.model import BaseModule
 
 from mmpose.registry import MODELS
+
 from .base_backbone import BaseBackbone
 
 
@@ -21,12 +22,7 @@ class CpmBlock(BaseModule):
             Default: None
     """
 
-    def __init__(self,
-                 in_channels,
-                 channels=(128, 128, 128),
-                 kernels=(11, 11, 11),
-                 norm_cfg=None,
-                 init_cfg=None):
+    def __init__(self, in_channels, channels=(128, 128, 128), kernels=(11, 11, 11), norm_cfg=None, init_cfg=None):
         super().__init__(init_cfg=init_cfg)
 
         assert len(channels) == len(kernels)
@@ -36,13 +32,7 @@ class CpmBlock(BaseModule):
                 input_channels = in_channels
             else:
                 input_channels = channels[i - 1]
-            layers.append(
-                ConvModule(
-                    input_channels,
-                    channels[i],
-                    kernels[i],
-                    padding=(kernels[i] - 1) // 2,
-                    norm_cfg=norm_cfg))
+            layers.append(ConvModule(input_channels, channels[i], kernels[i], padding=(kernels[i] - 1) // 2, norm_cfg=norm_cfg))
         self.model = nn.Sequential(*layers)
 
     def forward(self, x):
@@ -100,11 +90,8 @@ class CPM(BaseBackbone):
         feat_channels=128,
         middle_channels=32,
         num_stages=6,
-        norm_cfg=dict(type='BN', requires_grad=True),
-        init_cfg=[
-            dict(type='Normal', std=0.001, layer=['Conv2d']),
-            dict(type='Constant', val=1, layer=['_BatchNorm', 'GroupNorm'])
-        ],
+        norm_cfg=dict(type="BN", requires_grad=True),
+        init_cfg=[dict(type="Normal", std=0.001, layer=["Conv2d"]), dict(type="Constant", val=1, layer=["_BatchNorm", "GroupNorm"])],
     ):
         # Protect mutable default arguments
         norm_cfg = copy.deepcopy(norm_cfg)
@@ -125,7 +112,8 @@ class CPM(BaseBackbone):
             ConvModule(128, 32, 5, padding=2, norm_cfg=norm_cfg),
             ConvModule(32, 512, 9, padding=4, norm_cfg=norm_cfg),
             ConvModule(512, 512, 1, padding=0, norm_cfg=norm_cfg),
-            ConvModule(512, out_channels, 1, padding=0, act_cfg=None))
+            ConvModule(512, out_channels, 1, padding=0, act_cfg=None),
+        )
 
         self.middle = nn.Sequential(
             ConvModule(in_channels, 128, 9, padding=4, norm_cfg=norm_cfg),
@@ -133,34 +121,34 @@ class CPM(BaseBackbone):
             ConvModule(128, 128, 9, padding=4, norm_cfg=norm_cfg),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
             ConvModule(128, 128, 9, padding=4, norm_cfg=norm_cfg),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+        )
 
-        self.cpm_stages = nn.ModuleList([
-            CpmBlock(
-                middle_channels + out_channels,
-                channels=[feat_channels, feat_channels, feat_channels],
-                kernels=[11, 11, 11],
-                norm_cfg=norm_cfg) for _ in range(num_stages - 1)
-        ])
+        self.cpm_stages = nn.ModuleList(
+            [
+                CpmBlock(
+                    middle_channels + out_channels,
+                    channels=[feat_channels, feat_channels, feat_channels],
+                    kernels=[11, 11, 11],
+                    norm_cfg=norm_cfg,
+                )
+                for _ in range(num_stages - 1)
+            ]
+        )
 
-        self.middle_conv = nn.ModuleList([
-            nn.Sequential(
-                ConvModule(
-                    128, middle_channels, 5, padding=2, norm_cfg=norm_cfg))
-            for _ in range(num_stages - 1)
-        ])
+        self.middle_conv = nn.ModuleList(
+            [nn.Sequential(ConvModule(128, middle_channels, 5, padding=2, norm_cfg=norm_cfg)) for _ in range(num_stages - 1)]
+        )
 
-        self.out_convs = nn.ModuleList([
-            nn.Sequential(
-                ConvModule(
-                    feat_channels,
-                    feat_channels,
-                    1,
-                    padding=0,
-                    norm_cfg=norm_cfg),
-                ConvModule(feat_channels, out_channels, 1, act_cfg=None))
-            for _ in range(num_stages - 1)
-        ])
+        self.out_convs = nn.ModuleList(
+            [
+                nn.Sequential(
+                    ConvModule(feat_channels, feat_channels, 1, padding=0, norm_cfg=norm_cfg),
+                    ConvModule(feat_channels, out_channels, 1, act_cfg=None),
+                )
+                for _ in range(num_stages - 1)
+            ]
+        )
 
     def forward(self, x):
         """Model forward function."""
@@ -174,8 +162,7 @@ class CPM(BaseBackbone):
             single_stage = self.cpm_stages[ind]
             out_conv = self.out_convs[ind]
 
-            inp_feat = torch.cat(
-                [out_feats[-1], self.middle_conv[ind](middle_out)], 1)
+            inp_feat = torch.cat([out_feats[-1], self.middle_conv[ind](middle_out)], 1)
             cpm_feat = single_stage(inp_feat)
             out_feat = out_conv(cpm_feat)
             out_feats.append(out_feat)

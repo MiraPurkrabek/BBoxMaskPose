@@ -1,10 +1,10 @@
-_base_ = '../common/ms-90k_coco.py'
+_base_ = "../common/ms-90k_coco.py"
 
 # model settings
 model = dict(
-    type='BoxInst',
+    type="BoxInst",
     data_preprocessor=dict(
-        type='BoxInstDataPreprocessor',
+        type="BoxInstDataPreprocessor",
         mean=[123.675, 116.28, 103.53],
         std=[58.395, 57.12, 57.375],
         bgr_to_rgb=True,
@@ -13,27 +13,30 @@ model = dict(
         pairwise_size=3,
         pairwise_dilation=2,
         pairwise_color_thresh=0.3,
-        bottom_pixels_removed=10),
+        bottom_pixels_removed=10,
+    ),
     backbone=dict(
-        type='ResNet',
+        type="ResNet",
         depth=50,
         num_stages=4,
         out_indices=(0, 1, 2, 3),
         frozen_stages=1,
-        norm_cfg=dict(type='BN', requires_grad=True),
+        norm_cfg=dict(type="BN", requires_grad=True),
         norm_eval=True,
-        init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50'),
-        style='pytorch'),
+        init_cfg=dict(type="Pretrained", checkpoint="torchvision://resnet50"),
+        style="pytorch",
+    ),
     neck=dict(
-        type='FPN',
+        type="FPN",
         in_channels=[256, 512, 1024, 2048],
         out_channels=256,
         start_level=1,
-        add_extra_convs='on_output',  # use P5
+        add_extra_convs="on_output",  # use P5
         num_outs=5,
-        relu_before_extra_convs=True),
+        relu_before_extra_convs=True,
+    ),
     bbox_head=dict(
-        type='BoxInstBboxHead',
+        type="BoxInstBboxHead",
         num_params=593,
         num_classes=80,
         in_channels=256,
@@ -45,17 +48,12 @@ model = dict(
         dcn_on_last_conv=False,
         center_sampling=True,
         conv_bias=True,
-        loss_cls=dict(
-            type='FocalLoss',
-            use_sigmoid=True,
-            gamma=2.0,
-            alpha=0.25,
-            loss_weight=1.0),
-        loss_bbox=dict(type='GIoULoss', loss_weight=1.0),
-        loss_centerness=dict(
-            type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0)),
+        loss_cls=dict(type="FocalLoss", use_sigmoid=True, gamma=2.0, alpha=0.25, loss_weight=1.0),
+        loss_bbox=dict(type="GIoULoss", loss_weight=1.0),
+        loss_centerness=dict(type="CrossEntropyLoss", use_sigmoid=True, loss_weight=1.0),
+    ),
     mask_head=dict(
-        type='BoxInstMaskHead',
+        type="BoxInstMaskHead",
         num_layers=3,
         feat_channels=16,
         size_of_interest=8,
@@ -69,25 +67,17 @@ model = dict(
             out_channels=16,
             mask_stride=8,
             num_stacked_convs=4,
-            norm_cfg=dict(type='BN', requires_grad=True)),
-        loss_mask=dict(
-            type='DiceLoss',
-            use_sigmoid=True,
-            activate=True,
-            eps=5e-6,
-            loss_weight=1.0)),
+            norm_cfg=dict(type="BN", requires_grad=True),
+        ),
+        loss_mask=dict(type="DiceLoss", use_sigmoid=True, activate=True, eps=5e-6, loss_weight=1.0),
+    ),
     # model training and testing settings
-    test_cfg=dict(
-        nms_pre=1000,
-        min_bbox_size=0,
-        score_thr=0.05,
-        nms=dict(type='nms', iou_threshold=0.6),
-        max_per_img=100,
-        mask_thr=0.5))
+    test_cfg=dict(nms_pre=1000, min_bbox_size=0, score_thr=0.05, nms=dict(type="nms", iou_threshold=0.6), max_per_img=100, mask_thr=0.5),
+)
 
 # optimizer
 optim_wrapper = dict(optimizer=dict(lr=0.01))
 
 # evaluator
-val_evaluator = dict(metric=['bbox', 'segm'])
+val_evaluator = dict(metric=["bbox", "segm"])
 test_evaluator = val_evaluator

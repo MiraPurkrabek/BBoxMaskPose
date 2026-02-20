@@ -23,11 +23,11 @@ class FastVisualizer:
         self.line_width = line_width
         self.kpt_thr = kpt_thr
 
-        self.keypoint_id2name = metainfo['keypoint_id2name']
-        self.keypoint_name2id = metainfo['keypoint_name2id']
-        self.keypoint_colors = metainfo['keypoint_colors']
-        self.skeleton_links = metainfo['skeleton_links']
-        self.skeleton_link_colors = metainfo['skeleton_link_colors']
+        self.keypoint_id2name = metainfo["keypoint_id2name"]
+        self.keypoint_name2id = metainfo["keypoint_name2id"]
+        self.keypoint_colors = metainfo["keypoint_colors"]
+        self.skeleton_links = metainfo["skeleton_links"]
+        self.skeleton_link_colors = metainfo["skeleton_link_colors"]
 
     def draw_pose(self, img, instances):
         """Draw pose estimations on the given image.
@@ -46,7 +46,7 @@ class FastVisualizer:
         """
 
         if instances is None:
-            print('no instance detected')
+            print("no instance detected")
             return
 
         keypoints = instances.keypoints
@@ -72,7 +72,5 @@ class FastVisualizer:
                 x_coord, y_coord = int(kpt[0]), int(kpt[1])
 
                 color = self.keypoint_colors[kid].tolist()
-                cv2.circle(img, (int(x_coord), int(y_coord)), self.radius,
-                           color, -1)
-                cv2.circle(img, (int(x_coord), int(y_coord)), self.radius,
-                           (255, 255, 255))
+                cv2.circle(img, (int(x_coord), int(y_coord)), self.radius, color, -1)
+                cv2.circle(img, (int(x_coord), int(y_coord)), self.radius, (255, 255, 255))

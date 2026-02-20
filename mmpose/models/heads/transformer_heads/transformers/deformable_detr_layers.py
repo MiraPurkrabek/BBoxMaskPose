@@ -9,8 +9,8 @@ from mmengine.model import ModuleList
 from torch import Tensor, nn
 
 from mmpose.models.utils import inverse_sigmoid
-from .detr_layers import (DetrTransformerDecoder, DetrTransformerDecoderLayer,
-                          DetrTransformerEncoder, DetrTransformerEncoderLayer)
+
+from .detr_layers import DetrTransformerDecoder, DetrTransformerDecoderLayer, DetrTransformerEncoder, DetrTransformerEncoderLayer
 
 
 class DeformableDetrTransformerEncoder(DetrTransformerEncoder):
@@ -18,16 +18,19 @@ class DeformableDetrTransformerEncoder(DetrTransformerEncoder):
 
     def _init_layers(self) -> None:
         """Initialize encoder layers."""
-        self.layers = ModuleList([
-            DeformableDetrTransformerEncoderLayer(**self.layer_cfg)
-            for _ in range(self.num_layers)
-        ])
+        self.layers = ModuleList([DeformableDetrTransformerEncoderLayer(**self.layer_cfg) for _ in range(self.num_layers)])
         self.embed_dims = self.layers[0].embed_dims
 
-    def forward(self, query: Tensor, query_pos: Tensor,
-                key_padding_mask: Tensor, spatial_shapes: Tensor,
-                level_start_index: Tensor, valid_ratios: Tensor,
-                **kwargs) -> Tensor:
+    def forward(
+        self,
+        query: Tensor,
+        query_pos: Tensor,
+        key_padding_mask: Tensor,
+        spatial_shapes: Tensor,
+        level_start_index: Tensor,
+        valid_ratios: Tensor,
+        **kwargs,
+    ) -> Tensor:
         """Forward function of Transformer encoder.
 
         Args:
@@ -50,8 +53,7 @@ class DeformableDetrTransformerEncoder(DetrTransformerEncoder):
             called 'encoder output embeddings' or 'memory', has shape
             (bs, num_queries, dim)
         """
-        reference_points = self.get_encoder_reference_points(
-            spatial_shapes, valid_ratios, device=query.device)
+        reference_points = self.get_encoder_reference_points(spatial_shapes, valid_ratios, device=query.device)
         for layer in self.layers:
             query = layer(
                 query=query,
@@ -61,14 +63,12 @@ class DeformableDetrTransformerEncoder(DetrTransformerEncoder):
                 level_start_index=level_start_index,
                 valid_ratios=valid_ratios,
                 reference_points=reference_points,
-                **kwargs)
+                **kwargs,
+            )
         return query
 
     @staticmethod
-    def get_encoder_reference_points(spatial_shapes: Tensor,
-                                     valid_ratios: Tensor,
-                                     device: Union[torch.device,
-                                                   str]) -> Tensor:
+    def get_encoder_reference_points(spatial_shapes: Tensor, valid_ratios: Tensor, device: Union[torch.device, str]) -> Tensor:
         """Get the reference points used in encoder.
 
         Args:
@@ -88,14 +88,11 @@ class DeformableDetrTransformerEncoder(DetrTransformerEncoder):
         reference_points_list = []
         for lvl, (H, W) in enumerate(spatial_shapes):
             ref_y, ref_x = torch.meshgrid(
-                torch.linspace(
-                    0.5, H - 0.5, H, dtype=torch.float32, device=device),
-                torch.linspace(
-                    0.5, W - 0.5, W, dtype=torch.float32, device=device))
-            ref_y = ref_y.reshape(-1)[None] / (
-                valid_ratios[:, None, lvl, 1] * H)
-            ref_x = ref_x.reshape(-1)[None] / (
-                valid_ratios[:, None, lvl, 0] * W)
+                torch.linspace(0.5, H - 0.5, H, dtype=torch.float32, device=device),
+                torch.linspace(0.5, W - 0.5, W, dtype=torch.float32, device=device),
+            )
+            ref_y = ref_y.reshape(-1)[None] / (valid_ratios[:, None, lvl, 1] * H)
+            ref_x = ref_x.reshape(-1)[None] / (valid_ratios[:, None, lvl, 0] * W)
             ref = torch.stack((ref_x, ref_y), -1)
             reference_points_list.append(ref)
         reference_points = torch.cat(reference_points_list, 1)
@@ -109,26 +106,24 @@ class DeformableDetrTransformerDecoder(DetrTransformerDecoder):
 
     def _init_layers(self) -> None:
         """Initialize decoder layers."""
-        self.layers = ModuleList([
-            DeformableDetrTransformerDecoderLayer(**self.layer_cfg)
-            for _ in range(self.num_layers)
-        ])
+        self.layers = ModuleList([DeformableDetrTransformerDecoderLayer(**self.layer_cfg) for _ in range(self.num_layers)])
         self.embed_dims = self.layers[0].embed_dims
         if self.post_norm_cfg is not None:
-            raise ValueError('There is not post_norm in '
-                             f'{self._get_name()}')
+            raise ValueError("There is not post_norm in " f"{self._get_name()}")
 
-    def forward(self,
-                query: Tensor,
-                query_pos: Tensor,
-                value: Tensor,
-                key_padding_mask: Tensor,
-                reference_points: Tensor,
-                spatial_shapes: Tensor,
-                level_start_index: Tensor,
-                valid_ratios: Tensor,
-                reg_branches: Optional[nn.Module] = None,
-                **kwargs) -> Tuple[Tensor]:
+    def forward(
+        self,
+        query: Tensor,
+        query_pos: Tensor,
+        value: Tensor,
+        key_padding_mask: Tensor,
+        reference_points: Tensor,
+        spatial_shapes: Tensor,
+        level_start_index: Tensor,
+        valid_ratios: Tensor,
+        reg_branches: Optional[nn.Module] = None,
+        **kwargs,
+    ) -> Tuple[Tensor]:
         """Forward function of Transformer decoder.
 
         Args:
@@ -176,14 +171,10 @@ class DeformableDetrTransformerDecoder(DetrTransformerDecoder):
         intermediate_reference_points = []
         for layer_id, layer in enumerate(self.layers):
             if reference_points.shape[-1] == 4:
-                reference_points_input = \
-                    reference_points[:, :, None] * \
-                    torch.cat([valid_ratios, valid_ratios], -1)[:, None]
+                reference_points_input = reference_points[:, :, None] * torch.cat([valid_ratios, valid_ratios], -1)[:, None]
             else:
                 assert reference_points.shape[-1] == 2
-                reference_points_input = \
-                    reference_points[:, :, None] * \
-                    valid_ratios[:, None]
+                reference_points_input = reference_points[:, :, None] * valid_ratios[:, None]
             output = layer(
                 output,
                 query_pos=query_pos,
@@ -193,19 +184,18 @@ class DeformableDetrTransformerDecoder(DetrTransformerDecoder):
                 level_start_index=level_start_index,
                 valid_ratios=valid_ratios,
                 reference_points=reference_points_input,
-                **kwargs)
+                **kwargs,
+            )
 
             if reg_branches is not None:
                 tmp_reg_preds = reg_branches[layer_id](output)
                 if reference_points.shape[-1] == 4:
-                    new_reference_points = tmp_reg_preds + inverse_sigmoid(
-                        reference_points)
+                    new_reference_points = tmp_reg_preds + inverse_sigmoid(reference_points)
                     new_reference_points = new_reference_points.sigmoid()
                 else:
                     assert reference_points.shape[-1] == 2
                     new_reference_points = tmp_reg_preds
-                    new_reference_points[..., :2] = tmp_reg_preds[
-                        ..., :2] + inverse_sigmoid(reference_points)
+                    new_reference_points[..., :2] = tmp_reg_preds[..., :2] + inverse_sigmoid(reference_points)
                     new_reference_points = new_reference_points.sigmoid()
                 reference_points = new_reference_points.detach()
 
@@ -214,8 +204,7 @@ class DeformableDetrTransformerDecoder(DetrTransformerDecoder):
                 intermediate_reference_points.append(reference_points)
 
         if self.return_intermediate:
-            return torch.stack(intermediate), torch.stack(
-                intermediate_reference_points)
+            return torch.stack(intermediate), torch.stack(intermediate_reference_points)
 
         return output, reference_points
 
@@ -228,10 +217,7 @@ class DeformableDetrTransformerEncoderLayer(DetrTransformerEncoderLayer):
         self.self_attn = MultiScaleDeformableAttention(**self.self_attn_cfg)
         self.embed_dims = self.self_attn.embed_dims
         self.ffn = FFN(**self.ffn_cfg)
-        norms_list = [
-            build_norm_layer(self.norm_cfg, self.embed_dims)[1]
-            for _ in range(2)
-        ]
+        norms_list = [build_norm_layer(self.norm_cfg, self.embed_dims)[1] for _ in range(2)]
         self.norms = ModuleList(norms_list)
 
 
@@ -244,8 +230,5 @@ class DeformableDetrTransformerDecoderLayer(DetrTransformerDecoderLayer):
         self.cross_attn = MultiScaleDeformableAttention(**self.cross_attn_cfg)
         self.embed_dims = self.self_attn.embed_dims
         self.ffn = FFN(**self.ffn_cfg)
-        norms_list = [
-            build_norm_layer(self.norm_cfg, self.embed_dims)[1]
-            for _ in range(3)
-        ]
+        norms_list = [build_norm_layer(self.norm_cfg, self.embed_dims)[1] for _ in range(3)]
         self.norms = ModuleList(norms_list)

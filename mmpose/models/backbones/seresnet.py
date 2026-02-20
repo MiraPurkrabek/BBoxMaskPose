@@ -2,6 +2,7 @@
 import torch.utils.checkpoint as cp
 
 from mmpose.registry import MODELS
+
 from .resnet import Bottleneck, ResLayer, ResNet
 from .utils.se_layer import SELayer
 
@@ -118,15 +119,11 @@ class SEResNet(ResNet):
         (1, 2048, 7, 7)
     """
 
-    arch_settings = {
-        50: (SEBottleneck, (3, 4, 6, 3)),
-        101: (SEBottleneck, (3, 4, 23, 3)),
-        152: (SEBottleneck, (3, 8, 36, 3))
-    }
+    arch_settings = {50: (SEBottleneck, (3, 4, 6, 3)), 101: (SEBottleneck, (3, 4, 23, 3)), 152: (SEBottleneck, (3, 8, 36, 3))}
 
     def __init__(self, depth, se_ratio=16, **kwargs):
         if depth not in self.arch_settings:
-            raise KeyError(f'invalid depth {depth} for SEResNet')
+            raise KeyError(f"invalid depth {depth} for SEResNet")
         self.se_ratio = se_ratio
         super().__init__(depth, **kwargs)
 

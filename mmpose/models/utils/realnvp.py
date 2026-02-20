@@ -20,16 +20,12 @@ class RealNVP(nn.Module):
     @staticmethod
     def get_scale_net():
         """Get the scale model in a single invertable mapping."""
-        return nn.Sequential(
-            nn.Linear(2, 64), nn.LeakyReLU(), nn.Linear(64, 64),
-            nn.LeakyReLU(), nn.Linear(64, 2), nn.Tanh())
+        return nn.Sequential(nn.Linear(2, 64), nn.LeakyReLU(), nn.Linear(64, 64), nn.LeakyReLU(), nn.Linear(64, 2), nn.Tanh())
 
     @staticmethod
     def get_trans_net():
         """Get the translation model in a single invertable mapping."""
-        return nn.Sequential(
-            nn.Linear(2, 64), nn.LeakyReLU(), nn.Linear(64, 64),
-            nn.LeakyReLU(), nn.Linear(64, 2))
+        return nn.Sequential(nn.Linear(2, 64), nn.LeakyReLU(), nn.Linear(64, 64), nn.LeakyReLU(), nn.Linear(64, 2))
 
     @property
     def prior(self):
@@ -39,15 +35,12 @@ class RealNVP(nn.Module):
     def __init__(self):
         super(RealNVP, self).__init__()
 
-        self.register_buffer('loc', torch.zeros(2))
-        self.register_buffer('cov', torch.eye(2))
-        self.register_buffer(
-            'mask', torch.tensor([[0, 1], [1, 0]] * 3, dtype=torch.float32))
+        self.register_buffer("loc", torch.zeros(2))
+        self.register_buffer("cov", torch.eye(2))
+        self.register_buffer("mask", torch.tensor([[0, 1], [1, 0]] * 3, dtype=torch.float32))
 
-        self.s = torch.nn.ModuleList(
-            [self.get_scale_net() for _ in range(len(self.mask))])
-        self.t = torch.nn.ModuleList(
-            [self.get_trans_net() for _ in range(len(self.mask))])
+        self.s = torch.nn.ModuleList([self.get_scale_net() for _ in range(len(self.mask))])
+        self.t = torch.nn.ModuleList([self.get_trans_net() for _ in range(len(self.mask))])
         self.init_weights()
 
     def init_weights(self):

@@ -2,6 +2,4 @@
 from .force_default_constructor import ForceDefaultOptimWrapperConstructor
 from .layer_decay_optim_wrapper import LayerDecayOptimWrapperConstructor
 
-__all__ = [
-    'LayerDecayOptimWrapperConstructor', 'ForceDefaultOptimWrapperConstructor'
-]
+__all__ = ["LayerDecayOptimWrapperConstructor", "ForceDefaultOptimWrapperConstructor"]

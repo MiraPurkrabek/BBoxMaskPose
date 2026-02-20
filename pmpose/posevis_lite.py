@@ -1,3 +1,5 @@
+# Copyright (c) authors of BBoxMaskPose (BMPv2). All rights reserved.
+
 import os
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -5,7 +7,6 @@ import cv2
 import numpy as np
 
 from bboxmaskpose.sam2.distinctipy import get_colors
-
 
 NEUTRAL_COLOR = (52, 235, 107)
 
@@ -189,9 +190,11 @@ def pose_visualization(
                 color = [color for keypoint in keypoints]
         else:
             if differ_individuals:
-                color = (np.array(get_colors(len(keypoints), exclude_colors=[(0, 1, 0), (0, 0, 0), (1, 1, 1)], rng=0)) * 255).astype(
-                        int
-                    ).tolist()
+                color = (
+                    (np.array(get_colors(len(keypoints), exclude_colors=[(0, 1, 0), (0, 0, 0), (1, 1, 1)], rng=0)) * 255)
+                    .astype(int)
+                    .tolist()
+                )
                 print("Created colors for individuals:", color)
             else:
                 color = [None for keypoint in keypoints]

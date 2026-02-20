@@ -7,11 +7,10 @@
 from typing import Optional
 
 import torch
-from torch import nn, Tensor
-
-from bboxmaskpose.sam2.modeling.sam.transformer import RoPEAttention
+from torch import Tensor, nn
 
 from bboxmaskpose.sam2.modeling.sam2_utils import get_activation_fn, get_clones
+from bboxmaskpose.sam2.modeling.sam.transformer import RoPEAttention
 
 
 class MemoryAttentionLayer(nn.Module):
@@ -132,9 +131,7 @@ class MemoryAttention(nn.Module):
                 curr_pos[0],
             )
 
-        assert (
-            curr.shape[1] == memory.shape[1]
-        ), "Batch size must be the same for curr and memory"
+        assert curr.shape[1] == memory.shape[1], "Batch size must be the same for curr and memory"
 
         output = curr
         if self.pos_enc_at_input and curr_pos is not None:

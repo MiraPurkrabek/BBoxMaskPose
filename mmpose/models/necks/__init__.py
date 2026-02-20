@@ -9,6 +9,12 @@ from .posewarper_neck import PoseWarperNeck
 from .yolox_pafpn import YOLOXPAFPN
 
 __all__ = [
-    'GlobalAveragePooling', 'PoseWarperNeck', 'FPN', 'FeatureMapProcessor',
-    'ChannelMapper', 'YOLOXPAFPN', 'CSPNeXtPAFPN', 'HybridEncoder'
+    "GlobalAveragePooling",
+    "PoseWarperNeck",
+    "FPN",
+    "FeatureMapProcessor",
+    "ChannelMapper",
+    "YOLOXPAFPN",
+    "CSPNeXtPAFPN",
+    "HybridEncoder",
 ]
