@@ -78,9 +78,9 @@ RUN pip install --no-cache-dir \
 RUN pip install --no-cache-dir git+https://github.com/jin-s13/xtcocoapi.git
 
 # Install SAM-3D-Body for 3D pose estimation (optional)
-pip install 'git+https://github.com/facebookresearch/detectron2.git@a1ce2f9' --no-build-isolation --no-deps
-pip install git+https://github.com/microsoft/MoGe.git
-pip install git+https://github.com/MiraPurkrabek/sam-3d-body.git
+RUN pip install 'git+https://github.com/facebookresearch/detectron2.git@a1ce2f9' --no-build-isolation --no-deps --no-cache-dir
+RUN pip install git+https://github.com/microsoft/MoGe.git --no-cache-dir
+RUN pip install git+https://github.com/MiraPurkrabek/sam-3d-body.git --no-cache-dir
 
 # ------------------------------------------------------------------------------
 # Project Installation

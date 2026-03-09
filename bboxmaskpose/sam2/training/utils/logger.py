@@ -18,7 +18,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from hydra.utils import instantiate
 from iopath.common.file_io import g_pathmgr
-from training.utils.train_utils import get_machine_local_and_dist_rank, makedir
+from .train_utils import get_machine_local_and_dist_rank, makedir
 
 Scalar = Union[Tensor, ndarray, int, float]
 

@@ -5,8 +5,8 @@ message: "If you use this software, please cite it as below."
 authors:
 - family-names: Purkrabek
   given-names: Miroslav
-- family-names: Constantin
-  given-names: Kolomiiets
+- family-names: Kolomiiets
+  given-names: Constantin
 - family-names: Matas
   given-names: Jiri
 title: "BBoxMaskPose v2: Expanding Mutual Conditioning to 3D"
