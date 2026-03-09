@@ -2,4 +2,4 @@
 from .metric_calculators import BBoxOverlaps2D, PoseOKS
 from .sim_ota_assigner import SimOTAAssigner
 
-__all__ = ['SimOTAAssigner', 'PoseOKS', 'BBoxOverlaps2D']
+__all__ = ["SimOTAAssigner", "PoseOKS", "BBoxOverlaps2D"]

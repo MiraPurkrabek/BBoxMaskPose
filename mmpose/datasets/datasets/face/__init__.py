@@ -7,7 +7,4 @@ from .face_300wlp_dataset import Face300WLPDataset
 from .lapa_dataset import LapaDataset
 from .wflw_dataset import WFLWDataset
 
-__all__ = [
-    'Face300WDataset', 'WFLWDataset', 'AFLWDataset', 'COFWDataset',
-    'CocoWholeBodyFaceDataset', 'LapaDataset', 'Face300WLPDataset'
-]
+__all__ = ["Face300WDataset", "WFLWDataset", "AFLWDataset", "COFWDataset", "CocoWholeBodyFaceDataset", "LapaDataset", "Face300WLPDataset"]

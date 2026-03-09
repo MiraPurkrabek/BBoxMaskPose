@@ -61,14 +61,14 @@ class BadCaseAnalysisHook(Hook):
         self,
         enable: bool = False,
         show: bool = False,
-        wait_time: float = 0.,
+        wait_time: float = 0.0,
         interval: int = 50,
         kpt_thr: float = 0.3,
         out_dir: Optional[str] = None,
         backend_args: Optional[dict] = None,
-        metric_type: str = 'loss',
-        metric: ConfigDict = ConfigDict(type='KeypointMSELoss'),
-        metric_key: str = 'PCK',
+        metric_type: str = "loss",
+        metric: ConfigDict = ConfigDict(type="KeypointMSELoss"),
+        metric_key: str = "PCK",
         badcase_thr: float = 5,
     ):
         self._visualizer: Visualizer = Visualizer.get_current_instance()
@@ -78,10 +78,12 @@ class BadCaseAnalysisHook(Hook):
         if self.show:
             # No need to think about vis backends.
             self._visualizer._vis_backends = {}
-            warnings.warn('The show is True, it means that only '
-                          'the prediction results are visualized '
-                          'without storing data, so vis_backends '
-                          'needs to be excluded.')
+            warnings.warn(
+                "The show is True, it means that only "
+                "the prediction results are visualized "
+                "without storing data, so vis_backends "
+                "needs to be excluded."
+            )
 
         self.wait_time = wait_time
         self.enable = enable
@@ -90,15 +92,14 @@ class BadCaseAnalysisHook(Hook):
         self.backend_args = backend_args
 
         self.metric_type = metric_type
-        if metric_type not in ['loss', 'accuracy']:
+        if metric_type not in ["loss", "accuracy"]:
             raise KeyError(
-                f'The badcase metric type {metric_type} is not supported by '
+                f"The badcase metric type {metric_type} is not supported by "
                 f"{self.__class__.__name__}. Should be one of 'loss', "
-                f"'accuracy', but got {metric_type}.")
-        self.metric = MODELS.build(metric) if metric_type == 'loss'\
-            else METRICS.build(metric)
-        self.metric_name = metric.type if metric_type == 'loss'\
-            else metric_key
+                f"'accuracy', but got {metric_type}."
+            )
+        self.metric = MODELS.build(metric) if metric_type == "loss" else METRICS.build(metric)
+        self.metric_name = metric.type if metric_type == "loss" else metric_key
         self.metric_key = metric_key
         self.badcase_thr = badcase_thr
         self.results = []
@@ -115,14 +116,12 @@ class BadCaseAnalysisHook(Hook):
             is_badcase (bool): whether the sample is a badcase or not
             metric_value (float)
         """
-        if self.metric_type == 'loss':
+        if self.metric_type == "loss":
             gts = data_sample.gt_instances.keypoints
             preds = data_sample.pred_instances.keypoints
             weights = data_sample.gt_instances.keypoints_visible
             with torch.no_grad():
-                metric_value = self.metric(
-                    torch.from_numpy(preds), torch.from_numpy(gts),
-                    torch.from_numpy(weights)).item()
+                metric_value = self.metric(torch.from_numpy(preds), torch.from_numpy(gts), torch.from_numpy(weights)).item()
             is_badcase = metric_value >= self.badcase_thr
         else:
             self.metric.process([data_batch], [data_sample.to_dict()])
@@ -130,8 +129,7 @@ class BadCaseAnalysisHook(Hook):
             is_badcase = metric_value <= self.badcase_thr
         return is_badcase, metric_value
 
-    def after_test_iter(self, runner: Runner, batch_idx: int, data_batch: dict,
-                        outputs: Sequence[PoseDataSample]) -> None:
+    def after_test_iter(self, runner: Runner, batch_idx: int, data_batch: dict, outputs: Sequence[PoseDataSample]) -> None:
         """Run after every testing iterations.
 
         Args:
@@ -144,8 +142,7 @@ class BadCaseAnalysisHook(Hook):
             return
 
         if self.out_dir is not None:
-            self.out_dir = os.path.join(runner.work_dir, runner.timestamp,
-                                        self.out_dir)
+            self.out_dir = os.path.join(runner.work_dir, runner.timestamp, self.out_dir)
             mmengine.mkdir_or_exist(self.out_dir)
 
         self._visualizer.set_dataset_meta(runner.test_evaluator.dataset_meta)
@@ -153,38 +150,33 @@ class BadCaseAnalysisHook(Hook):
         for data_sample in outputs:
             self._test_index += 1
 
-            img_path = data_sample.get('img_path')
+            img_path = data_sample.get("img_path")
             img_bytes = fileio.get(img_path, backend_args=self.backend_args)
-            img = mmcv.imfrombytes(img_bytes, channel_order='rgb')
+            img = mmcv.imfrombytes(img_bytes, channel_order="rgb")
             data_sample = merge_data_samples([data_sample])
 
-            is_badcase, metric_value = self.check_badcase(
-                data_batch, data_sample)
+            is_badcase, metric_value = self.check_badcase(data_batch, data_sample)
 
             if is_badcase:
-                img_name, postfix = os.path.basename(img_path).rsplit('.', 1)
+                img_name, postfix = os.path.basename(img_path).rsplit(".", 1)
                 bboxes = data_sample.gt_instances.bboxes.astype(int).tolist()
-                bbox_info = 'bbox' + str(bboxes)
+                bbox_info = "bbox" + str(bboxes)
                 metric_postfix = self.metric_name + str(round(metric_value, 2))
 
-                self.results.append({
-                    'img': img_name,
-                    'bbox': bboxes,
-                    self.metric_name: metric_value
-                })
+                self.results.append({"img": img_name, "bbox": bboxes, self.metric_name: metric_value})
 
-                badcase_name = f'{img_name}_{bbox_info}_{metric_postfix}'
+                badcase_name = f"{img_name}_{bbox_info}_{metric_postfix}"
 
                 out_file = None
                 if self.out_dir is not None:
-                    out_file = f'{badcase_name}.{postfix}'
+                    out_file = f"{badcase_name}.{postfix}"
                     out_file = os.path.join(self.out_dir, out_file)
 
                 # draw gt keypoints in blue color
-                self._visualizer.kpt_color = 'blue'
-                self._visualizer.link_color = 'blue'
+                self._visualizer.kpt_color = "blue"
+                self._visualizer.link_color = "blue"
                 img_gt_drawn = self._visualizer.add_datasample(
-                    badcase_name if self.show else 'test_img',
+                    badcase_name if self.show else "test_img",
                     img,
                     data_sample=data_sample,
                     show=False,
@@ -195,12 +187,13 @@ class BadCaseAnalysisHook(Hook):
                     wait_time=self.wait_time,
                     kpt_thr=self.kpt_thr,
                     out_file=None,
-                    step=self._test_index)
+                    step=self._test_index,
+                )
                 # draw pred keypoints in red color
-                self._visualizer.kpt_color = 'red'
-                self._visualizer.link_color = 'red'
+                self._visualizer.kpt_color = "red"
+                self._visualizer.link_color = "red"
                 self._visualizer.add_datasample(
-                    badcase_name if self.show else 'test_img',
+                    badcase_name if self.show else "test_img",
                     img_gt_drawn,
                     data_sample=data_sample,
                     show=self.show,
@@ -211,11 +204,10 @@ class BadCaseAnalysisHook(Hook):
                     wait_time=self.wait_time,
                     kpt_thr=self.kpt_thr,
                     out_file=out_file,
-                    step=self._test_index)
+                    step=self._test_index,
+                )
 
-    def after_test_epoch(self,
-                         runner,
-                         metrics: Optional[Dict[str, float]] = None) -> None:
+    def after_test_epoch(self, runner, metrics: Optional[Dict[str, float]] = None) -> None:
         """All subclasses should override this method, if they need any
         operations after each test epoch.
 
@@ -229,11 +221,8 @@ class BadCaseAnalysisHook(Hook):
             return
 
         mmengine.mkdir_or_exist(self.out_dir)
-        out_file = os.path.join(self.out_dir, 'results.json')
-        with open(out_file, 'w') as f:
+        out_file = os.path.join(self.out_dir, "results.json")
+        with open(out_file, "w") as f:
             json.dump(self.results, f)
 
-        print_log(
-            f'the bad cases are saved under {self.out_dir}',
-            logger='current',
-            level=logging.INFO)
+        print_log(f"the bad cases are saved under {self.out_dir}", logger="current", level=logging.INFO)

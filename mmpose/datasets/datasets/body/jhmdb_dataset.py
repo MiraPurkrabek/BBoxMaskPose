@@ -5,6 +5,7 @@ from typing import Optional
 import numpy as np
 
 from mmpose.registry import DATASETS
+
 from ..base import BaseCocoStyleDataset
 
 
@@ -73,7 +74,7 @@ class JhmdbDataset(BaseCocoStyleDataset):
             image. Default: 1000.
     """
 
-    METAINFO: dict = dict(from_file='configs/_base_/datasets/jhmdb.py')
+    METAINFO: dict = dict(from_file="configs/_base_/datasets/jhmdb.py")
 
     def parse_data_info(self, raw_data_info: dict) -> Optional[dict]:
         """Parse raw COCO annotation of an instance.
@@ -90,14 +91,14 @@ class JhmdbDataset(BaseCocoStyleDataset):
             dict: Parsed instance annotation
         """
 
-        ann = raw_data_info['raw_ann_info']
-        img = raw_data_info['raw_img_info']
+        ann = raw_data_info["raw_ann_info"]
+        img = raw_data_info["raw_img_info"]
 
-        img_path = osp.join(self.data_prefix['img'], img['file_name'])
-        img_w, img_h = img['width'], img['height']
+        img_path = osp.join(self.data_prefix["img"], img["file_name"])
+        img_w, img_h = img["width"], img["height"]
 
         # get bbox in shape [1, 4], formatted as xywh
-        x, y, w, h = ann['bbox']
+        x, y, w, h = ann["bbox"]
         # JHMDB uses matlab format, index is 1-based,
         # we should first convert to 0-based index
         x -= 1
@@ -110,8 +111,7 @@ class JhmdbDataset(BaseCocoStyleDataset):
         bbox = np.array([x1, y1, x2, y2], dtype=np.float32).reshape(1, 4)
 
         # keypoints in shape [1, K, 2] and keypoints_visible in [1, K]
-        _keypoints = np.array(
-            ann['keypoints'], dtype=np.float32).reshape(1, -1, 3)
+        _keypoints = np.array(ann["keypoints"], dtype=np.float32).reshape(1, -1, 3)
         # JHMDB uses matlab format, index is 1-based,
         # we should first convert to 0-based index
         keypoints = _keypoints[..., :2] - 1
@@ -119,21 +119,21 @@ class JhmdbDataset(BaseCocoStyleDataset):
 
         num_keypoints = np.count_nonzero(keypoints.max(axis=2))
         area = np.clip((x2 - x1) * (y2 - y1) * 0.53, a_min=1.0, a_max=None)
-        category_id = ann.get('category_id', [1] * len(keypoints))
+        category_id = ann.get("category_id", [1] * len(keypoints))
 
         data_info = {
-            'img_id': ann['image_id'],
-            'img_path': img_path,
-            'bbox': bbox,
-            'bbox_score': np.ones(1, dtype=np.float32),
-            'num_keypoints': num_keypoints,
-            'keypoints': keypoints,
-            'keypoints_visible': keypoints_visible,
-            'area': np.array(area, dtype=np.float32),
-            'iscrowd': ann.get('iscrowd', 0),
-            'segmentation': ann.get('segmentation', None),
-            'id': ann['id'],
-            'category_id': category_id,
+            "img_id": ann["image_id"],
+            "img_path": img_path,
+            "bbox": bbox,
+            "bbox_score": np.ones(1, dtype=np.float32),
+            "num_keypoints": num_keypoints,
+            "keypoints": keypoints,
+            "keypoints_visible": keypoints_visible,
+            "area": np.array(area, dtype=np.float32),
+            "iscrowd": ann.get("iscrowd", 0),
+            "segmentation": ann.get("segmentation", None),
+            "id": ann["id"],
+            "category_id": category_id,
         }
 
         return data_info

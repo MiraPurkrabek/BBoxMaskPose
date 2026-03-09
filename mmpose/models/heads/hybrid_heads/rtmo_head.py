@@ -12,11 +12,11 @@ from mmengine.structures import InstanceData
 from torch import Tensor
 
 from mmpose.evaluation.functional import nms_torch
-from mmpose.models.utils import (GAUEncoder, SinePositionalEncoding,
-                                 filter_scores_and_topk)
+from mmpose.models.utils import GAUEncoder, SinePositionalEncoding, filter_scores_and_topk
 from mmpose.registry import MODELS
 from mmpose.structures.bbox import bbox_xyxy2cs
 from mmpose.utils.typing import Features, OptSampleList, Predictions
+
 from .yoloxpose_head import YOLOXPoseHead
 
 EPS = 1e-8
@@ -69,17 +69,17 @@ class RTMOHeadModule(BaseModule):
         channels_per_group=36,
         pose_vec_channels=-1,
         featmap_strides: Sequence[int] = [8, 16, 32],
-        conv_bias: Union[bool, str] = 'auto',
+        conv_bias: Union[bool, str] = "auto",
         conv_cfg: Optional[ConfigType] = None,
-        norm_cfg: ConfigType = dict(type='BN', momentum=0.03, eps=0.001),
-        act_cfg: ConfigType = dict(type='SiLU', inplace=True),
+        norm_cfg: ConfigType = dict(type="BN", momentum=0.03, eps=0.001),
+        act_cfg: ConfigType = dict(type="SiLU", inplace=True),
         init_cfg: Optional[ConfigType] = None,
     ):
         super().__init__(init_cfg=init_cfg)
         self.num_classes = num_classes
         self.cls_feat_channels = int(cls_feat_channels * widen_factor)
         self.stacked_convs = stacked_convs
-        assert conv_bias == 'auto' or isinstance(conv_bias, bool)
+        assert conv_bias == "auto" or isinstance(conv_bias, bool)
         self.conv_bias = conv_bias
 
         self.conv_cfg = conv_cfg
@@ -118,14 +118,15 @@ class RTMOHeadModule(BaseModule):
                         conv_cfg=self.conv_cfg,
                         norm_cfg=self.norm_cfg,
                         act_cfg=self.act_cfg,
-                        bias=self.conv_bias))
+                        bias=self.conv_bias,
+                    )
+                )
             self.conv_cls.append(nn.Sequential(*stacked_convs))
 
         # output layers
         self.out_cls = nn.ModuleList()
         for _ in self.featmap_strides:
-            self.out_cls.append(
-                nn.Conv2d(self.cls_feat_channels, self.num_classes, 1))
+            self.out_cls.append(nn.Conv2d(self.cls_feat_channels, self.num_classes, 1))
 
     def _init_pose_branch(self):
         """Initialize pose prediction branch for all level feature maps."""
@@ -147,7 +148,9 @@ class RTMOHeadModule(BaseModule):
                         conv_cfg=self.conv_cfg,
                         norm_cfg=self.norm_cfg,
                         act_cfg=self.act_cfg,
-                        bias=self.conv_bias))
+                        bias=self.conv_bias,
+                    )
+                )
             self.conv_pose.append(nn.Sequential(*stacked_convs))
 
         # output layers
@@ -156,15 +159,13 @@ class RTMOHeadModule(BaseModule):
         self.out_kpt_vis = nn.ModuleList()
         for _ in self.featmap_strides:
             self.out_bbox.append(nn.Conv2d(out_chn, 4, 1))
-            self.out_kpt_reg.append(
-                nn.Conv2d(out_chn, self.num_keypoints * 2, 1))
+            self.out_kpt_reg.append(nn.Conv2d(out_chn, self.num_keypoints * 2, 1))
             self.out_kpt_vis.append(nn.Conv2d(out_chn, self.num_keypoints, 1))
 
         if self.pose_vec_channels > 0:
             self.out_pose = nn.ModuleList()
             for _ in self.featmap_strides:
-                self.out_pose.append(
-                    nn.Conv2d(out_chn, self.pose_vec_channels, 1))
+                self.out_pose.append(nn.Conv2d(out_chn, self.pose_vec_channels, 1))
 
     def init_weights(self):
         """Initialize weights of the head.
@@ -244,13 +245,8 @@ class DCC(BaseModule):
         spe_channels: int = 128,
         spe_temperature: float = 300.0,
         gau_cfg: Optional[dict] = dict(
-            s=128,
-            expansion_factor=2,
-            dropout_rate=0.0,
-            drop_path=0.0,
-            act_fn='SiLU',
-            use_rel_bias=False,
-            pos_enc='add'),
+            s=128, expansion_factor=2, dropout_rate=0.0, drop_path=0.0, act_fn="SiLU", use_rel_bias=False, pos_enc="add"
+        ),
     ):
         super().__init__()
 
@@ -276,18 +272,16 @@ class DCC(BaseModule):
         # GAU encoder
         if self.gau_cfg is not None:
             gau_cfg = self.gau_cfg.copy()
-            gau_cfg['in_token_dims'] = self.feat_channels
-            gau_cfg['out_token_dims'] = self.feat_channels
+            gau_cfg["in_token_dims"] = self.feat_channels
+            gau_cfg["out_token_dims"] = self.feat_channels
             self.gau = GAUEncoder(**gau_cfg)
-            if gau_cfg.get('pos_enc', 'none') in ('add', 'rope'):
-                self.pos_enc = nn.Parameter(
-                    torch.randn(self.num_keypoints, gau_cfg['s']))
+            if gau_cfg.get("pos_enc", "none") in ("add", "rope"):
+                self.pos_enc = nn.Parameter(torch.randn(self.num_keypoints, gau_cfg["s"]))
 
         # fully-connected layers to convert pose feats to keypoint feats
         pose_to_kpts = [
-            nn.Linear(self.in_channels,
-                      self.feat_channels * self.num_keypoints),
-            nn.BatchNorm1d(self.feat_channels * self.num_keypoints)
+            nn.Linear(self.in_channels, self.feat_channels * self.num_keypoints),
+            nn.BatchNorm1d(self.feat_channels * self.num_keypoints),
         ]
         self.pose_to_kpts = nn.Sequential(*pose_to_kpts)
 
@@ -296,16 +290,12 @@ class DCC(BaseModule):
         self.y_fc = nn.Linear(self.spe_feat_channels, self.feat_channels)
 
         # fully-connected layers to predict sigma
-        self.sigma_fc = nn.Sequential(
-            nn.Linear(self.in_channels, self.num_keypoints), nn.Sigmoid(),
-            Scale(0.1))
+        self.sigma_fc = nn.Sequential(nn.Linear(self.in_channels, self.num_keypoints), nn.Sigmoid(), Scale(0.1))
 
     def _build_basic_bins(self):
         """Builds basic bin coordinates for x and y."""
-        self.register_buffer('y_bins',
-                             torch.linspace(-0.5, 0.5, self.num_bins[1]))
-        self.register_buffer('x_bins',
-                             torch.linspace(-0.5, 0.5, self.num_bins[0]))
+        self.register_buffer("y_bins", torch.linspace(-0.5, 0.5, self.num_bins[1]))
+        self.register_buffer("x_bins", torch.linspace(-0.5, 0.5, self.num_bins[0]))
 
     def _apply_softmax(self, x_hms, y_hms):
         """Apply softmax on 1-D heatmaps.
@@ -353,10 +343,8 @@ class DCC(BaseModule):
         x_bins, y_bins = self.x_bins, self.y_bins
 
         # dynamic bin allocation
-        x_bins = x_bins.view(*((1,) * (scale.ndim-1)), -1) \
-            * scale[..., 0:1] + center[..., 0:1]
-        y_bins = y_bins.view(*((1,) * (scale.ndim-1)), -1) \
-            * scale[..., 1:2] + center[..., 1:2]
+        x_bins = x_bins.view(*((1,) * (scale.ndim - 1)), -1) * scale[..., 0:1] + center[..., 0:1]
+        y_bins = y_bins.view(*((1,) * (scale.ndim - 1)), -1) * scale[..., 1:2] + center[..., 1:2]
 
         # dynamic bin encoding
         x_bins_enc = self.x_fc(self.spe(position=x_bins))
@@ -384,17 +372,13 @@ class DCC(BaseModule):
 
         kpt_feats = self.pose_to_kpts(pose_feats)
 
-        kpt_feats = kpt_feats.reshape(*kpt_feats.shape[:-1],
-                                      self.num_keypoints, self.feat_channels)
+        kpt_feats = kpt_feats.reshape(*kpt_feats.shape[:-1], self.num_keypoints, self.feat_channels)
 
-        if hasattr(self, 'gau'):
-            kpt_feats = self.gau(
-                kpt_feats, pos_enc=getattr(self, 'pos_enc', None))
+        if hasattr(self, "gau"):
+            kpt_feats = self.gau(kpt_feats, pos_enc=getattr(self, "pos_enc", None))
 
-        x_hms = torch.matmul(kpt_feats,
-                             x_bins_enc.transpose(-1, -2).contiguous())
-        y_hms = torch.matmul(kpt_feats,
-                             y_bins_enc.transpose(-1, -2).contiguous())
+        x_hms = torch.matmul(kpt_feats, x_bins_enc.transpose(-1, -2).contiguous())
+        y_hms = torch.matmul(kpt_feats, y_bins_enc.transpose(-1, -2).contiguous())
 
         return x_hms, y_hms
 
@@ -418,10 +402,8 @@ class DCC(BaseModule):
 
         x_bins, y_bins = self.x_bins, self.y_bins
 
-        x_bins = x_bins.view(*((1,) * (scale.ndim-1)), -1) \
-            * scale[..., 0:1] + center[..., 0:1]
-        y_bins = y_bins.view(*((1,) * (scale.ndim-1)), -1) \
-            * scale[..., 1:2] + center[..., 1:2]
+        x_bins = x_bins.view(*((1,) * (scale.ndim - 1)), -1) * scale[..., 0:1] + center[..., 0:1]
+        y_bins = y_bins.view(*((1,) * (scale.ndim - 1)), -1) * scale[..., 1:2] + center[..., 1:2]
 
         x = (x_hms * x_bins.unsqueeze(1)).sum(dim=-1)
         y = (y_hms * y_bins.unsqueeze(1)).sum(dim=-1)
@@ -449,10 +431,8 @@ class DCC(BaseModule):
 
         # calculate the error of each bin from the GT keypoint coordinates
         center, scale = bbox_cs.split(2, dim=-1)
-        x_bins = self.x_bins.view(*((1,) * (scale.ndim-1)), -1) \
-            * scale[..., 0:1] + center[..., 0:1]
-        y_bins = self.y_bins.view(*((1,) * (scale.ndim-1)), -1) \
-            * scale[..., 1:2] + center[..., 1:2]
+        x_bins = self.x_bins.view(*((1,) * (scale.ndim - 1)), -1) * scale[..., 0:1] + center[..., 0:1]
+        y_bins = self.y_bins.view(*((1,) * (scale.ndim - 1)), -1) * scale[..., 1:2] + center[..., 1:2]
 
         dist_x = torch.abs(kpt_targets.narrow(2, 0, 1) - x_bins.unsqueeze(1))
         dist_y = torch.abs(kpt_targets.narrow(2, 1, 1) - y_bins.unsqueeze(1))
@@ -486,8 +466,7 @@ class DCC(BaseModule):
         """
         sigmas = self.sigma_fc(pose_feats)
         x_bins_enc, y_bins_enc = self._get_bin_enc(bbox_cs, grids)
-        x_hms, y_hms = self._pose_feats_to_heatmaps(pose_feats, x_bins_enc,
-                                                    y_bins_enc)
+        x_hms, y_hms = self._pose_feats_to_heatmaps(pose_feats, x_bins_enc, y_bins_enc)
         x_hms, y_hms = self._apply_softmax(x_hms, y_hms)
         pose_preds = self._decode_xy_heatmaps(x_hms, y_hms, bbox_cs)
         return pose_preds, (x_hms, y_hms), sigmas
@@ -509,18 +488,17 @@ class DCC(BaseModule):
             Tensor: Pose predictions tensor.
         """
         x_bins_enc, y_bins_enc = self._get_bin_enc(bbox_cs, grids)
-        x_hms, y_hms = self._pose_feats_to_heatmaps(pose_feats, x_bins_enc,
-                                                    y_bins_enc)
+        x_hms, y_hms = self._pose_feats_to_heatmaps(pose_feats, x_bins_enc, y_bins_enc)
         x_hms, y_hms = self._apply_softmax(x_hms, y_hms)
         pose_preds = self._decode_xy_heatmaps(x_hms, y_hms, bbox_cs)
         return pose_preds
 
     def switch_to_deploy(self, test_cfg: Optional[Dict] = None):
-        if getattr(self, 'deploy', False):
+        if getattr(self, "deploy", False):
             return
 
         self._convert_pose_to_kpts()
-        if hasattr(self, 'gau'):
+        if hasattr(self, "gau"):
             self._convert_gau()
         self._convert_forward_test()
 
@@ -562,7 +540,7 @@ class DCC(BaseModule):
         beta_k = self.gau.beta[1].view(1, 1, 1, self.gau.beta.size(-1))
 
         # Adjust beta tensors with position encoding if available
-        if hasattr(self, 'pos_enc'):
+        if hasattr(self, "pos_enc"):
             pos_enc = self.pos_enc.reshape(1, 1, *self.pos_enc.shape)
             beta_q = beta_q + pos_enc
             beta_k = beta_k + pos_enc
@@ -614,9 +592,7 @@ class DCC(BaseModule):
 
             # step 1: pose features -> keypoint features
             kpt_feats = self.pose_to_kpts(pose_feats)
-            kpt_feats = kpt_feats.reshape(*kpt_feats.shape[:-1],
-                                          self.num_keypoints,
-                                          self.feat_channels)
+            kpt_feats = kpt_feats.reshape(*kpt_feats.shape[:-1], self.num_keypoints, self.feat_channels)
             kpt_feats = self.gau(kpt_feats)
 
             # step 2: dynamic bin encoding
@@ -725,30 +701,28 @@ class RTMOHead(YOLOXPoseHead):
             loss_oks=loss_oks,
             loss_vis=loss_vis,
             loss_bbox_aux=loss_bbox_aux,
-            overlaps_power=overlaps_power)
+            overlaps_power=overlaps_power,
+        )
 
         self.bbox_padding = bbox_padding
 
         # override to ensure consistency
-        head_module_cfg['featmap_strides'] = featmap_strides
-        head_module_cfg['num_keypoints'] = num_keypoints
+        head_module_cfg["featmap_strides"] = featmap_strides
+        head_module_cfg["num_keypoints"] = num_keypoints
 
         # build modules
         self.head_module = RTMOHeadModule(**head_module_cfg)
 
         self.proxy_target_cc = proxy_target_cc
         if dcc_cfg is not None:
-            dcc_cfg['num_keypoints'] = num_keypoints
+            dcc_cfg["num_keypoints"] = num_keypoints
             self.dcc = DCC(**dcc_cfg)
 
         # build losses
         if loss_mle is not None:
             self.loss_mle = MODELS.build(loss_mle)
 
-    def loss(self,
-             feats: Tuple[Tensor],
-             batch_data_samples: OptSampleList,
-             train_cfg: ConfigType = {}) -> dict:
+    def loss(self, feats: Tuple[Tensor], batch_data_samples: OptSampleList, train_cfg: ConfigType = {}) -> dict:
         """Calculate losses from a batch of inputs and data samples.
 
         Args:
@@ -763,49 +737,52 @@ class RTMOHead(YOLOXPoseHead):
         """
 
         # 1. collect & reform predictions
-        cls_scores, bbox_preds, kpt_offsets, kpt_vis, pose_vecs = self.forward(
-            feats)
+        cls_scores, bbox_preds, kpt_offsets, kpt_vis, pose_vecs = self.forward(feats)
 
         featmap_sizes = [cls_score.shape[2:] for cls_score in cls_scores]
         mlvl_priors = self.prior_generator.grid_priors(
-            featmap_sizes,
-            dtype=cls_scores[0].dtype,
-            device=cls_scores[0].device,
-            with_stride=True)
+            featmap_sizes, dtype=cls_scores[0].dtype, device=cls_scores[0].device, with_stride=True
+        )
         flatten_priors = torch.cat(mlvl_priors)
 
         # flatten cls_scores, bbox_preds and objectness
         flatten_cls_scores = self._flatten_predictions(cls_scores)
         flatten_bbox_preds = self._flatten_predictions(bbox_preds)
-        flatten_objectness = torch.ones_like(
-            flatten_cls_scores).detach().narrow(-1, 0, 1) * 1e4
+        flatten_objectness = torch.ones_like(flatten_cls_scores).detach().narrow(-1, 0, 1) * 1e4
         flatten_kpt_offsets = self._flatten_predictions(kpt_offsets)
         flatten_kpt_vis = self._flatten_predictions(kpt_vis)
         flatten_pose_vecs = self._flatten_predictions(pose_vecs)
-        flatten_bbox_decoded = self.decode_bbox(flatten_bbox_preds,
-                                                flatten_priors[..., :2],
-                                                flatten_priors[..., -1])
-        flatten_kpt_decoded = self.decode_kpt_reg(flatten_kpt_offsets,
-                                                  flatten_priors[..., :2],
-                                                  flatten_priors[..., -1])
+        flatten_bbox_decoded = self.decode_bbox(flatten_bbox_preds, flatten_priors[..., :2], flatten_priors[..., -1])
+        flatten_kpt_decoded = self.decode_kpt_reg(flatten_kpt_offsets, flatten_priors[..., :2], flatten_priors[..., -1])
 
         # 2. generate targets
-        targets = self._get_targets(flatten_priors,
-                                    flatten_cls_scores.detach(),
-                                    flatten_objectness.detach(),
-                                    flatten_bbox_decoded.detach(),
-                                    flatten_kpt_decoded.detach(),
-                                    flatten_kpt_vis.detach(),
-                                    batch_data_samples)
-        pos_masks, cls_targets, obj_targets, obj_weights, \
-            bbox_targets, bbox_aux_targets, kpt_targets, kpt_aux_targets, \
-            vis_targets, vis_weights, pos_areas, pos_priors, group_indices, \
-            num_fg_imgs = targets
+        targets = self._get_targets(
+            flatten_priors,
+            flatten_cls_scores.detach(),
+            flatten_objectness.detach(),
+            flatten_bbox_decoded.detach(),
+            flatten_kpt_decoded.detach(),
+            flatten_kpt_vis.detach(),
+            batch_data_samples,
+        )
+        (
+            pos_masks,
+            cls_targets,
+            obj_targets,
+            obj_weights,
+            bbox_targets,
+            bbox_aux_targets,
+            kpt_targets,
+            kpt_aux_targets,
+            vis_targets,
+            vis_weights,
+            pos_areas,
+            pos_priors,
+            group_indices,
+            num_fg_imgs,
+        ) = targets
 
-        num_pos = torch.tensor(
-            sum(num_fg_imgs),
-            dtype=torch.float,
-            device=flatten_cls_scores.device)
+        num_pos = torch.tensor(sum(num_fg_imgs), dtype=torch.float, device=flatten_cls_scores.device)
         num_total_samples = max(reduce_mean(num_pos), 1.0)
 
         # 3. calculate loss
@@ -817,39 +794,27 @@ class RTMOHead(YOLOXPoseHead):
 
             # 3.1 bbox loss
             bbox_preds = flatten_bbox_decoded.view(-1, 4)[pos_masks]
-            losses['loss_bbox'] = self.loss_bbox(
-                bbox_preds, bbox_targets) / num_total_samples
+            losses["loss_bbox"] = self.loss_bbox(bbox_preds, bbox_targets) / num_total_samples
 
             if self.use_aux_loss:
-                if hasattr(self, 'loss_bbox_aux'):
+                if hasattr(self, "loss_bbox_aux"):
                     bbox_preds_raw = flatten_bbox_preds.view(-1, 4)[pos_masks]
-                    losses['loss_bbox_aux'] = self.loss_bbox_aux(
-                        bbox_preds_raw, bbox_aux_targets) / num_total_samples
+                    losses["loss_bbox_aux"] = self.loss_bbox_aux(bbox_preds_raw, bbox_aux_targets) / num_total_samples
 
             # 3.2 keypoint visibility loss
-            kpt_vis_preds = flatten_kpt_vis.view(-1,
-                                                 self.num_keypoints)[pos_masks]
-            losses['loss_vis'] = self.loss_vis(kpt_vis_preds, vis_targets,
-                                               vis_weights)
+            kpt_vis_preds = flatten_kpt_vis.view(-1, self.num_keypoints)[pos_masks]
+            losses["loss_vis"] = self.loss_vis(kpt_vis_preds, vis_targets, vis_weights)
 
             # 3.3 keypoint loss
-            kpt_reg_preds = flatten_kpt_decoded.view(-1, self.num_keypoints,
-                                                     2)[pos_masks]
+            kpt_reg_preds = flatten_kpt_decoded.view(-1, self.num_keypoints, 2)[pos_masks]
 
-            if hasattr(self, 'loss_mle') and self.loss_mle.loss_weight > 0:
-                pose_vecs = flatten_pose_vecs.view(
-                    -1, flatten_pose_vecs.size(-1))[pos_masks]
-                bbox_cs = torch.cat(
-                    bbox_xyxy2cs(bbox_preds, self.bbox_padding), dim=1)
+            if hasattr(self, "loss_mle") and self.loss_mle.loss_weight > 0:
+                pose_vecs = flatten_pose_vecs.view(-1, flatten_pose_vecs.size(-1))[pos_masks]
+                bbox_cs = torch.cat(bbox_xyxy2cs(bbox_preds, self.bbox_padding), dim=1)
                 # 'cc' refers to 'cordinate classification'
-                kpt_cc_preds, pred_hms, sigmas = \
-                    self.dcc.forward_train(pose_vecs,
-                                           bbox_cs,
-                                           pos_priors[..., :2])
-                target_hms = self.dcc.generate_target_heatmap(
-                    kpt_targets, bbox_cs, sigmas, pos_areas)
-                losses['loss_mle'] = self.loss_mle(pred_hms, target_hms,
-                                                   vis_targets)
+                kpt_cc_preds, pred_hms, sigmas = self.dcc.forward_train(pose_vecs, bbox_cs, pos_priors[..., :2])
+                target_hms = self.dcc.generate_target_heatmap(kpt_targets, bbox_cs, sigmas, pos_areas)
+                losses["loss_mle"] = self.loss_mle(pred_hms, target_hms, vis_targets)
 
             if self.proxy_target_cc:
                 # form the regression target using the coordinate
@@ -859,37 +824,28 @@ class RTMOHead(YOLOXPoseHead):
                     diff_reg = torch.norm(kpt_reg_preds - kpt_targets, dim=-1)
                     mask = (diff_reg > diff_cc).float()
                     kpt_weights_reg = vis_targets * mask
-                    oks = self.assigner.oks_calculator(kpt_cc_preds,
-                                                       kpt_targets,
-                                                       vis_targets, pos_areas)
+                    oks = self.assigner.oks_calculator(kpt_cc_preds, kpt_targets, vis_targets, pos_areas)
                     cls_targets = oks.unsqueeze(1)
 
-                losses['loss_oks'] = self.loss_oks(kpt_reg_preds,
-                                                   kpt_cc_preds.detach(),
-                                                   kpt_weights_reg, pos_areas)
+                losses["loss_oks"] = self.loss_oks(kpt_reg_preds, kpt_cc_preds.detach(), kpt_weights_reg, pos_areas)
 
             else:
-                losses['loss_oks'] = self.loss_oks(kpt_reg_preds, kpt_targets,
-                                                   vis_targets, pos_areas)
+                losses["loss_oks"] = self.loss_oks(kpt_reg_preds, kpt_targets, vis_targets, pos_areas)
 
             # update the target for classification loss
             # the target for the positive grids are set to the oks calculated
             # using predictions and assigned ground truth instances
-            extra_info['overlaps'] = cls_targets
+            extra_info["overlaps"] = cls_targets
             cls_targets = cls_targets.pow(self.overlaps_power).detach()
             obj_targets[pos_masks] = cls_targets.to(obj_targets)
 
         # 3.4 classification loss
-        losses['loss_cls'] = self.loss_cls(cls_preds_all, obj_targets,
-                                           obj_weights) / num_total_samples
+        losses["loss_cls"] = self.loss_cls(cls_preds_all, obj_targets, obj_weights) / num_total_samples
         losses.update(extra_info)
 
         return losses
 
-    def predict(self,
-                feats: Features,
-                batch_data_samples: OptSampleList,
-                test_cfg: ConfigType = {}) -> Predictions:
+    def predict(self, feats: Features, batch_data_samples: OptSampleList, test_cfg: ConfigType = {}) -> Predictions:
         """Predict results from features.
 
         Args:
@@ -932,17 +888,12 @@ class RTMOHead(YOLOXPoseHead):
 
         # If the shape does not change, use the previous mlvl_priors
         if featmap_sizes != self.featmap_sizes:
-            self.mlvl_priors = self.prior_generator.grid_priors(
-                featmap_sizes,
-                dtype=cls_scores[0].dtype,
-                device=cls_scores[0].device)
+            self.mlvl_priors = self.prior_generator.grid_priors(featmap_sizes, dtype=cls_scores[0].dtype, device=cls_scores[0].device)
             self.featmap_sizes = featmap_sizes
         flatten_priors = torch.cat(self.mlvl_priors)
 
         mlvl_strides = [
-            flatten_priors.new_full((featmap_size.numel(), ),
-                                    stride) for featmap_size, stride in zip(
-                                        featmap_sizes, self.featmap_strides)
+            flatten_priors.new_full((featmap_size.numel(),), stride) for featmap_size, stride in zip(featmap_sizes, self.featmap_strides)
         ]
         flatten_stride = torch.cat(mlvl_strides)
 
@@ -953,22 +904,19 @@ class RTMOHead(YOLOXPoseHead):
         flatten_pose_vecs = self._flatten_predictions(pose_vecs)
         if flatten_pose_vecs is None:
             flatten_pose_vecs = [None] * len(batch_img_metas)
-        flatten_bbox_preds = self.decode_bbox(flatten_bbox_preds,
-                                              flatten_priors, flatten_stride)
+        flatten_bbox_preds = self.decode_bbox(flatten_bbox_preds, flatten_priors, flatten_stride)
 
         results_list = []
-        for (bboxes, scores, kpt_vis, pose_vecs,
-             img_meta) in zip(flatten_bbox_preds, flatten_cls_scores,
-                              flatten_kpt_vis, flatten_pose_vecs,
-                              batch_img_metas):
+        for bboxes, scores, kpt_vis, pose_vecs, img_meta in zip(
+            flatten_bbox_preds, flatten_cls_scores, flatten_kpt_vis, flatten_pose_vecs, batch_img_metas
+        ):
 
-            score_thr = cfg.get('score_thr', 0.01)
+            score_thr = cfg.get("score_thr", 0.01)
 
-            nms_pre = cfg.get('nms_pre', 100000)
+            nms_pre = cfg.get("nms_pre", 100000)
             scores, labels = scores.max(1, keepdim=True)
-            scores, _, keep_idxs_score, results = filter_scores_and_topk(
-                scores, score_thr, nms_pre, results=dict(labels=labels[:, 0]))
-            labels = results['labels']
+            scores, _, keep_idxs_score, results = filter_scores_and_topk(scores, score_thr, nms_pre, results=dict(labels=labels[:, 0]))
+            labels = results["labels"]
 
             bboxes = bboxes[keep_idxs_score]
             kpt_vis = kpt_vis[keep_idxs_score]
@@ -976,7 +924,7 @@ class RTMOHead(YOLOXPoseHead):
             stride = flatten_stride[keep_idxs_score]
 
             if bboxes.numel() > 0:
-                nms_thr = cfg.get('nms_thr', 1.0)
+                nms_thr = cfg.get("nms_thr", 1.0)
                 if nms_thr < 1.0:
 
                     keep_idxs_nms = nms_torch(bboxes, scores, nms_thr)
@@ -987,8 +935,7 @@ class RTMOHead(YOLOXPoseHead):
                     scores = scores[keep_idxs_nms]
 
                 pose_vecs = pose_vecs[keep_idxs_score][keep_idxs_nms]
-                bbox_cs = torch.cat(
-                    bbox_xyxy2cs(bboxes, self.bbox_padding), dim=1)
+                bbox_cs = torch.cat(bbox_xyxy2cs(bboxes, self.bbox_padding), dim=1)
                 grids = grids[keep_idxs_nms]
                 keypoints = self.dcc.forward_test(pose_vecs, bbox_cs, grids)
 
@@ -1003,9 +950,10 @@ class RTMOHead(YOLOXPoseHead):
                 bbox_scores=scores,
                 keypoints=keypoints,
                 keypoint_scores=kpt_vis,
-                keypoints_visible=kpt_vis)
+                keypoints_visible=kpt_vis,
+            )
 
-            input_size = img_meta['input_size']
+            input_size = img_meta["input_size"]
             results.bboxes[:, 0::2].clamp_(0, input_size[0])
             results.bboxes[:, 1::2].clamp_(0, input_size[1])
 
@@ -1016,25 +964,23 @@ class RTMOHead(YOLOXPoseHead):
     def switch_to_deploy(self, test_cfg: Optional[Dict]):
         """Precompute and save the grid coordinates and strides."""
 
-        if getattr(self, 'deploy', False):
+        if getattr(self, "deploy", False):
             return
 
         self.deploy = True
 
         # grid generator
-        input_size = test_cfg.get('input_size', (640, 640))
+        input_size = test_cfg.get("input_size", (640, 640))
         featmaps = []
         for s in self.featmap_strides:
-            featmaps.append(
-                torch.rand(1, 1, input_size[0] // s, input_size[1] // s))
+            featmaps.append(torch.rand(1, 1, input_size[0] // s, input_size[1] // s))
         featmap_sizes = [fmap.shape[2:] for fmap in featmaps]
 
-        self.mlvl_priors = self.prior_generator.grid_priors(
-            featmap_sizes, dtype=torch.float32, device='cpu')
+        self.mlvl_priors = self.prior_generator.grid_priors(featmap_sizes, dtype=torch.float32, device="cpu")
         self.flatten_priors = torch.cat(self.mlvl_priors)
 
         mlvl_strides = [
-            self.flatten_priors.new_full((featmap_size.numel(), ), stride) for
-            featmap_size, stride in zip(featmap_sizes, self.featmap_strides)
+            self.flatten_priors.new_full((featmap_size.numel(),), stride)
+            for featmap_size, stride in zip(featmap_sizes, self.featmap_strides)
         ]
         self.flatten_stride = torch.cat(mlvl_strides)

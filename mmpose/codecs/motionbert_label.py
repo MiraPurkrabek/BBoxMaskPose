@@ -6,6 +6,7 @@ from typing import Optional, Tuple
 import numpy as np
 
 from mmpose.registry import KEYPOINT_CODECS
+
 from .base import BaseKeypointCodec
 from .utils import camera_to_image_coord
 
@@ -38,27 +39,26 @@ class MotionBERTLabel(BaseKeypointCodec):
             Default: ``'test'``.
     """
 
-    auxiliary_encode_keys = {
-        'lifting_target', 'lifting_target_visible', 'camera_param', 'factor'
-    }
+    auxiliary_encode_keys = {"lifting_target", "lifting_target_visible", "camera_param", "factor"}
 
     instance_mapping_table = dict(
-        lifting_target='lifting_target',
-        lifting_target_visible='lifting_target_visible',
+        lifting_target="lifting_target",
+        lifting_target_visible="lifting_target_visible",
     )
     label_mapping_table = dict(
-        trajectory_weights='trajectory_weights',
-        lifting_target_label='lifting_target_label',
-        lifting_target_weight='lifting_target_weight')
+        trajectory_weights="trajectory_weights", lifting_target_label="lifting_target_label", lifting_target_weight="lifting_target_weight"
+    )
 
-    def __init__(self,
-                 num_keypoints: int,
-                 root_index: int = 0,
-                 remove_root: bool = False,
-                 save_index: bool = False,
-                 concat_vis: bool = False,
-                 rootrel: bool = False,
-                 mode: str = 'test'):
+    def __init__(
+        self,
+        num_keypoints: int,
+        root_index: int = 0,
+        remove_root: bool = False,
+        save_index: bool = False,
+        concat_vis: bool = False,
+        rootrel: bool = False,
+        mode: str = "test",
+    ):
         super().__init__()
 
         self.num_keypoints = num_keypoints
@@ -67,18 +67,18 @@ class MotionBERTLabel(BaseKeypointCodec):
         self.save_index = save_index
         self.concat_vis = concat_vis
         self.rootrel = rootrel
-        assert mode.lower() in {'train', 'test'
-                                }, (f'Unsupported mode {mode}, '
-                                    'mode should be one of ("train", "test").')
+        assert mode.lower() in {"train", "test"}, f"Unsupported mode {mode}, " 'mode should be one of ("train", "test").'
         self.mode = mode.lower()
 
-    def encode(self,
-               keypoints: np.ndarray,
-               keypoints_visible: Optional[np.ndarray] = None,
-               lifting_target: Optional[np.ndarray] = None,
-               lifting_target_visible: Optional[np.ndarray] = None,
-               camera_param: Optional[dict] = None,
-               factor: Optional[np.ndarray] = None) -> dict:
+    def encode(
+        self,
+        keypoints: np.ndarray,
+        keypoints_visible: Optional[np.ndarray] = None,
+        lifting_target: Optional[np.ndarray] = None,
+        lifting_target_visible: Optional[np.ndarray] = None,
+        camera_param: Optional[dict] = None,
+        factor: Optional[np.ndarray] = None,
+    ) -> dict:
         """Encoding keypoints from input image space to normalized space.
 
         Args:
@@ -112,12 +112,11 @@ class MotionBERTLabel(BaseKeypointCodec):
 
         # set initial value for `lifting_target_weight`
         if lifting_target_visible is None:
-            lifting_target_visible = np.ones(
-                lifting_target.shape[:-1], dtype=np.float32)
+            lifting_target_visible = np.ones(lifting_target.shape[:-1], dtype=np.float32)
             lifting_target_weight = lifting_target_visible
         else:
             valid = lifting_target_visible > 0.5
-            lifting_target_weight = np.where(valid, 1., 0.).astype(np.float32)
+            lifting_target_weight = np.where(valid, 1.0, 0.0).astype(np.float32)
 
         if camera_param is None:
             camera_param = dict()
@@ -128,57 +127,50 @@ class MotionBERTLabel(BaseKeypointCodec):
         lifting_target_label = lifting_target.copy()
         keypoint_labels = keypoints.copy()
 
-        assert keypoint_labels.ndim in {
-            2, 3
-        }, (f'Keypoint labels should have 2 or 3 dimensions, '
-            f'but got {keypoint_labels.ndim}.')
+        assert keypoint_labels.ndim in {2, 3}, f"Keypoint labels should have 2 or 3 dimensions, " f"but got {keypoint_labels.ndim}."
         if keypoint_labels.ndim == 2:
             keypoint_labels = keypoint_labels[None, ...]
 
         # Normalize the 2D keypoint coordinate with image width and height
         _camera_param = deepcopy(camera_param)
-        assert 'w' in _camera_param and 'h' in _camera_param, (
-            'Camera parameters should contain "w" and "h".')
-        w, h = _camera_param['w'], _camera_param['h']
-        keypoint_labels[
-            ..., :2] = keypoint_labels[..., :2] / w * 2 - [1, h / w]
+        assert "w" in _camera_param and "h" in _camera_param, 'Camera parameters should contain "w" and "h".'
+        w, h = _camera_param["w"], _camera_param["h"]
+        keypoint_labels[..., :2] = keypoint_labels[..., :2] / w * 2 - [1, h / w]
 
         # convert target to image coordinate
         T = keypoint_labels.shape[0]
-        factor_ = np.array([4] * T, dtype=np.float32).reshape(T, )
-        if 'f' in _camera_param and 'c' in _camera_param:
-            lifting_target_label, factor_ = camera_to_image_coord(
-                self.root_index, lifting_target_label, _camera_param)
-        if self.mode == 'train':
+        factor_ = np.array([4] * T, dtype=np.float32).reshape(
+            T,
+        )
+        if "f" in _camera_param and "c" in _camera_param:
+            lifting_target_label, factor_ = camera_to_image_coord(self.root_index, lifting_target_label, _camera_param)
+        if self.mode == "train":
             w, h = w / 1000, h / 1000
-            lifting_target_label[
-                ..., :2] = lifting_target_label[..., :2] / w * 2 - [1, h / w]
+            lifting_target_label[..., :2] = lifting_target_label[..., :2] / w * 2 - [1, h / w]
             lifting_target_label[..., 2] = lifting_target_label[..., 2] / w * 2
-        lifting_target_label[..., :, :] = lifting_target_label[
-            ..., :, :] - lifting_target_label[...,
-                                              self.root_index:self.root_index +
-                                              1, :]
+        lifting_target_label[..., :, :] = (
+            lifting_target_label[..., :, :] - lifting_target_label[..., self.root_index : self.root_index + 1, :]
+        )
         if factor is None or factor[0] == 0:
             factor = factor_
         if factor.ndim == 1:
             factor = factor[:, None]
-        if self.mode == 'test':
+        if self.mode == "test":
             lifting_target_label *= factor[..., None]
 
         if self.concat_vis:
             keypoints_visible_ = keypoints_visible
             if keypoints_visible.ndim == 2:
                 keypoints_visible_ = keypoints_visible[..., None]
-            keypoint_labels = np.concatenate(
-                (keypoint_labels, keypoints_visible_), axis=2)
+            keypoint_labels = np.concatenate((keypoint_labels, keypoints_visible_), axis=2)
 
-        encoded['keypoint_labels'] = keypoint_labels
-        encoded['keypoint_labels_visible'] = keypoints_visible
-        encoded['lifting_target_label'] = lifting_target_label
-        encoded['lifting_target_weight'] = lifting_target_weight
-        encoded['lifting_target'] = lifting_target_label
-        encoded['lifting_target_visible'] = lifting_target_visible
-        encoded['factor'] = factor
+        encoded["keypoint_labels"] = keypoint_labels
+        encoded["keypoint_labels_visible"] = keypoints_visible
+        encoded["lifting_target_label"] = lifting_target_label
+        encoded["lifting_target_weight"] = lifting_target_weight
+        encoded["lifting_target"] = lifting_target_label
+        encoded["lifting_target_visible"] = lifting_target_visible
+        encoded["factor"] = factor
 
         return encoded
 
@@ -212,29 +204,24 @@ class MotionBERTLabel(BaseKeypointCodec):
             keypoints[..., 0, :] = 0
 
         if w is not None and w.size > 0:
-            assert w.shape == h.shape, (f'w and h should have the same shape, '
-                                        f'but got {w.shape} and {h.shape}.')
+            assert w.shape == h.shape, f"w and h should have the same shape, " f"but got {w.shape} and {h.shape}."
             assert w.shape[0] == keypoints.shape[0], (
-                f'w and h should have the same batch size, '
-                f'but got {w.shape[0]} and {keypoints.shape[0]}.')
-            assert w.ndim in {1,
-                              2}, (f'w and h should have 1 or 2 dimensions, '
-                                   f'but got {w.ndim}.')
+                f"w and h should have the same batch size, " f"but got {w.shape[0]} and {keypoints.shape[0]}."
+            )
+            assert w.ndim in {1, 2}, f"w and h should have 1 or 2 dimensions, " f"but got {w.ndim}."
             if w.ndim == 1:
                 w = w[:, None]
                 h = h[:, None]
-            trans = np.append(
-                np.ones((w.shape[0], 1)), h / w, axis=1)[:, None, :]
+            trans = np.append(np.ones((w.shape[0], 1)), h / w, axis=1)[:, None, :]
             keypoints[..., :2] = (keypoints[..., :2] + trans) * w[:, None] / 2
             keypoints[..., 2:] = keypoints[..., 2:] * w[:, None] / 2
 
         if factor is not None and factor.size > 0:
             assert factor.shape[0] == keypoints.shape[0], (
-                f'factor should have the same batch size, '
-                f'but got {factor.shape[0]} and {keypoints.shape[0]}.')
+                f"factor should have the same batch size, " f"but got {factor.shape[0]} and {keypoints.shape[0]}."
+            )
             keypoints *= factor[..., None]
 
-        keypoints[..., :, :] = keypoints[..., :, :] - keypoints[
-            ..., self.root_index:self.root_index + 1, :]
-        keypoints /= 1000.
+        keypoints[..., :, :] = keypoints[..., :, :] - keypoints[..., self.root_index : self.root_index + 1, :]
+        keypoints /= 1000.0
         return keypoints, scores

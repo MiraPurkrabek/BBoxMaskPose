@@ -6,10 +6,9 @@ import torch
 from torch import Tensor
 
 from mmpose.registry import KEYPOINT_CODECS
+
 from .base import BaseKeypointCodec
-from .utils import (batch_heatmap_nms, generate_displacement_heatmap,
-                    generate_gaussian_heatmaps, get_diagonal_lengths,
-                    get_instance_root)
+from .utils import batch_heatmap_nms, generate_displacement_heatmap, generate_gaussian_heatmaps, get_diagonal_lengths, get_instance_root
 
 
 @KEYPOINT_CODECS.register_module()
@@ -74,10 +73,10 @@ class SPR(BaseKeypointCodec):
     """
 
     field_mapping_table = dict(
-        heatmaps='heatmaps',
-        heatmap_weights='heatmap_weights',
-        displacements='displacements',
-        displacement_weights='displacement_weights',
+        heatmaps="heatmaps",
+        heatmap_weights="heatmap_weights",
+        displacements="displacements",
+        displacement_weights="displacement_weights",
     )
 
     def __init__(
@@ -86,7 +85,7 @@ class SPR(BaseKeypointCodec):
         heatmap_size: Tuple[int, int],
         sigma: Optional[Union[float, Tuple[float]]] = None,
         generate_keypoint_heatmaps: bool = False,
-        root_type: str = 'kpt_center',
+        root_type: str = "kpt_center",
         minimal_diagonal_length: Union[int, float] = 5,
         background_weight: float = 0.1,
         decode_nms_kernel: int = 5,
@@ -105,29 +104,23 @@ class SPR(BaseKeypointCodec):
         self.decode_max_instances = decode_max_instances
         self.decode_thr = decode_thr
 
-        self.scale_factor = (np.array(input_size) /
-                             heatmap_size).astype(np.float32)
+        self.scale_factor = (np.array(input_size) / heatmap_size).astype(np.float32)
 
         if sigma is None:
-            sigma = (heatmap_size[0] * heatmap_size[1])**0.5 / 32
+            sigma = (heatmap_size[0] * heatmap_size[1]) ** 0.5 / 32
             if generate_keypoint_heatmaps:
                 # sigma for root heatmap and keypoint heatmaps
                 self.sigma = (sigma, sigma // 2)
             else:
-                self.sigma = (sigma, )
+                self.sigma = (sigma,)
         else:
             if not isinstance(sigma, (tuple, list)):
-                sigma = (sigma, )
+                sigma = (sigma,)
             if generate_keypoint_heatmaps:
-                assert len(sigma) == 2, 'sigma for keypoints must be given ' \
-                                        'if `generate_keypoint_heatmaps` ' \
-                                        'is True. e.g. sigma=(4, 2)'
+                assert len(sigma) == 2, "sigma for keypoints must be given " "if `generate_keypoint_heatmaps` " "is True. e.g. sigma=(4, 2)"
             self.sigma = sigma
 
-    def _get_heatmap_weights(self,
-                             heatmaps,
-                             fg_weight: float = 1,
-                             bg_weight: float = 0):
+    def _get_heatmap_weights(self, heatmaps, fg_weight: float = 1, bg_weight: float = 0):
         """Generate weight array for heatmaps.
 
         Args:
@@ -142,9 +135,7 @@ class SPR(BaseKeypointCodec):
         heatmap_weights[heatmaps > 0] = fg_weight
         return heatmap_weights
 
-    def encode(self,
-               keypoints: np.ndarray,
-               keypoints_visible: Optional[np.ndarray] = None) -> dict:
+    def encode(self, keypoints: np.ndarray, keypoints_visible: Optional[np.ndarray] = None) -> dict:
         """Encode keypoints into root heatmaps and keypoint displacement
         fields. Note that the original keypoint coordinates should be in the
         input image space.
@@ -176,8 +167,7 @@ class SPR(BaseKeypointCodec):
         _keypoints = keypoints / self.scale_factor
 
         # compute the root and scale of each instance
-        roots, roots_visible = get_instance_root(_keypoints, keypoints_visible,
-                                                 self.root_type)
+        roots, roots_visible = get_instance_root(_keypoints, keypoints_visible, self.root_type)
         diagonal_lengths = get_diagonal_lengths(_keypoints, keypoints_visible)
 
         # discard the small instances
@@ -185,49 +175,38 @@ class SPR(BaseKeypointCodec):
 
         # generate heatmaps
         heatmaps, _ = generate_gaussian_heatmaps(
-            heatmap_size=self.heatmap_size,
-            keypoints=roots[:, None],
-            keypoints_visible=roots_visible[:, None],
-            sigma=self.sigma[0])
-        heatmap_weights = self._get_heatmap_weights(
-            heatmaps, bg_weight=self.background_weight)
+            heatmap_size=self.heatmap_size, keypoints=roots[:, None], keypoints_visible=roots_visible[:, None], sigma=self.sigma[0]
+        )
+        heatmap_weights = self._get_heatmap_weights(heatmaps, bg_weight=self.background_weight)
 
         if self.generate_keypoint_heatmaps:
             keypoint_heatmaps, _ = generate_gaussian_heatmaps(
-                heatmap_size=self.heatmap_size,
-                keypoints=_keypoints,
-                keypoints_visible=keypoints_visible,
-                sigma=self.sigma[1])
-
-            keypoint_heatmaps_weights = self._get_heatmap_weights(
-                keypoint_heatmaps, bg_weight=self.background_weight)
-
-            heatmaps = np.concatenate((keypoint_heatmaps, heatmaps), axis=0)
-            heatmap_weights = np.concatenate(
-                (keypoint_heatmaps_weights, heatmap_weights), axis=0)
-
-        # generate displacements
-        displacements, displacement_weights = \
-            generate_displacement_heatmap(
-                self.heatmap_size,
-                _keypoints,
-                keypoints_visible,
-                roots,
-                roots_visible,
-                diagonal_lengths,
-                self.sigma[0],
+                heatmap_size=self.heatmap_size, keypoints=_keypoints, keypoints_visible=keypoints_visible, sigma=self.sigma[1]
             )
 
+            keypoint_heatmaps_weights = self._get_heatmap_weights(keypoint_heatmaps, bg_weight=self.background_weight)
+
+            heatmaps = np.concatenate((keypoint_heatmaps, heatmaps), axis=0)
+            heatmap_weights = np.concatenate((keypoint_heatmaps_weights, heatmap_weights), axis=0)
+
+        # generate displacements
+        displacements, displacement_weights = generate_displacement_heatmap(
+            self.heatmap_size,
+            _keypoints,
+            keypoints_visible,
+            roots,
+            roots_visible,
+            diagonal_lengths,
+            self.sigma[0],
+        )
+
         encoded = dict(
-            heatmaps=heatmaps,
-            heatmap_weights=heatmap_weights,
-            displacements=displacements,
-            displacement_weights=displacement_weights)
+            heatmaps=heatmaps, heatmap_weights=heatmap_weights, displacements=displacements, displacement_weights=displacement_weights
+        )
 
         return encoded
 
-    def decode(self, heatmaps: Tensor,
-               displacements: Tensor) -> Tuple[np.ndarray, np.ndarray]:
+    def decode(self, heatmaps: Tensor, displacements: Tensor) -> Tuple[np.ndarray, np.ndarray]:
         """Decode the keypoint coordinates from heatmaps and displacements. The
         decoded keypoint coordinates are in the input image space.
 
@@ -258,10 +237,8 @@ class SPR(BaseKeypointCodec):
         posemaps = (regular_grid[None] + displacements).flatten(2)
 
         # find local maximum on root heatmap
-        root_heatmap_peaks = batch_heatmap_nms(heatmaps[None, -1:],
-                                               self.decode_nms_kernel)
-        root_scores, pos_idx = root_heatmap_peaks.flatten().topk(
-            self.decode_max_instances)
+        root_heatmap_peaks = batch_heatmap_nms(heatmaps[None, -1:], self.decode_nms_kernel)
+        root_scores, pos_idx = root_heatmap_peaks.flatten().topk(self.decode_max_instances)
         mask = root_scores > self.decode_thr
         root_scores, pos_idx = root_scores[mask], pos_idx[mask]
 
@@ -273,11 +250,7 @@ class SPR(BaseKeypointCodec):
         else:
             keypoint_scores = None
 
-        keypoints = torch.cat([
-            kpt * self.scale_factor[i]
-            for i, kpt in enumerate(keypoints.split(1, -1))
-        ],
-                              dim=-1)
+        keypoints = torch.cat([kpt * self.scale_factor[i] for i, kpt in enumerate(keypoints.split(1, -1))], dim=-1)
         return keypoints, (root_scores, keypoint_scores)
 
     def get_keypoint_scores(self, heatmaps: Tensor, keypoints: Tensor):
@@ -292,15 +265,20 @@ class SPR(BaseKeypointCodec):
             Tensor: Keypoint scores in [N, K]
         """
         k, h, w = heatmaps.shape
-        keypoints = torch.stack((
-            keypoints[..., 0] / (w - 1) * 2 - 1,
-            keypoints[..., 1] / (h - 1) * 2 - 1,
-        ),
-                                dim=-1)
+        keypoints = torch.stack(
+            (
+                keypoints[..., 0] / (w - 1) * 2 - 1,
+                keypoints[..., 1] / (h - 1) * 2 - 1,
+            ),
+            dim=-1,
+        )
         keypoints = keypoints.transpose(0, 1).unsqueeze(1).contiguous()
 
-        keypoint_scores = torch.nn.functional.grid_sample(
-            heatmaps.unsqueeze(1), keypoints,
-            padding_mode='border').view(k, -1).transpose(0, 1).contiguous()
+        keypoint_scores = (
+            torch.nn.functional.grid_sample(heatmaps.unsqueeze(1), keypoints, padding_mode="border")
+            .view(k, -1)
+            .transpose(0, 1)
+            .contiguous()
+        )
 
         return keypoint_scores

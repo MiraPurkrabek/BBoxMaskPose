@@ -1,0 +1,39 @@
+# SAM-3D-Body dependencies (optional)
+# Install these only if you want to use 3D human mesh recovery
+#
+# Source: Requirements are based on SAM-3D-Body official installation guide
+# (https://github.com/facebookresearch/sam-3d-body/blob/main/INSTALL.md)
+# Version constraints are relaxed to minimum versions for broader compatibility
+# unless a specific version is required by SAM-3D-Body.
+
+# Core dependencies from SAM-3D-Body
+pytorch-lightning  # Training framework (not strictly needed for inference, but required by SAM-3D-Body)
+pyrender  # 3D mesh rendering
+yacs  # Configuration system
+scikit-image  # Image processing utilities
+einops  # Tensor operations
+timm  # Vision transformer models
+dill  # Serialization
+pandas  # Data handling
+rich  # Terminal formatting
+hydra-core>=1.3.0  # Configuration management (BMP also uses hydra-core>=1.3.2)
+pyrootutils  # Project root utilities
+webdataset  # Dataset loading
+networkx>=3.2.1  # Graph operations (SAM-3D-Body specifies ==3.2.1, relaxed to >=)
+roma  # Rotation utilities
+joblib  # Parallelization
+seaborn  # Visualization
+appdirs  # Directory utilities
+ffmpeg-python  # Video processing
+cython  # C extensions
+jsonlines  # JSON line format
+loguru  # Logging
+optree  # Tree operations
+fvcore  # Facebook research utilities
+huggingface-hub  # Model downloading
+
+# Note: The following need special installation commands:
+# - detectron2: pip install 'git+https://github.com/facebookresearch/detectron2.git@a1ce2f9' --no-build-isolation --no-deps
+#   (Specific commit required by SAM-3D-Body for compatibility)
+# - MoGe (optional FOV estimator): pip install git+https://github.com/microsoft/MoGe.git
+#   (Optional, improves camera calibration)

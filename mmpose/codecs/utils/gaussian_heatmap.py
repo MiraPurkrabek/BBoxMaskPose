@@ -16,7 +16,7 @@ def generate_3d_gaussian_heatmaps(
     joint_indices: Optional[list] = None,
     max_bound: float = 1.0,
     use_different_joint_weights: bool = False,
-    dataset_keypoint_weights: Optional[np.ndarray] = None
+    dataset_keypoint_weights: Optional[np.ndarray] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Generate 3d gaussian heatmaps of keypoints.
 
@@ -60,7 +60,7 @@ def generate_3d_gaussian_heatmaps(
     keypoint_weights = keypoints_visible.copy()
 
     if isinstance(sigma, (int, float)):
-        sigma = (sigma, ) * N
+        sigma = (sigma,) * N
 
     for n in range(N):
         # 3-sigma rule
@@ -71,11 +71,9 @@ def generate_3d_gaussian_heatmaps(
         mu_y = keypoints[n, :, 1] * H / image_size[1]
         mu_z = (keypoints[n, :, 2] / heatmap3d_depth_bound + 0.5) * D
 
-        keypoint_weights[n, ...] = keypoint_weights[n, ...] * (mu_z >= 0) * (
-            mu_z < D)
+        keypoint_weights[n, ...] = keypoint_weights[n, ...] * (mu_z >= 0) * (mu_z < D)
         if use_different_joint_weights:
-            keypoint_weights[
-                n] = keypoint_weights[n] * dataset_keypoint_weights
+            keypoint_weights[n] = keypoint_weights[n] * dataset_keypoint_weights
         # xy grid
         gaussian_size = 2 * radius + 1
 
@@ -99,19 +97,15 @@ def generate_3d_gaussian_heatmaps(
         zz = zz.round().clip(0, D - 1)
 
         # compute the target value near joints
-        gaussian = np.exp(-((xx - mu_x)**2 + (yy - mu_y)**2 + (zz - mu_z)**2) /
-                          (2 * sigma[n]**2))
+        gaussian = np.exp(-((xx - mu_x) ** 2 + (yy - mu_y) ** 2 + (zz - mu_z) ** 2) / (2 * sigma[n] ** 2))
 
         # put the local target value to the full target heatmap
-        idx_joints = np.tile(
-            np.expand_dims(np.arange(K), axis=(-1, -2, -3)),
-            [1, local_size, local_size, local_size])
-        idx = np.stack([idx_joints, zz, yy, xx],
-                       axis=-1).astype(int).reshape(-1, 4)
+        idx_joints = np.tile(np.expand_dims(np.arange(K), axis=(-1, -2, -3)), [1, local_size, local_size, local_size])
+        idx = np.stack([idx_joints, zz, yy, xx], axis=-1).astype(int).reshape(-1, 4)
 
         heatmaps[idx[:, 0], idx[:, 1], idx[:, 2], idx[:, 3]] = np.maximum(
-            heatmaps[idx[:, 0], idx[:, 1], idx[:, 2], idx[:, 3]],
-            gaussian.reshape(-1))
+            heatmaps[idx[:, 0], idx[:, 1], idx[:, 2], idx[:, 3]], gaussian.reshape(-1)
+        )
 
     heatmaps = (heatmaps * max_bound).reshape(-1, H, W)
 
@@ -150,7 +144,7 @@ def generate_gaussian_heatmaps(
     keypoint_weights = keypoints_visible.copy()
 
     if isinstance(sigma, (int, float)):
-        sigma = (sigma, ) * N
+        sigma = (sigma,) * N
 
     for n in range(N):
         # 3-sigma rule
@@ -180,7 +174,7 @@ def generate_gaussian_heatmaps(
 
             # The gaussian is not normalized,
             # we want the center value to equal 1
-            gaussian = np.exp(-((x - x0)**2 + (y - y0)**2) / (2 * sigma[n]**2))
+            gaussian = np.exp(-((x - x0) ** 2 + (y - y0) ** 2) / (2 * sigma[n] ** 2))
 
             # valid range in gaussian
             g_x1 = max(0, -left)
@@ -197,8 +191,7 @@ def generate_gaussian_heatmaps(
             heatmap_region = heatmaps[k, h_y1:h_y2, h_x1:h_x2]
             gaussian_regsion = gaussian[g_y1:g_y2, g_x1:g_x2]
 
-            _ = np.maximum(
-                heatmap_region, gaussian_regsion, out=heatmap_region)
+            _ = np.maximum(heatmap_region, gaussian_regsion, out=heatmap_region)
 
     return heatmaps, keypoint_weights
 
@@ -254,7 +247,7 @@ def generate_unbiased_gaussian_heatmaps(
             keypoint_weights[n, k] = 0
             continue
 
-        gaussian = np.exp(-((x - mu[0])**2 + (y - mu[1])**2) / (2 * sigma**2))
+        gaussian = np.exp(-((x - mu[0]) ** 2 + (y - mu[1]) ** 2) / (2 * sigma**2))
 
         _ = np.maximum(gaussian, heatmaps[k], out=heatmaps[k])
 
@@ -315,12 +308,12 @@ def generate_udp_gaussian_heatmaps(
             if vis_kpts.size == 0:
                 min_dists = np.ones(image_kpts.shape[0]) * diag
             else:
-                dists = cdist(image_kpts, vis_kpts, metric='euclidean')
+                dists = cdist(image_kpts, vis_kpts, metric="euclidean")
                 min_dists = np.min(dists, axis=1)
 
-            scales = min_dists / diag * 2.0     # Maximum distance (diagonal) results in .0*sigma
+            scales = min_dists / diag * 2.0  # Maximum distance (diagonal) results in .0*sigma
             scales_arr[n, :] = scales
-            scaled_sigmas[n, :] = sigma * (1+scales)
+            scaled_sigmas[n, :] = sigma * (1 + scales)
 
     # print(scales_arr)
     # print(scaled_sigmas)
@@ -330,7 +323,7 @@ def generate_udp_gaussian_heatmaps(
         # skip unlabled keypoints
         if keypoints_visible[n, k] < 0.5:
             continue
-        
+
         # 3-sigma rule
         radius = scaled_sigma * 3
 
@@ -354,7 +347,7 @@ def generate_udp_gaussian_heatmaps(
         x0 = y0 = gaussian_size // 2
         x0 += mu_ac[0] - mu[0]
         y0 += mu_ac[1] - mu[1]
-        gaussian = np.exp(-((x - x0)**2 + (y - y0)**2) / (2 * scaled_sigma**2))
+        gaussian = np.exp(-((x - x0) ** 2 + (y - y0) ** 2) / (2 * scaled_sigma**2))
 
         # Normalize Gaussian such that scaled_sigma = sigma is the norm
         gaussian = gaussian / (scaled_sigma / sigmas[n, k])
@@ -420,10 +413,9 @@ def generate_onehot_heatmaps(
     for n, k in product(range(N), range(K)):
         # skip unlabled keypoints
         if keypoints_visible[n, k] < 0.5:
-            continue        
+            continue
 
         mu = (keypoints[n, k] + 0.5).astype(np.int64)
-        
 
         if mu[0] < 0 or mu[0] >= W or mu[1] < 0 or mu[1] >= H:
             keypoint_weights[n, k] = 0

@@ -6,6 +6,7 @@ from mmengine.evaluator import BaseMetric
 from mmengine.logging import MMLogger
 
 from mmpose.registry import METRICS
+
 from ..functional import keypoint_mpjpe
 
 
@@ -40,24 +41,18 @@ class SimpleMPJPE(BaseMetric):
             to be skipped. Default: [].
     """
 
-    ALIGNMENT = {'mpjpe': 'none', 'p-mpjpe': 'procrustes', 'n-mpjpe': 'scale'}
+    ALIGNMENT = {"mpjpe": "none", "p-mpjpe": "procrustes", "n-mpjpe": "scale"}
 
-    def __init__(self,
-                 mode: str = 'mpjpe',
-                 collect_device: str = 'cpu',
-                 prefix: Optional[str] = None,
-                 skip_list: List[str] = []) -> None:
+    def __init__(self, mode: str = "mpjpe", collect_device: str = "cpu", prefix: Optional[str] = None, skip_list: List[str] = []) -> None:
         super().__init__(collect_device=collect_device, prefix=prefix)
         allowed_modes = self.ALIGNMENT.keys()
         if mode not in allowed_modes:
-            raise KeyError("`mode` should be 'mpjpe', 'p-mpjpe', or "
-                           f"'n-mpjpe', but got '{mode}'.")
+            raise KeyError("`mode` should be 'mpjpe', 'p-mpjpe', or " f"'n-mpjpe', but got '{mode}'.")
 
         self.mode = mode
         self.skip_list = skip_list
 
-    def process(self, data_batch: Sequence[dict],
-                data_samples: Sequence[dict]) -> None:
+    def process(self, data_batch: Sequence[dict], data_samples: Sequence[dict]) -> None:
         """Process one batch of data samples and predictions. The processed
         results should be stored in ``self.results``, which will be used to
         compute the metrics when all batches have been processed.
@@ -70,21 +65,20 @@ class SimpleMPJPE(BaseMetric):
         """
         for data_sample in data_samples:
             # predicted keypoints coordinates, [T, K, D]
-            pred_coords = data_sample['pred_instances']['keypoints']
+            pred_coords = data_sample["pred_instances"]["keypoints"]
             if pred_coords.ndim == 4:
                 pred_coords = np.squeeze(pred_coords, axis=0)
             # ground truth data_info
-            gt = data_sample['gt_instances']
+            gt = data_sample["gt_instances"]
             # ground truth keypoints coordinates, [T, K, D]
-            gt_coords = gt['lifting_target']
+            gt_coords = gt["lifting_target"]
             # ground truth keypoints_visible, [T, K, 1]
-            mask = gt['lifting_target_visible'].astype(bool).reshape(
-                gt_coords.shape[0], -1)
+            mask = gt["lifting_target_visible"].astype(bool).reshape(gt_coords.shape[0], -1)
 
             result = {
-                'pred_coords': pred_coords,
-                'gt_coords': gt_coords,
-                'mask': mask,
+                "pred_coords": pred_coords,
+                "gt_coords": gt_coords,
+                "mask": mask,
             }
 
             self.results.append(result)
@@ -102,18 +96,13 @@ class SimpleMPJPE(BaseMetric):
         logger: MMLogger = MMLogger.get_current_instance()
 
         # pred_coords: [N, K, D]
-        pred_coords = np.concatenate(
-            [result['pred_coords'] for result in results])
+        pred_coords = np.concatenate([result["pred_coords"] for result in results])
         # gt_coords: [N, K, D]
-        gt_coords = np.concatenate([result['gt_coords'] for result in results])
+        gt_coords = np.concatenate([result["gt_coords"] for result in results])
         # mask: [N, K]
-        mask = np.concatenate([result['mask'] for result in results])
+        mask = np.concatenate([result["mask"] for result in results])
 
         error_name = self.mode.upper()
 
-        logger.info(f'Evaluating {self.mode.upper()}...')
-        return {
-            error_name:
-            keypoint_mpjpe(pred_coords, gt_coords, mask,
-                           self.ALIGNMENT[self.mode])
-        }
+        logger.info(f"Evaluating {self.mode.upper()}...")
+        return {error_name: keypoint_mpjpe(pred_coords, gt_coords, mask, self.ALIGNMENT[self.mode])}

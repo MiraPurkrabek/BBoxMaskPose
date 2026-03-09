@@ -1,5 +1,6 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 from mmpose.registry import DATASETS
+
 from .coco_wholebody_dataset import CocoWholeBodyDataset
 
 
@@ -60,4 +61,4 @@ class UBody2dDataset(CocoWholeBodyDataset):
             Default: 1.
     """
 
-    METAINFO: dict = dict(from_file='configs/_base_/datasets/ubody2d.py')
+    METAINFO: dict = dict(from_file="configs/_base_/datasets/ubody2d.py")

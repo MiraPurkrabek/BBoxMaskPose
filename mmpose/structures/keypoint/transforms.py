@@ -4,12 +4,13 @@ from typing import List, Optional, Tuple, Union
 import numpy as np
 
 
-def flip_keypoints(keypoints: np.ndarray,
-                   keypoints_visible: Optional[np.ndarray],
-                   image_size: Tuple[int, int],
-                   flip_indices: List[int],
-                   direction: str = 'horizontal'
-                   ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+def flip_keypoints(
+    keypoints: np.ndarray,
+    keypoints_visible: Optional[np.ndarray],
+    image_size: Tuple[int, int],
+    flip_indices: List[int],
+    direction: str = "horizontal",
+) -> Tuple[np.ndarray, Optional[np.ndarray]]:
     """Flip keypoints in the given direction.
 
     Note:
@@ -38,27 +39,24 @@ def flip_keypoints(keypoints: np.ndarray,
     """
 
     ndim = keypoints.ndim
-    assert keypoints.shape[:-1] == keypoints_visible.shape[:ndim - 1], (
-        f'Mismatched shapes of keypoints {keypoints.shape} and '
-        f'keypoints_visible {keypoints_visible.shape}')
+    assert keypoints.shape[:-1] == keypoints_visible.shape[: ndim - 1], (
+        f"Mismatched shapes of keypoints {keypoints.shape} and " f"keypoints_visible {keypoints_visible.shape}"
+    )
 
-    direction_options = {'horizontal', 'vertical', 'diagonal'}
-    assert direction in direction_options, (
-        f'Invalid flipping direction "{direction}". '
-        f'Options are {direction_options}')
+    direction_options = {"horizontal", "vertical", "diagonal"}
+    assert direction in direction_options, f'Invalid flipping direction "{direction}". ' f"Options are {direction_options}"
 
     # swap the symmetric keypoint pairs
-    if direction == 'horizontal' or direction == 'vertical':
+    if direction == "horizontal" or direction == "vertical":
         keypoints = keypoints.take(flip_indices, axis=ndim - 2)
         if keypoints_visible is not None:
-            keypoints_visible = keypoints_visible.take(
-                flip_indices, axis=ndim - 2)
+            keypoints_visible = keypoints_visible.take(flip_indices, axis=ndim - 2)
 
     # flip the keypoints
     w, h = image_size
-    if direction == 'horizontal':
+    if direction == "horizontal":
         keypoints[..., 0] = w - 1 - keypoints[..., 0]
-    elif direction == 'vertical':
+    elif direction == "vertical":
         keypoints[..., 1] = h - 1 - keypoints[..., 1]
     else:
         keypoints = [w, h] - keypoints - 1
@@ -66,12 +64,14 @@ def flip_keypoints(keypoints: np.ndarray,
     return keypoints, keypoints_visible
 
 
-def flip_keypoints_custom_center(keypoints: np.ndarray,
-                                 keypoints_visible: np.ndarray,
-                                 flip_indices: List[int],
-                                 center_mode: str = 'static',
-                                 center_x: float = 0.5,
-                                 center_index: Union[int, List] = 0):
+def flip_keypoints_custom_center(
+    keypoints: np.ndarray,
+    keypoints_visible: np.ndarray,
+    flip_indices: List[int],
+    center_mode: str = "static",
+    center_x: float = 0.5,
+    center_index: Union[int, List] = 0,
+):
     """Flip human joints horizontally.
 
     Note:
@@ -99,17 +99,15 @@ def flip_keypoints_custom_center(keypoints: np.ndarray,
         np.ndarray([..., K, C]): Flipped joints.
     """
 
-    assert keypoints.ndim >= 2, f'Invalid pose shape {keypoints.shape}'
+    assert keypoints.ndim >= 2, f"Invalid pose shape {keypoints.shape}"
 
-    allowed_center_mode = {'static', 'root'}
-    assert center_mode in allowed_center_mode, 'Get invalid center_mode ' \
-        f'{center_mode}, allowed choices are {allowed_center_mode}'
+    allowed_center_mode = {"static", "root"}
+    assert center_mode in allowed_center_mode, "Get invalid center_mode " f"{center_mode}, allowed choices are {allowed_center_mode}"
 
-    if center_mode == 'static':
+    if center_mode == "static":
         x_c = center_x
-    elif center_mode == 'root':
-        center_index = [center_index] if isinstance(center_index, int) else \
-            center_index
+    elif center_mode == "root":
+        center_index = [center_index] if isinstance(center_index, int) else center_index
         assert keypoints.shape[-2] > max(center_index)
         x_c = keypoints[..., center_index, 0].mean(axis=-1)
 
@@ -125,9 +123,7 @@ def flip_keypoints_custom_center(keypoints: np.ndarray,
     return keypoints_flipped, keypoints_visible_flipped
 
 
-def keypoint_clip_border(keypoints: np.ndarray, keypoints_visible: np.ndarray,
-                         shape: Tuple[int,
-                                      int]) -> Tuple[np.ndarray, np.ndarray]:
+def keypoint_clip_border(keypoints: np.ndarray, keypoints_visible: np.ndarray, shape: Tuple[int, int]) -> Tuple[np.ndarray, np.ndarray]:
     """Set the visibility values for keypoints outside the image border.
 
     Args:
@@ -143,8 +139,7 @@ def keypoint_clip_border(keypoints: np.ndarray, keypoints_visible: np.ndarray,
     width, height = shape[:2]
 
     # Create a mask for keypoints outside the frame
-    outside_mask = ((keypoints[..., 0] > width) | (keypoints[..., 0] < 0) |
-                    (keypoints[..., 1] > height) | (keypoints[..., 1] < 0))
+    outside_mask = (keypoints[..., 0] > width) | (keypoints[..., 0] < 0) | (keypoints[..., 1] > height) | (keypoints[..., 1] < 0)
 
     # Update visibility values for keypoints outside the frame
     if keypoints_visible.ndim == 2:

@@ -2,6 +2,7 @@
 import torch.nn as nn
 
 from mmpose.registry import MODELS
+
 from .base_backbone import BaseBackbone
 
 
@@ -55,4 +56,4 @@ class AlexNet(BaseBackbone):
             x = x.view(x.size(0), 256 * 6 * 6)
             x = self.classifier(x)
 
-        return (x, )
+        return (x,)

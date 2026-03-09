@@ -25,18 +25,17 @@ class MultiDatasetEvaluator(Evaluator):
         datasets: Sequence[dict],
     ):
 
-        assert len(metrics) == len(datasets), 'the argument ' \
-            'datasets should have same length as metrics'
+        assert len(metrics) == len(datasets), "the argument " "datasets should have same length as metrics"
 
         super().__init__(metrics)
 
         # Initialize metrics for each dataset
         metrics_dict = dict()
         for dataset, metric in zip(datasets, self.metrics):
-            metainfo_file = DATASETS.module_dict[dataset['type']].METAINFO
+            metainfo_file = DATASETS.module_dict[dataset["type"]].METAINFO
             dataset_meta = parse_pose_metainfo(metainfo_file)
             metric.dataset_meta = dataset_meta
-            dataset_name = dataset_meta['dataset_name']
+            dataset_name = dataset_meta["dataset_name"]
             metrics_dict[dataset_name] = metric
         self.metrics_dict = metrics_dict
 
@@ -50,9 +49,7 @@ class MultiDatasetEvaluator(Evaluator):
         """Set the dataset meta info to the evaluator and it's metrics."""
         self._dataset_meta = dataset_meta
 
-    def process(self,
-                data_samples: Sequence[BaseDataElement],
-                data_batch: Optional[Any] = None):
+    def process(self, data_samples: Sequence[BaseDataElement], data_batch: Optional[Any] = None):
         """Convert ``BaseDataSample`` to dict and invoke process method of each
         metric.
 
@@ -67,23 +64,18 @@ class MultiDatasetEvaluator(Evaluator):
             data_samples=defaultdict(list),
         )
 
-        for inputs, data_ds, data_sample in zip(data_batch['inputs'],
-                                                data_batch['data_samples'],
-                                                data_samples):
+        for inputs, data_ds, data_sample in zip(data_batch["inputs"], data_batch["data_samples"], data_samples):
             if isinstance(data_sample, BaseDataElement):
                 data_sample = data_sample.to_dict()
             assert isinstance(data_sample, dict)
-            dataset_name = data_sample.get('dataset_name',
-                                           self.dataset_meta['dataset_name'])
+            dataset_name = data_sample.get("dataset_name", self.dataset_meta["dataset_name"])
             _data_samples[dataset_name].append(data_sample)
-            _data_batch['inputs'][dataset_name].append(inputs)
-            _data_batch['data_samples'][dataset_name].append(data_ds)
+            _data_batch["inputs"][dataset_name].append(inputs)
+            _data_batch["data_samples"][dataset_name].append(data_ds)
 
         for dataset_name, metric in self.metrics_dict.items():
             if dataset_name in _data_samples:
-                data_batch = dict(
-                    inputs=_data_batch['inputs'][dataset_name],
-                    data_samples=_data_batch['data_samples'][dataset_name])
+                data_batch = dict(inputs=_data_batch["inputs"][dataset_name], data_samples=_data_batch["data_samples"][dataset_name])
                 metric.process(data_batch, _data_samples[dataset_name])
             else:
                 continue

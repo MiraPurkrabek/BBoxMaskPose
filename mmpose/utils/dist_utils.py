@@ -3,7 +3,7 @@ import torch.distributed as dist
 
 
 def reduce_mean(tensor):
-    """"Obtain the mean of tensor on different GPUs."""
+    """ "Obtain the mean of tensor on different GPUs."""
     if not (dist.is_available() and dist.is_initialized()):
         return tensor
     tensor = tensor.clone()

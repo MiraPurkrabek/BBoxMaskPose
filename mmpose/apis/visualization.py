@@ -68,7 +68,7 @@ def visualize(
     metainfo: Union[str, dict] = None,
     visualizer: PoseLocalVisualizer = None,
     show_kpt_idx: bool = False,
-    skeleton_style: str = 'mmpose',
+    skeleton_style: str = "mmpose",
     show: bool = False,
     kpt_thr: float = 0.3,
 ):
@@ -87,9 +87,7 @@ def visualize(
         wait_time (int): Value of waitKey param.
         kpt_thr (float): Keypoint threshold.
     """
-    assert skeleton_style in [
-        'mmpose', 'openpose'
-    ], (f'Only support skeleton style in {["mmpose", "openpose"]}, ')
+    assert skeleton_style in ["mmpose", "openpose"], f'Only support skeleton style in {["mmpose", "openpose"]}, '
 
     if visualizer is None:
         visualizer = PoseLocalVisualizer()
@@ -105,7 +103,7 @@ def visualize(
         visualizer.set_dataset_meta(metainfo, skeleton_style=skeleton_style)
 
     if isinstance(img, str):
-        img = mmcv.imread(img, channel_order='rgb')
+        img = mmcv.imread(img, channel_order="rgb")
     elif isinstance(img, np.ndarray):
         img = mmcv.bgr2rgb(img)
 
@@ -120,13 +118,14 @@ def visualize(
     tmp_datasample.pred_instances = tmp_instances
 
     visualizer.add_datasample(
-        'visualization',
+        "visualization",
         img,
         tmp_datasample,
         show_kpt_idx=show_kpt_idx,
         skeleton_style=skeleton_style,
         show=show,
         wait_time=0,
-        kpt_thr=kpt_thr)
+        kpt_thr=kpt_thr,
+    )
 
     return visualizer.get_image()

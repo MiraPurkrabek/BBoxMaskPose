@@ -4,9 +4,9 @@ from typing import Optional, Tuple
 import numpy as np
 
 from mmpose.registry import KEYPOINT_CODECS
+
 from .base import BaseKeypointCodec
-from .utils.gaussian_heatmap import (generate_gaussian_heatmaps,
-                                     generate_unbiased_gaussian_heatmaps)
+from .utils.gaussian_heatmap import generate_gaussian_heatmaps, generate_unbiased_gaussian_heatmaps
 from .utils.post_processing import get_heatmap_maximum
 from .utils.refinement import refine_keypoints, refine_keypoints_dark
 
@@ -47,15 +47,16 @@ class MSRAHeatmap(BaseKeypointCodec):
     .. _`Dark Pose`: https://arxiv.org/abs/1910.06278
     """
 
-    label_mapping_table = dict(keypoint_weights='keypoint_weights', )
-    field_mapping_table = dict(heatmaps='heatmaps', )
+    label_mapping_table = dict(
+        keypoint_weights="keypoint_weights",
+    )
+    field_mapping_table = dict(
+        heatmaps="heatmaps",
+    )
 
-    def __init__(self,
-                 input_size: Tuple[int, int],
-                 heatmap_size: Tuple[int, int],
-                 sigma: float,
-                 unbiased: bool = False,
-                 blur_kernel_size: int = 11) -> None:
+    def __init__(
+        self, input_size: Tuple[int, int], heatmap_size: Tuple[int, int], sigma: float, unbiased: bool = False, blur_kernel_size: int = 11
+    ) -> None:
         super().__init__()
         self.input_size = input_size
         self.heatmap_size = heatmap_size
@@ -71,12 +72,9 @@ class MSRAHeatmap(BaseKeypointCodec):
         #   sigma~=1.5 if ks=7;
         #   sigma~=1 if ks=3;
         self.blur_kernel_size = blur_kernel_size
-        self.scale_factor = (np.array(input_size) /
-                             heatmap_size).astype(np.float32)
+        self.scale_factor = (np.array(input_size) / heatmap_size).astype(np.float32)
 
-    def encode(self,
-               keypoints: np.ndarray,
-               keypoints_visible: Optional[np.ndarray] = None) -> dict:
+    def encode(self, keypoints: np.ndarray, keypoints_visible: Optional[np.ndarray] = None) -> dict:
         """Encode keypoints into heatmaps. Note that the original keypoint
         coordinates should be in the input image space.
 
@@ -93,9 +91,7 @@ class MSRAHeatmap(BaseKeypointCodec):
                 (N, K)
         """
 
-        assert keypoints.shape[0] == 1, (
-            f'{self.__class__.__name__} only support single-instance '
-            'keypoint encoding')
+        assert keypoints.shape[0] == 1, f"{self.__class__.__name__} only support single-instance " "keypoint encoding"
 
         if keypoints_visible is None:
             keypoints_visible = np.ones(keypoints.shape[:2], dtype=np.float32)
@@ -105,13 +101,15 @@ class MSRAHeatmap(BaseKeypointCodec):
                 heatmap_size=self.heatmap_size,
                 keypoints=keypoints / self.scale_factor,
                 keypoints_visible=keypoints_visible,
-                sigma=self.sigma)
+                sigma=self.sigma,
+            )
         else:
             heatmaps, keypoint_weights = generate_gaussian_heatmaps(
                 heatmap_size=self.heatmap_size,
                 keypoints=keypoints / self.scale_factor,
                 keypoints_visible=keypoints_visible,
-                sigma=self.sigma)
+                sigma=self.sigma,
+            )
 
         encoded = dict(heatmaps=heatmaps, keypoint_weights=keypoint_weights)
 
@@ -141,8 +139,7 @@ class MSRAHeatmap(BaseKeypointCodec):
 
         if self.unbiased:
             # Alleviate biased coordinate
-            keypoints = refine_keypoints_dark(
-                keypoints, heatmaps, blur_kernel_size=self.blur_kernel_size)
+            keypoints = refine_keypoints_dark(keypoints, heatmaps, blur_kernel_size=self.blur_kernel_size)
 
         else:
             keypoints = refine_keypoints(keypoints, heatmaps)

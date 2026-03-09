@@ -21,22 +21,17 @@ class BCELoss(nn.Module):
             before output. Defaults to False.
     """
 
-    def __init__(self,
-                 use_target_weight=False,
-                 loss_weight=1.,
-                 reduction='mean',
-                 use_sigmoid=False):
+    def __init__(self, use_target_weight=False, loss_weight=1.0, reduction="mean", use_sigmoid=False):
         super().__init__()
 
-        assert reduction in ('mean', 'sum', 'none'), f'the argument ' \
-            f'`reduction` should be either \'mean\', \'sum\' or \'none\', ' \
-            f'but got {reduction}'
+        assert reduction in ("mean", "sum", "none"), (
+            f"the argument " f"`reduction` should be either 'mean', 'sum' or 'none', " f"but got {reduction}"
+        )
 
         self.reduction = reduction
         self.use_sigmoid = use_sigmoid
-        criterion = F.binary_cross_entropy if use_sigmoid \
-            else F.binary_cross_entropy_with_logits
-        self.criterion = partial(criterion, reduction='none')
+        criterion = F.binary_cross_entropy if use_sigmoid else F.binary_cross_entropy_with_logits
+        self.criterion = partial(criterion, reduction="none")
         self.use_target_weight = use_target_weight
         self.loss_weight = loss_weight
 
@@ -59,13 +54,13 @@ class BCELoss(nn.Module):
             loss = self.criterion(output, target)
             if target_weight.dim() == 1:
                 target_weight = target_weight[:, None]
-            loss = (loss * target_weight)
+            loss = loss * target_weight
         else:
             loss = self.criterion(output, target)
 
-        if self.reduction == 'sum':
+        if self.reduction == "sum":
             loss = loss.sum()
-        elif self.reduction == 'mean':
+        elif self.reduction == "mean":
             loss = loss.mean()
 
         return loss * self.loss_weight
@@ -92,7 +87,7 @@ class JSDiscretLoss(nn.Module):
         super(JSDiscretLoss, self).__init__()
         self.use_target_weight = use_target_weight
         self.size_average = size_average
-        self.kl_loss = nn.KLDivLoss(reduction='none')
+        self.kl_loss = nn.KLDivLoss(reduction="none")
 
     def kl(self, p, q):
         """Kullback-Leibler Divergence."""
@@ -156,13 +151,7 @@ class KLDiscretLoss(nn.Module):
         mask_weight (float): Weight of masked keypoints. Default: 1.0.
     """
 
-    def __init__(self,
-                 beta=1.0,
-                 label_softmax=False,
-                 label_beta=10.0,
-                 use_target_weight=True,
-                 mask=None,
-                 mask_weight=1.0):
+    def __init__(self, beta=1.0, label_softmax=False, label_beta=10.0, use_target_weight=True, mask=None, mask_weight=1.0):
         super(KLDiscretLoss, self).__init__()
         self.beta = beta
         self.label_softmax = label_softmax
@@ -172,7 +161,7 @@ class KLDiscretLoss(nn.Module):
         self.mask_weight = mask_weight
 
         self.log_softmax = nn.LogSoftmax(dim=1)
-        self.kl_loss = nn.KLDivLoss(reduction='none')
+        self.kl_loss = nn.KLDivLoss(reduction="none")
 
     def criterion(self, dec_outs, labels):
         """Criterion function."""
@@ -198,7 +187,7 @@ class KLDiscretLoss(nn.Module):
         if self.use_target_weight:
             weight = target_weight.reshape(-1)
         else:
-            weight = 1.
+            weight = 1.0
 
         for pred, target in zip(pred_simcc, gt_simcc):
             pred = pred.reshape(-1, pred.size(-1))
@@ -233,8 +222,7 @@ class InfoNCELoss(nn.Module):
 
     def __init__(self, temperature: float = 1.0, loss_weight=1.0) -> None:
         super(InfoNCELoss, self).__init__()
-        assert temperature > 0, f'the argument `temperature` must be ' \
-                                f'positive, but got {temperature}'
+        assert temperature > 0, f"the argument `temperature` must be " f"positive, but got {temperature}"
         self.temp = temperature
         self.loss_weight = loss_weight
 
@@ -252,7 +240,7 @@ class InfoNCELoss(nn.Module):
         features_norm = F.normalize(features, dim=1)
         logits = features_norm.mm(features_norm.t()) / self.temp
         targets = torch.arange(n, dtype=torch.long, device=features.device)
-        loss = F.cross_entropy(logits, targets, reduction='sum')
+        loss = F.cross_entropy(logits, targets, reduction="sum")
         return loss * self.loss_weight
 
 
@@ -271,17 +259,12 @@ class VariFocalLoss(nn.Module):
             Defaults to 2.0.
     """
 
-    def __init__(self,
-                 use_target_weight=False,
-                 loss_weight=1.,
-                 reduction='mean',
-                 alpha=0.75,
-                 gamma=2.0):
+    def __init__(self, use_target_weight=False, loss_weight=1.0, reduction="mean", alpha=0.75, gamma=2.0):
         super().__init__()
 
-        assert reduction in ('mean', 'sum', 'none'), f'the argument ' \
-            f'`reduction` should be either \'mean\', \'sum\' or \'none\', ' \
-            f'but got {reduction}'
+        assert reduction in ("mean", "sum", "none"), (
+            f"the argument " f"`reduction` should be either 'mean', 'sum' or 'none', " f"but got {reduction}"
+        )
 
         self.reduction = reduction
         self.use_target_weight = use_target_weight
@@ -291,12 +274,9 @@ class VariFocalLoss(nn.Module):
 
     def criterion(self, output, target):
         label = (target > 1e-4).to(target)
-        weight = self.alpha * output.sigmoid().pow(
-            self.gamma) * (1 - label) + target
+        weight = self.alpha * output.sigmoid().pow(self.gamma) * (1 - label) + target
         output = output.clip(min=-10, max=10)
-        vfl = (
-            F.binary_cross_entropy_with_logits(
-                output, target, reduction='none') * weight)
+        vfl = F.binary_cross_entropy_with_logits(output, target, reduction="none") * weight
         return vfl
 
     def forward(self, output, target, target_weight=None):
@@ -318,16 +298,16 @@ class VariFocalLoss(nn.Module):
             loss = self.criterion(output, target)
             if target_weight.dim() == 1:
                 target_weight = target_weight.unsqueeze(1)
-            loss = (loss * target_weight)
+            loss = loss * target_weight
         else:
             loss = self.criterion(output, target)
 
         loss[torch.isinf(loss)] = 0.0
         loss[torch.isnan(loss)] = 0.0
 
-        if self.reduction == 'sum':
+        if self.reduction == "sum":
             loss = loss.sum()
-        elif self.reduction == 'mean':
+        elif self.reduction == "mean":
             loss = loss.mean()
 
         return loss * self.loss_weight

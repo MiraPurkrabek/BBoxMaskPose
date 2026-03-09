@@ -7,6 +7,7 @@ import numpy as np
 from mmpose.codecs.utils import get_simcc_maximum
 from mmpose.codecs.utils.refinement import refine_simcc_dark
 from mmpose.registry import KEYPOINT_CODECS
+
 from .base import BaseKeypointCodec
 
 
@@ -59,15 +60,15 @@ class SimCCLabel(BaseKeypointCodec):
     """
 
     label_mapping_table = dict(
-        keypoint_x_labels='keypoint_x_labels',
-        keypoint_y_labels='keypoint_y_labels',
-        keypoint_weights='keypoint_weights',
+        keypoint_x_labels="keypoint_x_labels",
+        keypoint_y_labels="keypoint_y_labels",
+        keypoint_weights="keypoint_weights",
     )
 
     def __init__(
         self,
         input_size: Tuple[int, int],
-        smoothing_type: str = 'gaussian',
+        smoothing_type: str = "gaussian",
         sigma: Union[float, int, Tuple[float]] = 6.0,
         simcc_split_ratio: float = 2.0,
         label_smooth_weight: float = 0.0,
@@ -92,22 +93,20 @@ class SimCCLabel(BaseKeypointCodec):
         else:
             self.sigma = np.array(sigma)
 
-        if self.smoothing_type not in {'gaussian', 'standard'}:
+        if self.smoothing_type not in {"gaussian", "standard"}:
             raise ValueError(
-                f'{self.__class__.__name__} got invalid `smoothing_type` value'
-                f'{self.smoothing_type}. Should be one of '
-                '{"gaussian", "standard"}')
+                f"{self.__class__.__name__} got invalid `smoothing_type` value"
+                f"{self.smoothing_type}. Should be one of "
+                '{"gaussian", "standard"}'
+            )
 
-        if self.smoothing_type == 'gaussian' and self.label_smooth_weight > 0:
-            raise ValueError('Attribute `label_smooth_weight` is only '
-                             'used for `standard` mode.')
+        if self.smoothing_type == "gaussian" and self.label_smooth_weight > 0:
+            raise ValueError("Attribute `label_smooth_weight` is only " "used for `standard` mode.")
 
         if self.label_smooth_weight < 0.0 or self.label_smooth_weight > 1.0:
-            raise ValueError('`label_smooth_weight` should be in range [0, 1]')
+            raise ValueError("`label_smooth_weight` should be in range [0, 1]")
 
-    def encode(self,
-               keypoints: np.ndarray,
-               keypoints_visible: Optional[np.ndarray] = None) -> dict:
+    def encode(self, keypoints: np.ndarray, keypoints_visible: Optional[np.ndarray] = None) -> dict:
         """Encoding keypoints into SimCC labels. Note that the original
         keypoint coordinates should be in the input image space.
 
@@ -134,27 +133,22 @@ class SimCCLabel(BaseKeypointCodec):
         if keypoints_visible is None:
             keypoints_visible = np.ones(keypoints.shape[:2], dtype=np.float32)
 
-        if self.smoothing_type == 'gaussian':
-            x_labels, y_labels, keypoint_weights = self._generate_gaussian(
-                keypoints, keypoints_visible)
-        elif self.smoothing_type == 'standard':
-            x_labels, y_labels, keypoint_weights = self._generate_standard(
-                keypoints, keypoints_visible)
+        if self.smoothing_type == "gaussian":
+            x_labels, y_labels, keypoint_weights = self._generate_gaussian(keypoints, keypoints_visible)
+        elif self.smoothing_type == "standard":
+            x_labels, y_labels, keypoint_weights = self._generate_standard(keypoints, keypoints_visible)
         else:
             raise ValueError(
-                f'{self.__class__.__name__} got invalid `smoothing_type` value'
-                f'{self.smoothing_type}. Should be one of '
-                '{"gaussian", "standard"}')
+                f"{self.__class__.__name__} got invalid `smoothing_type` value"
+                f"{self.smoothing_type}. Should be one of "
+                '{"gaussian", "standard"}'
+            )
 
-        encoded = dict(
-            keypoint_x_labels=x_labels,
-            keypoint_y_labels=y_labels,
-            keypoint_weights=keypoint_weights)
+        encoded = dict(keypoint_x_labels=x_labels, keypoint_y_labels=y_labels, keypoint_weights=keypoint_weights)
 
         return encoded
 
-    def decode(self, simcc_x: np.ndarray,
-               simcc_y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def decode(self, simcc_x: np.ndarray, simcc_y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """Decode keypoint coordinates from SimCC representations. The decoded
         coordinates are in the input image space.
 
@@ -183,27 +177,20 @@ class SimCCLabel(BaseKeypointCodec):
             y_blur = int((self.sigma[1] * 20 - 7) // 3)
             x_blur -= int((x_blur % 2) == 0)
             y_blur -= int((y_blur % 2) == 0)
-            keypoints[:, :, 0] = refine_simcc_dark(keypoints[:, :, 0], simcc_x,
-                                                   x_blur)
-            keypoints[:, :, 1] = refine_simcc_dark(keypoints[:, :, 1], simcc_y,
-                                                   y_blur)
+            keypoints[:, :, 0] = refine_simcc_dark(keypoints[:, :, 0], simcc_x, x_blur)
+            keypoints[:, :, 1] = refine_simcc_dark(keypoints[:, :, 1], simcc_y, y_blur)
 
         keypoints /= self.simcc_split_ratio
 
         if self.decode_visibility:
             _, visibility = get_simcc_maximum(
-                simcc_x * self.decode_beta * self.sigma[0],
-                simcc_y * self.decode_beta * self.sigma[1],
-                apply_softmax=True)
+                simcc_x * self.decode_beta * self.sigma[0], simcc_y * self.decode_beta * self.sigma[1], apply_softmax=True
+            )
             return keypoints, (scores, visibility)
         else:
             return keypoints, scores
 
-    def _map_coordinates(
-        self,
-        keypoints: np.ndarray,
-        keypoints_visible: Optional[np.ndarray] = None
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def _map_coordinates(self, keypoints: np.ndarray, keypoints_visible: Optional[np.ndarray] = None) -> Tuple[np.ndarray, np.ndarray]:
         """Mapping keypoint coordinates into SimCC space."""
 
         keypoints_split = keypoints.copy()
@@ -214,9 +201,7 @@ class SimCCLabel(BaseKeypointCodec):
         return keypoints_split, keypoint_weights
 
     def _generate_standard(
-        self,
-        keypoints: np.ndarray,
-        keypoints_visible: Optional[np.ndarray] = None
+        self, keypoints: np.ndarray, keypoints_visible: Optional[np.ndarray] = None
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Encoding keypoints into SimCC labels with Standard Label Smoothing
         strategy.
@@ -229,8 +214,7 @@ class SimCCLabel(BaseKeypointCodec):
         W = np.around(w * self.simcc_split_ratio).astype(int)
         H = np.around(h * self.simcc_split_ratio).astype(int)
 
-        keypoints_split, keypoint_weights = self._map_coordinates(
-            keypoints, keypoints_visible)
+        keypoints_split, keypoint_weights = self._map_coordinates(keypoints, keypoints_visible)
 
         target_x = np.zeros((N, K, W), dtype=np.float32)
         target_y = np.zeros((N, K, H), dtype=np.float32)
@@ -258,9 +242,7 @@ class SimCCLabel(BaseKeypointCodec):
         return target_x, target_y, keypoint_weights
 
     def _generate_gaussian(
-        self,
-        keypoints: np.ndarray,
-        keypoints_visible: Optional[np.ndarray] = None
+        self, keypoints: np.ndarray, keypoints_visible: Optional[np.ndarray] = None
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Encoding keypoints into SimCC labels with Gaussian Label Smoothing
         strategy."""
@@ -270,8 +252,7 @@ class SimCCLabel(BaseKeypointCodec):
         W = np.around(w * self.simcc_split_ratio).astype(int)
         H = np.around(h * self.simcc_split_ratio).astype(int)
 
-        keypoints_split, keypoint_weights = self._map_coordinates(
-            keypoints, keypoints_visible)
+        keypoints_split, keypoint_weights = self._map_coordinates(keypoints, keypoints_visible)
 
         target_x = np.zeros((N, K, W), dtype=np.float32)
         target_y = np.zeros((N, K, H), dtype=np.float32)
@@ -300,8 +281,8 @@ class SimCCLabel(BaseKeypointCodec):
 
             mu_x, mu_y = mu
 
-            target_x[n, k] = np.exp(-((x - mu_x)**2) / (2 * self.sigma[0]**2))
-            target_y[n, k] = np.exp(-((y - mu_y)**2) / (2 * self.sigma[1]**2))
+            target_x[n, k] = np.exp(-((x - mu_x) ** 2) / (2 * self.sigma[0] ** 2))
+            target_y[n, k] = np.exp(-((y - mu_y) ** 2) / (2 * self.sigma[1] ** 2))
 
         if self.normalize:
             norm_value = self.sigma * np.sqrt(np.pi * 2)

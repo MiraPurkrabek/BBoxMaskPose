@@ -5,4 +5,4 @@ from .datasets import *  # noqa
 from .samplers import MultiSourceSampler
 from .transforms import *  # noqa
 
-__all__ = ['build_dataset', 'CombinedDataset', 'MultiSourceSampler']
+__all__ = ["build_dataset", "CombinedDataset", "MultiSourceSampler"]

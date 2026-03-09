@@ -12,8 +12,8 @@ from mmpose.models.necks import GlobalAveragePooling
 from mmpose.models.utils.tta import flip_heatmaps
 from mmpose.registry import KEYPOINT_CODECS, MODELS
 from mmpose.utils.tensor_utils import to_numpy
-from mmpose.utils.typing import (ConfigType, Features, InstanceList,
-                                 OptConfigType, OptSampleList, Predictions)
+from mmpose.utils.typing import ConfigType, Features, InstanceList, OptConfigType, OptSampleList, Predictions
+
 from ..base_head import BaseHead
 from .heatmap_head import HeatmapHead
 
@@ -25,8 +25,7 @@ def make_linear_layers(feat_dims, relu_final=False):
     layers = []
     for i in range(len(feat_dims) - 1):
         layers.append(nn.Linear(feat_dims[i], feat_dims[i + 1]))
-        if i < len(feat_dims) - 2 or \
-                (i == len(feat_dims) - 2 and relu_final):
+        if i < len(feat_dims) - 2 or (i == len(feat_dims) - 2 and relu_final):
             layers.append(nn.ReLU(inplace=True))
     return nn.Sequential(*layers)
 
@@ -53,14 +52,16 @@ class Heatmap3DHead(HeatmapHead):
             :attr:`default_init_cfg` for default settings.
     """
 
-    def __init__(self,
-                 in_channels: Union[int, Sequence[int]],
-                 out_channels: int,
-                 depth_size: int = 64,
-                 deconv_out_channels: OptIntSeq = (256, 256, 256),
-                 deconv_kernel_sizes: OptIntSeq = (4, 4, 4),
-                 final_layer: dict = dict(kernel_size=1),
-                 init_cfg: OptConfigType = None):
+    def __init__(
+        self,
+        in_channels: Union[int, Sequence[int]],
+        out_channels: int,
+        depth_size: int = 64,
+        deconv_out_channels: OptIntSeq = (256, 256, 256),
+        deconv_kernel_sizes: OptIntSeq = (4, 4, 4),
+        final_layer: dict = dict(kernel_size=1),
+        init_cfg: OptConfigType = None,
+    ):
 
         super().__init__(
             in_channels=in_channels,
@@ -68,7 +69,8 @@ class Heatmap3DHead(HeatmapHead):
             deconv_out_channels=deconv_out_channels,
             deconv_kernel_sizes=deconv_kernel_sizes,
             final_layer=final_layer,
-            init_cfg=init_cfg)
+            init_cfg=init_cfg,
+        )
 
         assert out_channels % depth_size == 0
         self.depth_size = depth_size
@@ -104,10 +106,7 @@ class Heatmap1DHead(nn.Module):
             Defaults to ``(512, )``.
     """
 
-    def __init__(self,
-                 in_channels: int = 2048,
-                 heatmap_size: int = 64,
-                 hidden_dims: Sequence[int] = (512, )):
+    def __init__(self, in_channels: int = 2048, heatmap_size: int = 64, hidden_dims: Sequence[int] = (512,)):
 
         super().__init__()
 
@@ -119,9 +118,7 @@ class Heatmap1DHead(nn.Module):
 
     def soft_argmax_1d(self, heatmap1d):
         heatmap1d = F.softmax(heatmap1d, 1)
-        accu = heatmap1d * torch.arange(
-            self.heatmap_size, dtype=heatmap1d.dtype,
-            device=heatmap1d.device)[None, :]
+        accu = heatmap1d * torch.arange(self.heatmap_size, dtype=heatmap1d.dtype, device=heatmap1d.device)[None, :]
         coord = accu.sum(dim=1)
         return coord
 
@@ -156,10 +153,7 @@ class MultilabelClassificationHead(nn.Module):
             Defaults to ``(512, )``.
     """
 
-    def __init__(self,
-                 in_channels: int = 2048,
-                 num_labels: int = 2,
-                 hidden_dims: Sequence[int] = (512, )):
+    def __init__(self, in_channels: int = 2048, num_labels: int = 2, hidden_dims: Sequence[int] = (512,)):
 
         super().__init__()
 
@@ -206,18 +200,17 @@ class InternetHead(BaseHead):
 
     _version = 2
 
-    def __init__(self,
-                 keypoint_head_cfg: ConfigType,
-                 root_head_cfg: ConfigType,
-                 hand_type_head_cfg: ConfigType,
-                 loss: ConfigType = dict(
-                     type='KeypointMSELoss', use_target_weight=True),
-                 loss_root_depth: ConfigType = dict(
-                     type='L1Loss', use_target_weight=True),
-                 loss_hand_type: ConfigType = dict(
-                     type='BCELoss', use_target_weight=True),
-                 decoder: OptConfigType = None,
-                 init_cfg: OptConfigType = None):
+    def __init__(
+        self,
+        keypoint_head_cfg: ConfigType,
+        root_head_cfg: ConfigType,
+        hand_type_head_cfg: ConfigType,
+        loss: ConfigType = dict(type="KeypointMSELoss", use_target_weight=True),
+        loss_root_depth: ConfigType = dict(type="L1Loss", use_target_weight=True),
+        loss_hand_type: ConfigType = dict(type="BCELoss", use_target_weight=True),
+        decoder: OptConfigType = None,
+        init_cfg: OptConfigType = None,
+    ):
 
         super().__init__()
 
@@ -225,8 +218,7 @@ class InternetHead(BaseHead):
         self.right_hand_head = Heatmap3DHead(**keypoint_head_cfg)
         self.left_hand_head = Heatmap3DHead(**keypoint_head_cfg)
         self.root_head = Heatmap1DHead(**root_head_cfg)
-        self.hand_type_head = MultilabelClassificationHead(
-            **hand_type_head_cfg)
+        self.hand_type_head = MultilabelClassificationHead(**hand_type_head_cfg)
         self.neck = GlobalAveragePooling()
 
         self.loss_module = MODELS.build(loss)
@@ -251,18 +243,13 @@ class InternetHead(BaseHead):
         """
         x = feats[-1]
         outputs = []
-        outputs.append(
-            torch.cat([self.right_hand_head(x),
-                       self.left_hand_head(x)], dim=1))
+        outputs.append(torch.cat([self.right_hand_head(x), self.left_hand_head(x)], dim=1))
         x = self.neck(x)
         outputs.append(self.root_head(x))
         outputs.append(self.hand_type_head(x))
         return outputs
 
-    def predict(self,
-                feats: Features,
-                batch_data_samples: OptSampleList,
-                test_cfg: ConfigType = {}) -> Predictions:
+    def predict(self, feats: Features, batch_data_samples: OptSampleList, test_cfg: ConfigType = {}) -> Predictions:
         """Predict results from features.
 
         Args:
@@ -286,10 +273,10 @@ class InternetHead(BaseHead):
                     shape (num_instances, K)
         """
 
-        if test_cfg.get('flip_test', False):
+        if test_cfg.get("flip_test", False):
             # TTA: flip test -> feats = [orig, flipped]
             assert isinstance(feats, list) and len(feats) == 2
-            flip_indices = batch_data_samples[0].metainfo['flip_indices']
+            flip_indices = batch_data_samples[0].metainfo["flip_indices"]
             _feats, _feats_flip = feats
             _batch_outputs = self.forward(_feats)
             _batch_heatmaps = _batch_outputs[0]
@@ -297,9 +284,10 @@ class InternetHead(BaseHead):
             _batch_outputs_flip = self.forward(_feats_flip)
             _batch_heatmaps_flip = flip_heatmaps(
                 _batch_outputs_flip[0],
-                flip_mode=test_cfg.get('flip_mode', 'heatmap'),
+                flip_mode=test_cfg.get("flip_mode", "heatmap"),
                 flip_indices=flip_indices,
-                shift_heatmap=test_cfg.get('shift_heatmap', False))
+                shift_heatmap=test_cfg.get("shift_heatmap", False),
+            )
 
             batch_heatmaps = (_batch_heatmaps + _batch_heatmaps_flip) * 0.5
 
@@ -324,10 +312,7 @@ class InternetHead(BaseHead):
 
         return preds
 
-    def loss(self,
-             feats: Tuple[Tensor],
-             batch_data_samples: OptSampleList,
-             train_cfg: ConfigType = {}) -> dict:
+    def loss(self, feats: Tuple[Tensor], batch_data_samples: OptSampleList, train_cfg: ConfigType = {}) -> dict:
         """Calculate losses from a batch of inputs and data samples.
 
         Args:
@@ -343,13 +328,8 @@ class InternetHead(BaseHead):
         pred_fields = self.forward(feats)
         pred_heatmaps = pred_fields[0]
         _, K, D, W, H = pred_heatmaps.shape
-        gt_heatmaps = torch.stack([
-            d.gt_fields.heatmaps.reshape(K, D, W, H)
-            for d in batch_data_samples
-        ])
-        keypoint_weights = torch.cat([
-            d.gt_instance_labels.keypoint_weights for d in batch_data_samples
-        ])
+        gt_heatmaps = torch.stack([d.gt_fields.heatmaps.reshape(K, D, W, H) for d in batch_data_samples])
+        keypoint_weights = torch.cat([d.gt_instance_labels.keypoint_weights for d in batch_data_samples])
 
         # calculate losses
         losses = dict()
@@ -359,39 +339,27 @@ class InternetHead(BaseHead):
         losses.update(loss_kpt=loss)
 
         # relative root depth loss
-        gt_roots = torch.stack(
-            [d.gt_instance_labels.root_depth for d in batch_data_samples])
-        root_weights = torch.stack([
-            d.gt_instance_labels.root_depth_weight for d in batch_data_samples
-        ])
-        loss_root = self.root_loss_module(pred_fields[1], gt_roots,
-                                          root_weights)
+        gt_roots = torch.stack([d.gt_instance_labels.root_depth for d in batch_data_samples])
+        root_weights = torch.stack([d.gt_instance_labels.root_depth_weight for d in batch_data_samples])
+        loss_root = self.root_loss_module(pred_fields[1], gt_roots, root_weights)
         losses.update(loss_rel_root=loss_root)
 
         # hand type loss
-        gt_types = torch.stack([
-            d.gt_instance_labels.type.reshape(-1) for d in batch_data_samples
-        ])
-        type_weights = torch.stack(
-            [d.gt_instance_labels.type_weight for d in batch_data_samples])
-        loss_type = self.hand_loss_module(pred_fields[2], gt_types,
-                                          type_weights)
+        gt_types = torch.stack([d.gt_instance_labels.type.reshape(-1) for d in batch_data_samples])
+        type_weights = torch.stack([d.gt_instance_labels.type_weight for d in batch_data_samples])
+        loss_type = self.hand_loss_module(pred_fields[2], gt_types, type_weights)
         losses.update(loss_hand_type=loss_type)
 
         # calculate accuracy
-        if train_cfg.get('compute_acc', True):
-            acc = multilabel_classification_accuracy(
-                pred=to_numpy(pred_fields[2]),
-                gt=to_numpy(gt_types),
-                mask=to_numpy(type_weights))
+        if train_cfg.get("compute_acc", True):
+            acc = multilabel_classification_accuracy(pred=to_numpy(pred_fields[2]), gt=to_numpy(gt_types), mask=to_numpy(type_weights))
 
             acc_pose = torch.tensor(acc, device=gt_types.device)
             losses.update(acc_pose=acc_pose)
 
         return losses
 
-    def decode(self, batch_outputs: Union[Tensor,
-                                          Tuple[Tensor]]) -> InstanceList:
+    def decode(self, batch_outputs: Union[Tensor, Tuple[Tensor]]) -> InstanceList:
         """Decode keypoints from outputs.
 
         Args:
@@ -405,14 +373,15 @@ class InternetHead(BaseHead):
 
         def _pack_and_call(args, func):
             if not isinstance(args, tuple):
-                args = (args, )
+                args = (args,)
             return func(*args)
 
         if self.decoder is None:
             raise RuntimeError(
-                f'The decoder has not been set in {self.__class__.__name__}. '
-                'Please set the decoder configs in the init parameters to '
-                'enable head methods `head.predict()` and `head.decode()`')
+                f"The decoder has not been set in {self.__class__.__name__}. "
+                "Please set the decoder configs in the init parameters to "
+                "enable head methods `head.predict()` and `head.decode()`"
+            )
 
         batch_output_np = to_numpy(batch_outputs[0], unzip=True)
         batch_root_np = to_numpy(batch_outputs[1], unzip=True)
@@ -421,23 +390,16 @@ class InternetHead(BaseHead):
         batch_scores = []
         batch_roots = []
         batch_types = []
-        for outputs, roots, types in zip(batch_output_np, batch_root_np,
-                                         batch_type_np):
-            keypoints, scores, rel_root_depth, hand_type = _pack_and_call(
-                tuple([outputs, roots, types]), self.decoder.decode)
+        for outputs, roots, types in zip(batch_output_np, batch_root_np, batch_type_np):
+            keypoints, scores, rel_root_depth, hand_type = _pack_and_call(tuple([outputs, roots, types]), self.decoder.decode)
             batch_keypoints.append(keypoints)
             batch_scores.append(scores)
             batch_roots.append(rel_root_depth)
             batch_types.append(hand_type)
 
         preds = [
-            InstanceData(
-                keypoints=keypoints,
-                keypoint_scores=scores,
-                rel_root_depth=rel_root_depth,
-                hand_type=hand_type)
-            for keypoints, scores, rel_root_depth, hand_type in zip(
-                batch_keypoints, batch_scores, batch_roots, batch_types)
+            InstanceData(keypoints=keypoints, keypoint_scores=scores, rel_root_depth=rel_root_depth, hand_type=hand_type)
+            for keypoints, scores, rel_root_depth, hand_type in zip(batch_keypoints, batch_scores, batch_roots, batch_types)
         ]
 
         return preds

@@ -19,8 +19,7 @@ class FFN(BaseModule):
         num_layers (int): Number of FFN layers..
     """
 
-    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int,
-                 num_layers: int) -> None:
+    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int, num_layers: int) -> None:
         super().__init__()
 
         self.num_layers = num_layers
@@ -53,19 +52,14 @@ class PositionEmbeddingSineHW(BaseModule):
     to the one used by the Attention is all you need paper, generalized to work
     on images."""
 
-    def __init__(self,
-                 num_pos_feats=64,
-                 temperatureH=10000,
-                 temperatureW=10000,
-                 normalize=False,
-                 scale=None):
+    def __init__(self, num_pos_feats=64, temperatureH=10000, temperatureW=10000, normalize=False, scale=None):
         super().__init__()
         self.num_pos_feats = num_pos_feats
         self.temperatureH = temperatureH
         self.temperatureW = temperatureW
         self.normalize = normalize
         if scale is not None and normalize is False:
-            raise ValueError('normalize should be True if scale is passed')
+            raise ValueError("normalize should be True if scale is passed")
         if scale is None:
             scale = 2 * math.pi
         self.scale = scale
@@ -82,22 +76,16 @@ class PositionEmbeddingSineHW(BaseModule):
             y_embed = y_embed / (y_embed[:, -1:, :] + eps) * self.scale
             x_embed = x_embed / (x_embed[:, :, -1:] + eps) * self.scale
 
-        dim_tx = torch.arange(
-            self.num_pos_feats, dtype=torch.float32, device=mask.device)
-        dim_tx = self.temperatureW**(2 * (dim_tx // 2) / self.num_pos_feats)
+        dim_tx = torch.arange(self.num_pos_feats, dtype=torch.float32, device=mask.device)
+        dim_tx = self.temperatureW ** (2 * (dim_tx // 2) / self.num_pos_feats)
         pos_x = x_embed[:, :, :, None] / dim_tx
 
-        dim_ty = torch.arange(
-            self.num_pos_feats, dtype=torch.float32, device=mask.device)
-        dim_ty = self.temperatureH**(2 * (dim_ty // 2) / self.num_pos_feats)
+        dim_ty = torch.arange(self.num_pos_feats, dtype=torch.float32, device=mask.device)
+        dim_ty = self.temperatureH ** (2 * (dim_ty // 2) / self.num_pos_feats)
         pos_y = y_embed[:, :, :, None] / dim_ty
 
-        pos_x = torch.stack(
-            (pos_x[:, :, :, 0::2].sin(), pos_x[:, :, :, 1::2].cos()),
-            dim=4).flatten(3)
-        pos_y = torch.stack(
-            (pos_y[:, :, :, 0::2].sin(), pos_y[:, :, :, 1::2].cos()),
-            dim=4).flatten(3)
+        pos_x = torch.stack((pos_x[:, :, :, 0::2].sin(), pos_x[:, :, :, 1::2].cos()), dim=4).flatten(3)
+        pos_y = torch.stack((pos_y[:, :, :, 0::2].sin(), pos_y[:, :, :, 1::2].cos()), dim=4).flatten(3)
         pos = torch.cat((pos_y, pos_x), dim=3).permute(0, 3, 1, 2)
 
         return pos

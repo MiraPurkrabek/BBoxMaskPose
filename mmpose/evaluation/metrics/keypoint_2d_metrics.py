@@ -7,8 +7,8 @@ from mmengine.evaluator import BaseMetric
 from mmengine.logging import MMLogger
 
 from mmpose.registry import METRICS
-from ..functional import (keypoint_auc, keypoint_epe, keypoint_nme,
-                          keypoint_pck_accuracy)
+
+from ..functional import keypoint_auc, keypoint_epe, keypoint_nme, keypoint_pck_accuracy
 
 
 @METRICS.register_module()
@@ -67,26 +67,22 @@ class PCKAccuracy(BaseMetric):
 
     """
 
-    def __init__(self,
-                 thr: float = 0.05,
-                 norm_item: Union[str, Sequence[str]] = 'bbox',
-                 collect_device: str = 'cpu',
-                 prefix: Optional[str] = None) -> None:
+    def __init__(
+        self, thr: float = 0.05, norm_item: Union[str, Sequence[str]] = "bbox", collect_device: str = "cpu", prefix: Optional[str] = None
+    ) -> None:
         super().__init__(collect_device=collect_device, prefix=prefix)
         self.thr = thr
-        self.norm_item = norm_item if isinstance(norm_item,
-                                                 (tuple,
-                                                  list)) else [norm_item]
-        allow_normalized_items = ['bbox', 'head', 'torso']
+        self.norm_item = norm_item if isinstance(norm_item, (tuple, list)) else [norm_item]
+        allow_normalized_items = ["bbox", "head", "torso"]
         for item in self.norm_item:
             if item not in allow_normalized_items:
                 raise KeyError(
-                    f'The normalized item {item} is not supported by '
+                    f"The normalized item {item} is not supported by "
                     f"{self.__class__.__name__}. Should be one of 'bbox', "
-                    f"'head', 'torso', but got {item}.")
+                    f"'head', 'torso', but got {item}."
+                )
 
-    def process(self, data_batch: Sequence[dict],
-                data_samples: Sequence[dict]) -> None:
+    def process(self, data_batch: Sequence[dict], data_samples: Sequence[dict]) -> None:
         """Process one batch of data samples and predictions.
 
         The processed
@@ -100,51 +96,45 @@ class PCKAccuracy(BaseMetric):
         """
         for data_sample in data_samples:
             # predicted keypoints coordinates, [1, K, D]
-            pred_coords = data_sample['pred_instances']['keypoints']
+            pred_coords = data_sample["pred_instances"]["keypoints"]
             # ground truth data_info
-            gt = data_sample['gt_instances']
+            gt = data_sample["gt_instances"]
             # ground truth keypoints coordinates, [1, K, D]
-            gt_coords = gt['keypoints']
+            gt_coords = gt["keypoints"]
             # ground truth keypoints_visible, [1, K, 1]
-            mask = gt['keypoints_visible'].astype(bool)
+            mask = gt["keypoints_visible"].astype(bool)
             if mask.ndim == 3:
                 mask = mask[:, :, 0]
             mask = mask.reshape(1, -1)
 
             result = {
-                'pred_coords': pred_coords,
-                'gt_coords': gt_coords,
-                'mask': mask,
+                "pred_coords": pred_coords,
+                "gt_coords": gt_coords,
+                "mask": mask,
             }
 
-            if 'bbox' in self.norm_item:
-                assert 'bboxes' in gt, 'The ground truth data info do not ' \
-                    'have the expected normalized_item ``"bbox"``.'
+            if "bbox" in self.norm_item:
+                assert "bboxes" in gt, "The ground truth data info do not " 'have the expected normalized_item ``"bbox"``.'
                 # ground truth bboxes, [1, 4]
-                bbox_size_ = np.max(gt['bboxes'][0][2:] - gt['bboxes'][0][:2])
+                bbox_size_ = np.max(gt["bboxes"][0][2:] - gt["bboxes"][0][:2])
                 bbox_size = np.array([bbox_size_, bbox_size_]).reshape(-1, 2)
-                result['bbox_size'] = bbox_size
+                result["bbox_size"] = bbox_size
 
-            if 'head' in self.norm_item:
-                assert 'head_size' in gt, 'The ground truth data info do ' \
-                    'not have the expected normalized_item ``"head_size"``.'
+            if "head" in self.norm_item:
+                assert "head_size" in gt, "The ground truth data info do " 'not have the expected normalized_item ``"head_size"``.'
                 # ground truth bboxes
-                head_size_ = gt['head_size']
+                head_size_ = gt["head_size"]
                 head_size = np.array([head_size_, head_size_]).reshape(-1, 2)
-                result['head_size'] = head_size
+                result["head_size"] = head_size
 
-            if 'torso' in self.norm_item:
+            if "torso" in self.norm_item:
                 # used in JhmdbDataset
                 torso_size_ = np.linalg.norm(gt_coords[0][4] - gt_coords[0][5])
                 if torso_size_ < 1:
-                    torso_size_ = np.linalg.norm(pred_coords[0][4] -
-                                                 pred_coords[0][5])
-                    warnings.warn('Ground truth torso size < 1. '
-                                  'Use torso size from predicted '
-                                  'keypoint results instead.')
-                torso_size = np.array([torso_size_,
-                                       torso_size_]).reshape(-1, 2)
-                result['torso_size'] = torso_size
+                    torso_size_ = np.linalg.norm(pred_coords[0][4] - pred_coords[0][5])
+                    warnings.warn("Ground truth torso size < 1. " "Use torso size from predicted " "keypoint results instead.")
+                torso_size = np.array([torso_size_, torso_size_]).reshape(-1, 2)
+                result["torso_size"] = torso_size
 
             self.results.append(result)
 
@@ -164,46 +154,36 @@ class PCKAccuracy(BaseMetric):
         logger: MMLogger = MMLogger.get_current_instance()
 
         # pred_coords: [N, K, D]
-        pred_coords = np.concatenate(
-            [result['pred_coords'] for result in results])
+        pred_coords = np.concatenate([result["pred_coords"] for result in results])
         # gt_coords: [N, K, D]
-        gt_coords = np.concatenate([result['gt_coords'] for result in results])
+        gt_coords = np.concatenate([result["gt_coords"] for result in results])
         # mask: [N, K]
-        mask = np.concatenate([result['mask'] for result in results])
+        mask = np.concatenate([result["mask"] for result in results])
 
         metrics = dict()
-        if 'bbox' in self.norm_item:
-            norm_size_bbox = np.concatenate(
-                [result['bbox_size'] for result in results])
+        if "bbox" in self.norm_item:
+            norm_size_bbox = np.concatenate([result["bbox_size"] for result in results])
 
-            logger.info(f'Evaluating {self.__class__.__name__} '
-                        f'(normalized by ``"bbox_size"``)...')
+            logger.info(f"Evaluating {self.__class__.__name__} " f'(normalized by ``"bbox_size"``)...')
 
-            _, pck, _ = keypoint_pck_accuracy(pred_coords, gt_coords, mask,
-                                              self.thr, norm_size_bbox)
-            metrics['PCK'] = pck
+            _, pck, _ = keypoint_pck_accuracy(pred_coords, gt_coords, mask, self.thr, norm_size_bbox)
+            metrics["PCK"] = pck
 
-        if 'head' in self.norm_item:
-            norm_size_head = np.concatenate(
-                [result['head_size'] for result in results])
+        if "head" in self.norm_item:
+            norm_size_head = np.concatenate([result["head_size"] for result in results])
 
-            logger.info(f'Evaluating {self.__class__.__name__} '
-                        f'(normalized by ``"head_size"``)...')
+            logger.info(f"Evaluating {self.__class__.__name__} " f'(normalized by ``"head_size"``)...')
 
-            _, pckh, _ = keypoint_pck_accuracy(pred_coords, gt_coords, mask,
-                                               self.thr, norm_size_head)
-            metrics['PCKh'] = pckh
+            _, pckh, _ = keypoint_pck_accuracy(pred_coords, gt_coords, mask, self.thr, norm_size_head)
+            metrics["PCKh"] = pckh
 
-        if 'torso' in self.norm_item:
-            norm_size_torso = np.concatenate(
-                [result['torso_size'] for result in results])
+        if "torso" in self.norm_item:
+            norm_size_torso = np.concatenate([result["torso_size"] for result in results])
 
-            logger.info(f'Evaluating {self.__class__.__name__} '
-                        f'(normalized by ``"torso_size"``)...')
+            logger.info(f"Evaluating {self.__class__.__name__} " f'(normalized by ``"torso_size"``)...')
 
-            _, tpck, _ = keypoint_pck_accuracy(pred_coords, gt_coords, mask,
-                                               self.thr, norm_size_torso)
-            metrics['tPCK'] = tpck
+            _, tpck, _ = keypoint_pck_accuracy(pred_coords, gt_coords, mask, self.thr, norm_size_torso)
+            metrics["tPCK"] = tpck
 
         return metrics
 
@@ -268,16 +248,10 @@ class MpiiPCKAccuracy(PCKAccuracy):
         'Ankle PCK': 100.0, 'PCK': 100.0, 'PCK@0.1': 100.0}
     """
 
-    def __init__(self,
-                 thr: float = 0.5,
-                 norm_item: Union[str, Sequence[str]] = 'head',
-                 collect_device: str = 'cpu',
-                 prefix: Optional[str] = None) -> None:
-        super().__init__(
-            thr=thr,
-            norm_item=norm_item,
-            collect_device=collect_device,
-            prefix=prefix)
+    def __init__(
+        self, thr: float = 0.5, norm_item: Union[str, Sequence[str]] = "head", collect_device: str = "cpu", prefix: Optional[str] = None
+    ) -> None:
+        super().__init__(thr=thr, norm_item=norm_item, collect_device=collect_device, prefix=prefix)
 
     def compute_metrics(self, results: list) -> Dict[str, float]:
         """Compute the metrics from processed results.
@@ -303,39 +277,33 @@ class MpiiPCKAccuracy(PCKAccuracy):
         logger: MMLogger = MMLogger.get_current_instance()
 
         # pred_coords: [N, K, D]
-        pred_coords = np.concatenate(
-            [result['pred_coords'] for result in results])
+        pred_coords = np.concatenate([result["pred_coords"] for result in results])
         # gt_coords: [N, K, D]
-        gt_coords = np.concatenate([result['gt_coords'] for result in results])
+        gt_coords = np.concatenate([result["gt_coords"] for result in results])
         # mask: [N, K]
-        mask = np.concatenate([result['mask'] for result in results])
+        mask = np.concatenate([result["mask"] for result in results])
 
         # MPII uses matlab format, gt index is 1-based,
         # convert 0-based index to 1-based index
         pred_coords = pred_coords + 1.0
 
         metrics = {}
-        if 'head' in self.norm_item:
-            norm_size_head = np.concatenate(
-                [result['head_size'] for result in results])
+        if "head" in self.norm_item:
+            norm_size_head = np.concatenate([result["head_size"] for result in results])
 
-            logger.info(f'Evaluating {self.__class__.__name__} '
-                        f'(normalized by ``"head_size"``)...')
+            logger.info(f"Evaluating {self.__class__.__name__} " f'(normalized by ``"head_size"``)...')
 
-            pck_p, _, _ = keypoint_pck_accuracy(pred_coords, gt_coords, mask,
-                                                self.thr, norm_size_head)
+            pck_p, _, _ = keypoint_pck_accuracy(pred_coords, gt_coords, mask, self.thr, norm_size_head)
 
             jnt_count = np.sum(mask, axis=0)
-            PCKh = 100. * pck_p
+            PCKh = 100.0 * pck_p
 
             rng = np.arange(0, 0.5 + 0.01, 0.01)
             pckAll = np.zeros((len(rng), 16), dtype=np.float32)
 
             for r, threshold in enumerate(rng):
-                _pck, _, _ = keypoint_pck_accuracy(pred_coords, gt_coords,
-                                                   mask, threshold,
-                                                   norm_size_head)
-                pckAll[r, :] = 100. * _pck
+                _pck, _, _ = keypoint_pck_accuracy(pred_coords, gt_coords, mask, threshold, norm_size_head)
+                pckAll[r, :] = 100.0 * _pck
 
             PCKh = np.ma.array(PCKh, mask=False)
             PCKh.mask[6:8] = True
@@ -353,15 +321,15 @@ class MpiiPCKAccuracy(PCKAccuracy):
             #   lkne 4   rkne 1
             #   lank 5   rank 0
             stats = {
-                'Head PCK': PCKh[9],
-                'Shoulder PCK': 0.5 * (PCKh[13] + PCKh[12]),
-                'Elbow PCK': 0.5 * (PCKh[14] + PCKh[11]),
-                'Wrist PCK': 0.5 * (PCKh[15] + PCKh[10]),
-                'Hip PCK': 0.5 * (PCKh[3] + PCKh[2]),
-                'Knee PCK': 0.5 * (PCKh[4] + PCKh[1]),
-                'Ankle PCK': 0.5 * (PCKh[5] + PCKh[0]),
-                'PCK': np.sum(PCKh * jnt_ratio),
-                'PCK@0.1': np.sum(pckAll[10, :] * jnt_ratio)
+                "Head PCK": PCKh[9],
+                "Shoulder PCK": 0.5 * (PCKh[13] + PCKh[12]),
+                "Elbow PCK": 0.5 * (PCKh[14] + PCKh[11]),
+                "Wrist PCK": 0.5 * (PCKh[15] + PCKh[10]),
+                "Hip PCK": 0.5 * (PCKh[3] + PCKh[2]),
+                "Knee PCK": 0.5 * (PCKh[4] + PCKh[1]),
+                "Ankle PCK": 0.5 * (PCKh[5] + PCKh[0]),
+                "PCK": np.sum(PCKh * jnt_ratio),
+                "PCK@0.1": np.sum(pckAll[10, :] * jnt_ratio),
             }
 
             for stats_name, stat in stats.items():
@@ -433,16 +401,10 @@ class JhmdbPCKAccuracy(PCKAccuracy):
         'Hip tPCK': 1.0, 'Knee tPCK': 1.0, 'Ank tPCK': 1.0, 'tPCK': 1.0}
     """
 
-    def __init__(self,
-                 thr: float = 0.05,
-                 norm_item: Union[str, Sequence[str]] = 'bbox',
-                 collect_device: str = 'cpu',
-                 prefix: Optional[str] = None) -> None:
-        super().__init__(
-            thr=thr,
-            norm_item=norm_item,
-            collect_device=collect_device,
-            prefix=prefix)
+    def __init__(
+        self, thr: float = 0.05, norm_item: Union[str, Sequence[str]] = "bbox", collect_device: str = "cpu", prefix: Optional[str] = None
+    ) -> None:
+        super().__init__(thr=thr, norm_item=norm_item, collect_device=collect_device, prefix=prefix)
 
     def compute_metrics(self, results: list) -> Dict[str, float]:
         """Compute the metrics from processed results.
@@ -477,56 +439,49 @@ class JhmdbPCKAccuracy(PCKAccuracy):
         logger: MMLogger = MMLogger.get_current_instance()
 
         # pred_coords: [N, K, D]
-        pred_coords = np.concatenate(
-            [result['pred_coords'] for result in results])
+        pred_coords = np.concatenate([result["pred_coords"] for result in results])
         # gt_coords: [N, K, D]
-        gt_coords = np.concatenate([result['gt_coords'] for result in results])
+        gt_coords = np.concatenate([result["gt_coords"] for result in results])
         # mask: [N, K]
-        mask = np.concatenate([result['mask'] for result in results])
+        mask = np.concatenate([result["mask"] for result in results])
 
         metrics = dict()
-        if 'bbox' in self.norm_item:
-            norm_size_bbox = np.concatenate(
-                [result['bbox_size'] for result in results])
+        if "bbox" in self.norm_item:
+            norm_size_bbox = np.concatenate([result["bbox_size"] for result in results])
 
-            logger.info(f'Evaluating {self.__class__.__name__} '
-                        f'(normalized by ``"bbox_size"``)...')
+            logger.info(f"Evaluating {self.__class__.__name__} " f'(normalized by ``"bbox_size"``)...')
 
-            pck_p, pck, _ = keypoint_pck_accuracy(pred_coords, gt_coords, mask,
-                                                  self.thr, norm_size_bbox)
+            pck_p, pck, _ = keypoint_pck_accuracy(pred_coords, gt_coords, mask, self.thr, norm_size_bbox)
             stats = {
-                'Head PCK': pck_p[2],
-                'Sho PCK': 0.5 * pck_p[3] + 0.5 * pck_p[4],
-                'Elb PCK': 0.5 * pck_p[7] + 0.5 * pck_p[8],
-                'Wri PCK': 0.5 * pck_p[11] + 0.5 * pck_p[12],
-                'Hip PCK': 0.5 * pck_p[5] + 0.5 * pck_p[6],
-                'Knee PCK': 0.5 * pck_p[9] + 0.5 * pck_p[10],
-                'Ank PCK': 0.5 * pck_p[13] + 0.5 * pck_p[14],
-                'PCK': pck
+                "Head PCK": pck_p[2],
+                "Sho PCK": 0.5 * pck_p[3] + 0.5 * pck_p[4],
+                "Elb PCK": 0.5 * pck_p[7] + 0.5 * pck_p[8],
+                "Wri PCK": 0.5 * pck_p[11] + 0.5 * pck_p[12],
+                "Hip PCK": 0.5 * pck_p[5] + 0.5 * pck_p[6],
+                "Knee PCK": 0.5 * pck_p[9] + 0.5 * pck_p[10],
+                "Ank PCK": 0.5 * pck_p[13] + 0.5 * pck_p[14],
+                "PCK": pck,
             }
 
             for stats_name, stat in stats.items():
                 metrics[stats_name] = stat
 
-        if 'torso' in self.norm_item:
-            norm_size_torso = np.concatenate(
-                [result['torso_size'] for result in results])
+        if "torso" in self.norm_item:
+            norm_size_torso = np.concatenate([result["torso_size"] for result in results])
 
-            logger.info(f'Evaluating {self.__class__.__name__} '
-                        f'(normalized by ``"torso_size"``)...')
+            logger.info(f"Evaluating {self.__class__.__name__} " f'(normalized by ``"torso_size"``)...')
 
-            pck_p, pck, _ = keypoint_pck_accuracy(pred_coords, gt_coords, mask,
-                                                  self.thr, norm_size_torso)
+            pck_p, pck, _ = keypoint_pck_accuracy(pred_coords, gt_coords, mask, self.thr, norm_size_torso)
 
             stats = {
-                'Head tPCK': pck_p[2],
-                'Sho tPCK': 0.5 * pck_p[3] + 0.5 * pck_p[4],
-                'Elb tPCK': 0.5 * pck_p[7] + 0.5 * pck_p[8],
-                'Wri tPCK': 0.5 * pck_p[11] + 0.5 * pck_p[12],
-                'Hip tPCK': 0.5 * pck_p[5] + 0.5 * pck_p[6],
-                'Knee tPCK': 0.5 * pck_p[9] + 0.5 * pck_p[10],
-                'Ank tPCK': 0.5 * pck_p[13] + 0.5 * pck_p[14],
-                'tPCK': pck
+                "Head tPCK": pck_p[2],
+                "Sho tPCK": 0.5 * pck_p[3] + 0.5 * pck_p[4],
+                "Elb tPCK": 0.5 * pck_p[7] + 0.5 * pck_p[8],
+                "Wri tPCK": 0.5 * pck_p[11] + 0.5 * pck_p[12],
+                "Hip tPCK": 0.5 * pck_p[5] + 0.5 * pck_p[6],
+                "Knee tPCK": 0.5 * pck_p[9] + 0.5 * pck_p[10],
+                "Ank tPCK": 0.5 * pck_p[13] + 0.5 * pck_p[14],
+                "tPCK": pck,
             }
 
             for stats_name, stat in stats.items():
@@ -561,17 +516,12 @@ class AUC(BaseMetric):
             will be used instead. Default: ``None``.
     """
 
-    def __init__(self,
-                 norm_factor: float = 30,
-                 num_thrs: int = 20,
-                 collect_device: str = 'cpu',
-                 prefix: Optional[str] = None) -> None:
+    def __init__(self, norm_factor: float = 30, num_thrs: int = 20, collect_device: str = "cpu", prefix: Optional[str] = None) -> None:
         super().__init__(collect_device=collect_device, prefix=prefix)
         self.norm_factor = norm_factor
         self.num_thrs = num_thrs
 
-    def process(self, data_batch: Sequence[dict],
-                data_samples: Sequence[dict]) -> None:
+    def process(self, data_batch: Sequence[dict], data_samples: Sequence[dict]) -> None:
         """Process one batch of data samples and predictions. The processed
         results should be stored in ``self.results``, which will be used to
         compute the metrics when all batches have been processed.
@@ -584,21 +534,21 @@ class AUC(BaseMetric):
         """
         for data_sample in data_samples:
             # predicted keypoints coordinates, [1, K, D]
-            pred_coords = data_sample['pred_instances']['keypoints']
+            pred_coords = data_sample["pred_instances"]["keypoints"]
             # ground truth data_info
-            gt = data_sample['gt_instances']
+            gt = data_sample["gt_instances"]
             # ground truth keypoints coordinates, [1, K, D]
-            gt_coords = gt['keypoints']
+            gt_coords = gt["keypoints"]
             # ground truth keypoints_visible, [1, K, 1]
-            mask = gt['keypoints_visible'].astype(bool)
+            mask = gt["keypoints_visible"].astype(bool)
             if mask.ndim == 3:
                 mask = mask[:, :, 0]
             mask = mask.reshape(1, -1)
 
             result = {
-                'pred_coords': pred_coords,
-                'gt_coords': gt_coords,
-                'mask': mask,
+                "pred_coords": pred_coords,
+                "gt_coords": gt_coords,
+                "mask": mask,
             }
 
             self.results.append(result)
@@ -616,20 +566,18 @@ class AUC(BaseMetric):
         logger: MMLogger = MMLogger.get_current_instance()
 
         # pred_coords: [N, K, D]
-        pred_coords = np.concatenate(
-            [result['pred_coords'] for result in results])
+        pred_coords = np.concatenate([result["pred_coords"] for result in results])
         # gt_coords: [N, K, D]
-        gt_coords = np.concatenate([result['gt_coords'] for result in results])
+        gt_coords = np.concatenate([result["gt_coords"] for result in results])
         # mask: [N, K]
-        mask = np.concatenate([result['mask'] for result in results])
+        mask = np.concatenate([result["mask"] for result in results])
 
-        logger.info(f'Evaluating {self.__class__.__name__}...')
+        logger.info(f"Evaluating {self.__class__.__name__}...")
 
-        auc = keypoint_auc(pred_coords, gt_coords, mask, self.norm_factor,
-                           self.num_thrs)
+        auc = keypoint_auc(pred_coords, gt_coords, mask, self.norm_factor, self.num_thrs)
 
         metrics = dict()
-        metrics['AUC'] = auc
+        metrics["AUC"] = auc
 
         return metrics
 
@@ -655,8 +603,7 @@ class EPE(BaseMetric):
             will be used instead. Default: ``None``.
     """
 
-    def process(self, data_batch: Sequence[dict],
-                data_samples: Sequence[dict]) -> None:
+    def process(self, data_batch: Sequence[dict], data_samples: Sequence[dict]) -> None:
         """Process one batch of data samples and predictions. The processed
         results should be stored in ``self.results``, which will be used to
         compute the metrics when all batches have been processed.
@@ -669,21 +616,21 @@ class EPE(BaseMetric):
         """
         for data_sample in data_samples:
             # predicted keypoints coordinates, [1, K, D]
-            pred_coords = data_sample['pred_instances']['keypoints']
+            pred_coords = data_sample["pred_instances"]["keypoints"]
             # ground truth data_info
-            gt = data_sample['gt_instances']
+            gt = data_sample["gt_instances"]
             # ground truth keypoints coordinates, [1, K, D]
-            gt_coords = gt['keypoints']
+            gt_coords = gt["keypoints"]
             # ground truth keypoints_visible, [1, K, 1]
-            mask = gt['keypoints_visible'].astype(bool)
+            mask = gt["keypoints_visible"].astype(bool)
             if mask.ndim == 3:
                 mask = mask[:, :, 0]
             mask = mask.reshape(1, -1)
 
             result = {
-                'pred_coords': pred_coords,
-                'gt_coords': gt_coords,
-                'mask': mask,
+                "pred_coords": pred_coords,
+                "gt_coords": gt_coords,
+                "mask": mask,
             }
 
             self.results.append(result)
@@ -701,19 +648,18 @@ class EPE(BaseMetric):
         logger: MMLogger = MMLogger.get_current_instance()
 
         # pred_coords: [N, K, D]
-        pred_coords = np.concatenate(
-            [result['pred_coords'] for result in results])
+        pred_coords = np.concatenate([result["pred_coords"] for result in results])
         # gt_coords: [N, K, D]
-        gt_coords = np.concatenate([result['gt_coords'] for result in results])
+        gt_coords = np.concatenate([result["gt_coords"] for result in results])
         # mask: [N, K]
-        mask = np.concatenate([result['mask'] for result in results])
+        mask = np.concatenate([result["mask"] for result in results])
 
-        logger.info(f'Evaluating {self.__class__.__name__}...')
+        logger.info(f"Evaluating {self.__class__.__name__}...")
 
         epe = keypoint_epe(pred_coords, gt_coords, mask)
 
         metrics = dict()
-        metrics['EPE'] = epe
+        metrics["EPE"] = epe
 
         return metrics
 
@@ -759,43 +705,45 @@ class NME(BaseMetric):
 
     DEFAULT_KEYPOINT_INDICES = {
         # horse10: corresponding to `nose` and `eye` keypoints
-        'horse10': [0, 1],
+        "horse10": [0, 1],
         # 300w: corresponding to `right-most` and `left-most` eye keypoints
-        '300w': [36, 45],
+        "300w": [36, 45],
         # coco_wholebody_face corresponding to `right-most` and `left-most`
         # eye keypoints
-        'coco_wholebody_face': [36, 45],
+        "coco_wholebody_face": [36, 45],
         # cofw: corresponding to `right-most` and `left-most` eye keypoints
-        'cofw': [8, 9],
+        "cofw": [8, 9],
         # wflw: corresponding to `right-most` and `left-most` eye keypoints
-        'wflw': [60, 72],
+        "wflw": [60, 72],
         # lapa: corresponding to `right-most` and `left-most` eye keypoints
-        'lapa': [66, 79],
+        "lapa": [66, 79],
     }
 
-    def __init__(self,
-                 norm_mode: str,
-                 norm_item: Optional[str] = None,
-                 keypoint_indices: Optional[Sequence[int]] = None,
-                 collect_device: str = 'cpu',
-                 prefix: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        norm_mode: str,
+        norm_item: Optional[str] = None,
+        keypoint_indices: Optional[Sequence[int]] = None,
+        collect_device: str = "cpu",
+        prefix: Optional[str] = None,
+    ) -> None:
         super().__init__(collect_device=collect_device, prefix=prefix)
-        allowed_norm_modes = ['use_norm_item', 'keypoint_distance']
+        allowed_norm_modes = ["use_norm_item", "keypoint_distance"]
         if norm_mode not in allowed_norm_modes:
-            raise KeyError("`norm_mode` should be 'use_norm_item' or "
-                           f"'keypoint_distance', but got {norm_mode}.")
+            raise KeyError("`norm_mode` should be 'use_norm_item' or " f"'keypoint_distance', but got {norm_mode}.")
 
         self.norm_mode = norm_mode
-        if self.norm_mode == 'use_norm_item':
+        if self.norm_mode == "use_norm_item":
             if not norm_item:
-                raise KeyError('`norm_mode` is set to `"use_norm_item"`, '
-                               'please specify the `norm_item` in the '
-                               'datainfo used as the normalization factor.')
+                raise KeyError(
+                    '`norm_mode` is set to `"use_norm_item"`, '
+                    "please specify the `norm_item` in the "
+                    "datainfo used as the normalization factor."
+                )
         self.norm_item = norm_item
         self.keypoint_indices = keypoint_indices
 
-    def process(self, data_batch: Sequence[dict],
-                data_samples: Sequence[dict]) -> None:
+    def process(self, data_batch: Sequence[dict], data_samples: Sequence[dict]) -> None:
         """Process one batch of data samples and predictions. The processed
         results should be stored in ``self.results``, which will be used to
         compute the metrics when all batches have been processed.
@@ -808,39 +756,37 @@ class NME(BaseMetric):
         """
         for data_sample in data_samples:
             # predicted keypoints coordinates, [1, K, D]
-            pred_coords = data_sample['pred_instances']['keypoints']
+            pred_coords = data_sample["pred_instances"]["keypoints"]
             # ground truth data_info
-            gt = data_sample['gt_instances']
+            gt = data_sample["gt_instances"]
             # ground truth keypoints coordinates, [1, K, D]
-            gt_coords = gt['keypoints']
+            gt_coords = gt["keypoints"]
             # ground truth keypoints_visible, [1, K, 1]
-            mask = gt['keypoints_visible'].astype(bool)
+            mask = gt["keypoints_visible"].astype(bool)
             if mask.ndim == 3:
                 mask = mask[:, :, 0]
             mask = mask.reshape(1, -1)
 
             result = {
-                'pred_coords': pred_coords,
-                'gt_coords': gt_coords,
-                'mask': mask,
+                "pred_coords": pred_coords,
+                "gt_coords": gt_coords,
+                "mask": mask,
             }
 
             if self.norm_item:
-                if self.norm_item == 'bbox_size':
-                    assert 'bboxes' in gt, 'The ground truth data info do ' \
-                        'not have the item ``bboxes`` for expected ' \
-                        'normalized_item ``"bbox_size"``.'
+                if self.norm_item == "bbox_size":
+                    assert "bboxes" in gt, (
+                        "The ground truth data info do " "not have the item ``bboxes`` for expected " 'normalized_item ``"bbox_size"``.'
+                    )
                     # ground truth bboxes, [1, 4]
-                    bbox_size = np.max(gt['bboxes'][0][2:] -
-                                       gt['bboxes'][0][:2])
-                    result['bbox_size'] = np.array([bbox_size]).reshape(-1, 1)
+                    bbox_size = np.max(gt["bboxes"][0][2:] - gt["bboxes"][0][:2])
+                    result["bbox_size"] = np.array([bbox_size]).reshape(-1, 1)
                 else:
-                    assert self.norm_item in gt, f'The ground truth data ' \
-                        f'info do not have the expected normalized factor ' \
-                        f'"{self.norm_item}"'
+                    assert self.norm_item in gt, (
+                        f"The ground truth data " f"info do not have the expected normalized factor " f'"{self.norm_item}"'
+                    )
                     # ground truth norm_item
-                    result[self.norm_item] = np.array(
-                        gt[self.norm_item]).reshape([-1, 1])
+                    result[self.norm_item] = np.array(gt[self.norm_item]).reshape([-1, 1])
 
             self.results.append(result)
 
@@ -857,49 +803,44 @@ class NME(BaseMetric):
         logger: MMLogger = MMLogger.get_current_instance()
 
         # pred_coords: [N, K, D]
-        pred_coords = np.concatenate(
-            [result['pred_coords'] for result in results])
+        pred_coords = np.concatenate([result["pred_coords"] for result in results])
         # gt_coords: [N, K, D]
-        gt_coords = np.concatenate([result['gt_coords'] for result in results])
+        gt_coords = np.concatenate([result["gt_coords"] for result in results])
         # mask: [N, K]
-        mask = np.concatenate([result['mask'] for result in results])
+        mask = np.concatenate([result["mask"] for result in results])
 
-        logger.info(f'Evaluating {self.__class__.__name__}...')
+        logger.info(f"Evaluating {self.__class__.__name__}...")
         metrics = dict()
 
-        if self.norm_mode == 'use_norm_item':
-            normalize_factor_ = np.concatenate(
-                [result[self.norm_item] for result in results])
+        if self.norm_mode == "use_norm_item":
+            normalize_factor_ = np.concatenate([result[self.norm_item] for result in results])
             # normalize_factor: [N, 2]
             normalize_factor = np.tile(normalize_factor_, [1, 2])
             nme = keypoint_nme(pred_coords, gt_coords, mask, normalize_factor)
-            metrics['NME'] = nme
+            metrics["NME"] = nme
 
         else:
             if self.keypoint_indices is None:
                 # use default keypoint_indices in some datasets
-                dataset_name = self.dataset_meta['dataset_name']
+                dataset_name = self.dataset_meta["dataset_name"]
                 if dataset_name not in self.DEFAULT_KEYPOINT_INDICES:
                     raise KeyError(
-                        '`norm_mode` is set to `keypoint_distance`, and the '
-                        'keypoint_indices is set to None, can not find the '
-                        'keypoint_indices in `DEFAULT_KEYPOINT_INDICES`, '
-                        'please specify `keypoint_indices` appropriately.')
-                self.keypoint_indices = self.DEFAULT_KEYPOINT_INDICES[
-                    dataset_name]
+                        "`norm_mode` is set to `keypoint_distance`, and the "
+                        "keypoint_indices is set to None, can not find the "
+                        "keypoint_indices in `DEFAULT_KEYPOINT_INDICES`, "
+                        "please specify `keypoint_indices` appropriately."
+                    )
+                self.keypoint_indices = self.DEFAULT_KEYPOINT_INDICES[dataset_name]
             else:
-                assert len(self.keypoint_indices) == 2, 'The keypoint '\
-                    'indices used for normalization should be a pair.'
-                keypoint_id2name = self.dataset_meta['keypoint_id2name']
-                dataset_name = self.dataset_meta['dataset_name']
+                assert len(self.keypoint_indices) == 2, "The keypoint " "indices used for normalization should be a pair."
+                keypoint_id2name = self.dataset_meta["keypoint_id2name"]
+                dataset_name = self.dataset_meta["dataset_name"]
                 for idx in self.keypoint_indices:
-                    assert idx in keypoint_id2name, f'The {dataset_name} '\
-                        f'dataset does not contain the required '\
-                        f'{idx}-th keypoint.'
+                    assert idx in keypoint_id2name, f"The {dataset_name} " f"dataset does not contain the required " f"{idx}-th keypoint."
             # normalize_factor: [N, 2]
             normalize_factor = self._get_normalize_factor(gt_coords=gt_coords)
             nme = keypoint_nme(pred_coords, gt_coords, mask, normalize_factor)
-            metrics['NME'] = nme
+            metrics["NME"] = nme
 
         return metrics
 
@@ -916,9 +857,6 @@ class NME(BaseMetric):
         """
         idx1, idx2 = self.keypoint_indices
 
-        interocular = np.linalg.norm(
-            gt_coords[:, idx1, :] - gt_coords[:, idx2, :],
-            axis=1,
-            keepdims=True)
+        interocular = np.linalg.norm(gt_coords[:, idx1, :] - gt_coords[:, idx2, :], axis=1, keepdims=True)
 
         return np.tile(interocular, [1, 2])

@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from mmengine.registry import Registry
 
-CAMERAS = Registry('camera')
+CAMERAS = Registry("camera")
 
 
 class SingleCameraBase(metaclass=ABCMeta):
@@ -85,55 +85,54 @@ class SimpleCamera(SingleCameraBase):
 
         self.param = {}
         # extrinsic param
-        R = np.array(param['R'], dtype=np.float32)
-        T = np.array(param['T'], dtype=np.float32)
+        R = np.array(param["R"], dtype=np.float32)
+        T = np.array(param["T"], dtype=np.float32)
         assert R.shape == (3, 3)
         assert T.shape == (3, 1)
         # The camera matrices are transposed in advance because the joint
         # coordinates are stored as row vectors.
-        self.param['R_c2w'] = R.T
-        self.param['T_c2w'] = T.T
-        self.param['R_w2c'] = R
-        self.param['T_w2c'] = -self.param['T_c2w'] @ self.param['R_w2c']
+        self.param["R_c2w"] = R.T
+        self.param["T_c2w"] = T.T
+        self.param["R_w2c"] = R
+        self.param["T_w2c"] = -self.param["T_c2w"] @ self.param["R_w2c"]
 
         # intrinsic param
-        if 'K' in param:
-            K = np.array(param['K'], dtype=np.float32)
+        if "K" in param:
+            K = np.array(param["K"], dtype=np.float32)
             assert K.shape == (2, 3)
-            self.param['K'] = K.T
-            self.param['f'] = np.array([K[0, 0], K[1, 1]])[:, np.newaxis]
-            self.param['c'] = np.array([K[0, 2], K[1, 2]])[:, np.newaxis]
-        elif 'f' in param and 'c' in param:
-            f = np.array(param['f'], dtype=np.float32)
-            c = np.array(param['c'], dtype=np.float32)
+            self.param["K"] = K.T
+            self.param["f"] = np.array([K[0, 0], K[1, 1]])[:, np.newaxis]
+            self.param["c"] = np.array([K[0, 2], K[1, 2]])[:, np.newaxis]
+        elif "f" in param and "c" in param:
+            f = np.array(param["f"], dtype=np.float32)
+            c = np.array(param["c"], dtype=np.float32)
             assert f.shape == (2, 1)
             assert c.shape == (2, 1)
-            self.param['K'] = np.concatenate((np.diagflat(f), c), axis=-1).T
-            self.param['f'] = f
-            self.param['c'] = c
+            self.param["K"] = np.concatenate((np.diagflat(f), c), axis=-1).T
+            self.param["f"] = f
+            self.param["c"] = c
         else:
-            raise ValueError('Camera intrinsic parameters are missing. '
-                             'Either "K" or "f"&"c" should be provided.')
+            raise ValueError("Camera intrinsic parameters are missing. " 'Either "K" or "f"&"c" should be provided.')
 
         # distortion param
-        if 'k' in param and 'p' in param:
+        if "k" in param and "p" in param:
             self.undistortion = True
-            self.param['k'] = np.array(param['k'], dtype=np.float32).flatten()
-            self.param['p'] = np.array(param['p'], dtype=np.float32).flatten()
-            assert self.param['k'].size in {3, 6}
-            assert self.param['p'].size == 2
+            self.param["k"] = np.array(param["k"], dtype=np.float32).flatten()
+            self.param["p"] = np.array(param["p"], dtype=np.float32).flatten()
+            assert self.param["k"].size in {3, 6}
+            assert self.param["p"].size == 2
         else:
             self.undistortion = False
 
     def world_to_camera(self, X):
         assert isinstance(X, np.ndarray)
         assert X.ndim >= 2 and X.shape[-1] == 3
-        return X @ self.param['R_w2c'] + self.param['T_w2c']
+        return X @ self.param["R_w2c"] + self.param["T_w2c"]
 
     def camera_to_world(self, X):
         assert isinstance(X, np.ndarray)
         assert X.ndim >= 2 and X.shape[-1] == 3
-        return X @ self.param['R_c2w'] + self.param['T_c2w']
+        return X @ self.param["R_c2w"] + self.param["T_c2w"]
 
     def camera_to_pixel(self, X):
         assert isinstance(X, np.ndarray)
@@ -142,27 +141,24 @@ class SimpleCamera(SingleCameraBase):
         _X = X / X[..., 2:]
 
         if self.undistortion:
-            k = self.param['k']
-            p = self.param['p']
+            k = self.param["k"]
+            p = self.param["p"]
             _X_2d = _X[..., :2]
             r2 = (_X_2d**2).sum(-1)
-            radial = 1 + sum(ki * r2**(i + 1) for i, ki in enumerate(k[:3]))
+            radial = 1 + sum(ki * r2 ** (i + 1) for i, ki in enumerate(k[:3]))
             if k.size == 6:
-                radial /= 1 + sum(
-                    (ki * r2**(i + 1) for i, ki in enumerate(k[3:])))
+                radial /= 1 + sum((ki * r2 ** (i + 1) for i, ki in enumerate(k[3:])))
 
             tangential = 2 * (p[1] * _X[..., 0] + p[0] * _X[..., 1])
 
-            _X[..., :2] = _X_2d * (radial + tangential)[..., None] + np.outer(
-                r2, p[::-1]).reshape(_X_2d.shape)
-        return _X @ self.param['K']
+            _X[..., :2] = _X_2d * (radial + tangential)[..., None] + np.outer(r2, p[::-1]).reshape(_X_2d.shape)
+        return _X @ self.param["K"]
 
     def pixel_to_camera(self, X):
         assert isinstance(X, np.ndarray)
         assert X.ndim >= 2 and X.shape[-1] == 3
         _X = X.copy()
-        _X[:, :2] = (X[:, :2] - self.param['c'].T) / self.param['f'].T * X[:,
-                                                                           [2]]
+        _X[:, :2] = (X[:, :2] - self.param["c"].T) / self.param["f"].T * X[:, [2]]
         return _X
 
 
@@ -204,58 +200,55 @@ class SimpleCameraTorch(SingleCameraBase):
 
         self.param = {}
         # extrinsic param
-        R = torch.tensor(param['R'], device=device)
-        T = torch.tensor(param['T'], device=device)
+        R = torch.tensor(param["R"], device=device)
+        T = torch.tensor(param["T"], device=device)
 
         assert R.shape == (3, 3)
         assert T.shape == (3, 1)
         # The camera matrices are transposed in advance because the joint
         # coordinates are stored as row vectors.
-        self.param['R_c2w'] = R.T
-        self.param['T_c2w'] = T.T
-        self.param['R_w2c'] = R
-        self.param['T_w2c'] = -self.param['T_c2w'] @ self.param['R_w2c']
+        self.param["R_c2w"] = R.T
+        self.param["T_c2w"] = T.T
+        self.param["R_w2c"] = R
+        self.param["T_w2c"] = -self.param["T_c2w"] @ self.param["R_w2c"]
 
         # intrinsic param
-        if 'K' in param:
-            K = torch.tensor(param['K'], device=device)
+        if "K" in param:
+            K = torch.tensor(param["K"], device=device)
             assert K.shape == (2, 3)
-            self.param['K'] = K.T
-            self.param['f'] = torch.tensor([[K[0, 0]], [K[1, 1]]],
-                                           device=device)
-            self.param['c'] = torch.tensor([[K[0, 2]], [K[1, 2]]],
-                                           device=device)
-        elif 'f' in param and 'c' in param:
-            f = torch.tensor(param['f'], device=device)
-            c = torch.tensor(param['c'], device=device)
+            self.param["K"] = K.T
+            self.param["f"] = torch.tensor([[K[0, 0]], [K[1, 1]]], device=device)
+            self.param["c"] = torch.tensor([[K[0, 2]], [K[1, 2]]], device=device)
+        elif "f" in param and "c" in param:
+            f = torch.tensor(param["f"], device=device)
+            c = torch.tensor(param["c"], device=device)
             assert f.shape == (2, 1)
             assert c.shape == (2, 1)
-            self.param['K'] = torch.cat([torch.diagflat(f), c], dim=-1).T
-            self.param['f'] = f
-            self.param['c'] = c
+            self.param["K"] = torch.cat([torch.diagflat(f), c], dim=-1).T
+            self.param["f"] = f
+            self.param["c"] = c
         else:
-            raise ValueError('Camera intrinsic parameters are missing. '
-                             'Either "K" or "f"&"c" should be provided.')
+            raise ValueError("Camera intrinsic parameters are missing. " 'Either "K" or "f"&"c" should be provided.')
 
         # distortion param
-        if 'k' in param and 'p' in param:
+        if "k" in param and "p" in param:
             self.undistortion = True
-            self.param['k'] = torch.tensor(param['k'], device=device).view(-1)
-            self.param['p'] = torch.tensor(param['p'], device=device).view(-1)
-            assert len(self.param['k']) in {3, 6}
-            assert len(self.param['p']) == 2
+            self.param["k"] = torch.tensor(param["k"], device=device).view(-1)
+            self.param["p"] = torch.tensor(param["p"], device=device).view(-1)
+            assert len(self.param["k"]) in {3, 6}
+            assert len(self.param["p"]) == 2
         else:
             self.undistortion = False
 
     def world_to_camera(self, X):
         assert isinstance(X, torch.Tensor)
         assert X.ndim >= 2 and X.shape[-1] == 3
-        return X @ self.param['R_w2c'] + self.param['T_w2c']
+        return X @ self.param["R_w2c"] + self.param["T_w2c"]
 
     def camera_to_world(self, X):
         assert isinstance(X, torch.Tensor)
         assert X.ndim >= 2 and X.shape[-1] == 3
-        return X @ self.param['R_c2w'] + self.param['T_c2w']
+        return X @ self.param["R_c2w"] + self.param["T_c2w"]
 
     def camera_to_pixel(self, X):
         assert isinstance(X, torch.Tensor)
@@ -264,17 +257,15 @@ class SimpleCameraTorch(SingleCameraBase):
         _X = X / X[..., 2:]
 
         if self.undistortion:
-            k = self.param['k']
-            p = self.param['p']
+            k = self.param["k"]
+            p = self.param["p"]
             _X_2d = _X[..., :2]
             r2 = (_X_2d**2).sum(-1)
-            radial = 1 + sum(ki * r2**(i + 1) for i, ki in enumerate(k[:3]))
+            radial = 1 + sum(ki * r2 ** (i + 1) for i, ki in enumerate(k[:3]))
             if k.size == 6:
-                radial /= 1 + sum(
-                    (ki * r2**(i + 1) for i, ki in enumerate(k[3:])))
+                radial /= 1 + sum((ki * r2 ** (i + 1) for i, ki in enumerate(k[3:])))
 
             tangential = 2 * (p[1] * _X[..., 0] + p[0] * _X[..., 1])
 
-            _X[..., :2] = _X_2d * (radial + tangential)[..., None] + torch.ger(
-                r2, p.flip([0])).reshape(_X_2d.shape)
-        return _X @ self.param['K']
+            _X[..., :2] = _X_2d * (radial + tangential)[..., None] + torch.ger(r2, p.flip([0])).reshape(_X_2d.shape)
+        return _X @ self.param["K"]

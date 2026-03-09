@@ -40,20 +40,16 @@ class FeatureMapProcessor(nn.Module):
         super().__init__()
 
         if isinstance(select_index, int):
-            select_index = (select_index, )
+            select_index = (select_index,)
         self.select_index = select_index
         self.concat = concat
 
-        assert (
-            scale_factor > 0
-        ), f'the argument `scale_factor` must be positive, ' \
-           f'but got {scale_factor}'
+        assert scale_factor > 0, f"the argument `scale_factor` must be positive, " f"but got {scale_factor}"
         self.scale_factor = scale_factor
         self.apply_relu = apply_relu
         self.align_corners = align_corners
 
-    def forward(self, inputs: Union[Tensor, Sequence[Tensor]]
-                ) -> Union[Tensor, List[Tensor]]:
+    def forward(self, inputs: Union[Tensor, Sequence[Tensor]]) -> Union[Tensor, List[Tensor]]:
 
         if not isinstance(inputs, (tuple, list)):
             sequential_input = False
@@ -80,13 +76,7 @@ class FeatureMapProcessor(nn.Module):
 
     def _concat(self, inputs: Sequence[Tensor]) -> List[Tensor]:
         size = inputs[0].shape[-2:]
-        resized_inputs = [
-            resize(
-                x,
-                size=size,
-                mode='bilinear',
-                align_corners=self.align_corners) for x in inputs
-        ]
+        resized_inputs = [resize(x, size=size, mode="bilinear", align_corners=self.align_corners) for x in inputs]
         return [torch.cat(resized_inputs, dim=1)]
 
     def _rescale(self, inputs: Sequence[Tensor]) -> List[Tensor]:
@@ -94,8 +84,9 @@ class FeatureMapProcessor(nn.Module):
             resize(
                 x,
                 scale_factor=self.scale_factor,
-                mode='bilinear',
+                mode="bilinear",
                 align_corners=self.align_corners,
-            ) for x in inputs
+            )
+            for x in inputs
         ]
         return rescaled_inputs

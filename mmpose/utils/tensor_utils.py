@@ -8,9 +8,7 @@ from mmengine.utils import is_seq_of
 from torch import Tensor
 
 
-def to_numpy(x: Union[Tensor, Sequence[Tensor]],
-             return_device: bool = False,
-             unzip: bool = False) -> Union[np.ndarray, tuple]:
+def to_numpy(x: Union[Tensor, Sequence[Tensor]], return_device: bool = False, unzip: bool = False) -> Union[np.ndarray, tuple]:
     """Convert torch tensor to numpy.ndarray.
 
     Args:
@@ -31,21 +29,18 @@ def to_numpy(x: Union[Tensor, Sequence[Tensor]],
         device = x.device
     elif isinstance(x, np.ndarray) or is_seq_of(x, np.ndarray):
         arrays = x
-        device = 'cpu'
+        device = "cpu"
     elif is_seq_of(x, Tensor):
         if unzip:
             # convert (A, B) -> [(A[0], B[0]), (A[1], B[1]), ...]
-            arrays = [
-                tuple(to_numpy(_x[None, :]) for _x in _each)
-                for _each in zip(*x)
-            ]
+            arrays = [tuple(to_numpy(_x[None, :]) for _x in _each) for _each in zip(*x)]
         else:
             arrays = [to_numpy(_x) for _x in x]
 
         device = x[0].device
 
     else:
-        raise ValueError(f'Invalid input type {type(x)}')
+        raise ValueError(f"Invalid input type {type(x)}")
 
     if return_device:
         return arrays, device
@@ -53,8 +48,7 @@ def to_numpy(x: Union[Tensor, Sequence[Tensor]],
         return arrays
 
 
-def to_tensor(x: Union[np.ndarray, Sequence[np.ndarray]],
-              device: Optional[Any] = None) -> Union[Tensor, Sequence[Tensor]]:
+def to_tensor(x: Union[np.ndarray, Sequence[np.ndarray]], device: Optional[Any] = None) -> Union[Tensor, Sequence[Tensor]]:
     """Convert numpy.ndarray to torch tensor.
 
     Args:
@@ -71,4 +65,4 @@ def to_tensor(x: Union[np.ndarray, Sequence[np.ndarray]],
     elif is_seq_of(x, np.ndarray):
         return [to_tensor(_x, device=device) for _x in x]
     else:
-        raise ValueError(f'Invalid input type {type(x)}')
+        raise ValueError(f"Invalid input type {type(x)}")

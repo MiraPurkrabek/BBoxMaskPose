@@ -15,12 +15,12 @@ def adapt_mmdet_pipeline(cfg: ConfigDict) -> ConfigDict:
     # use lazy import to avoid hard dependence on mmdet
     from mmdet.datasets import transforms
 
-    if 'test_dataloader' not in cfg:
+    if "test_dataloader" not in cfg:
         return cfg
 
     pipeline = cfg.test_dataloader.dataset.pipeline
     for trans in pipeline:
-        if trans['type'] in dir(transforms):
-            trans['type'] = 'mmdet.' + trans['type']
+        if trans["type"] in dir(transforms):
+            trans["type"] = "mmdet." + trans["type"]
 
     return cfg

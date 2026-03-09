@@ -3,6 +3,7 @@ from typing import List, Union
 
 from mmpose.codecs import *  # noqa: F401, F403
 from mmpose.registry import TRANSFORMS
+
 from .common_transforms import RandomFlip
 
 
@@ -39,7 +40,7 @@ class HandRandomFlip(RandomFlip):
     """
 
     def __init__(self, prob: Union[float, List[float]] = 0.5) -> None:
-        super().__init__(prob=prob, direction='horizontal')
+        super().__init__(prob=prob, direction="horizontal")
 
     def transform(self, results: dict) -> dict:
         """The transform function of :class:`HandRandomFlip`.
@@ -56,12 +57,12 @@ class HandRandomFlip(RandomFlip):
         results = super().transform(results)
 
         # flip hand type and root depth
-        hand_type = results['hand_type']
-        rel_root_depth = results['rel_root_depth']
-        flipped = results['flip']
+        hand_type = results["hand_type"]
+        rel_root_depth = results["rel_root_depth"]
+        flipped = results["flip"]
         if flipped:
             hand_type[..., [0, 1]] = hand_type[..., [1, 0]]
             rel_root_depth = -rel_root_depth
-        results['hand_type'] = hand_type
-        results['rel_root_depth'] = rel_root_depth
+        results["hand_type"] = hand_type
+        results["rel_root_depth"] = rel_root_depth
         return results

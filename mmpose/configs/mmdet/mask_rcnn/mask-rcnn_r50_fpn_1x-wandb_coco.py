@@ -1,10 +1,11 @@
 _base_ = [
-    '../_base_/models/mask-rcnn_r50_fpn.py',
-    '../_base_/datasets/coco_instance.py',
-    '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
+    "../_base_/models/mask-rcnn_r50_fpn.py",
+    "../_base_/datasets/coco_instance.py",
+    "../_base_/schedules/schedule_1x.py",
+    "../_base_/default_runtime.py",
 ]
 
-vis_backends = [dict(type='LocalVisBackend'), dict(type='WandbVisBackend')]
+vis_backends = [dict(type="LocalVisBackend"), dict(type="WandbVisBackend")]
 visualizer = dict(vis_backends=vis_backends)
 
 # MMEngine support the following two ways, users can choose

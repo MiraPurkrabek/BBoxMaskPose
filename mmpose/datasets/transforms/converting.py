@@ -57,9 +57,7 @@ class KeypointConverter(BaseTransform):
         >>> results = self(results)
     """
 
-    def __init__(self, num_keypoints: int,
-                 mapping: Union[List[Tuple[int, int]], List[Tuple[Tuple,
-                                                                  int]]]):
+    def __init__(self, num_keypoints: int, mapping: Union[List[Tuple[int, int]], List[Tuple[Tuple, int]]]):
         self.num_keypoints = num_keypoints
         self.mapping = mapping
         if len(mapping):
@@ -71,8 +69,7 @@ class KeypointConverter(BaseTransform):
         interpolation = False
         for x in source_index:
             if isinstance(x, (list, tuple)):
-                assert len(x) == 2, 'source_index should be a list/tuple of ' \
-                                    'length 2'
+                assert len(x) == 2, "source_index should be a list/tuple of " "length 2"
                 src1.append(x[0])
                 src2.append(x[1])
                 interpolation = True
@@ -91,23 +88,21 @@ class KeypointConverter(BaseTransform):
 
     def transform(self, results: dict) -> dict:
         """Transforms the keypoint results to match the target keypoints."""
-        num_instances = results['keypoints'].shape[0]
+        num_instances = results["keypoints"].shape[0]
 
-        if 'keypoints_visible' not in results:
-            results['keypoints_visible'] = np.ones(
-                (num_instances, results['keypoints'].shape[1]))
+        if "keypoints_visible" not in results:
+            results["keypoints_visible"] = np.ones((num_instances, results["keypoints"].shape[1]))
 
-        if len(results['keypoints_visible'].shape) > 2:
-            results['keypoints_visible'] = results['keypoints_visible'][:, :,
-                                                                        0]
+        if len(results["keypoints_visible"].shape) > 2:
+            results["keypoints_visible"] = results["keypoints_visible"][:, :, 0]
 
         # Initialize output arrays
         keypoints = np.zeros((num_instances, self.num_keypoints, 3))
         keypoints_visible = np.zeros((num_instances, self.num_keypoints))
-        key = 'keypoints_3d' if 'keypoints_3d' in results else 'keypoints'
+        key = "keypoints_3d" if "keypoints_3d" in results else "keypoints"
         c = results[key].shape[-1]
 
-        flip_indices = results.get('flip_indices', None)
+        flip_indices = results.get("flip_indices", None)
 
         # Create a mask to weight visibility loss
         keypoints_visible_weights = keypoints_visible.copy()
@@ -115,37 +110,29 @@ class KeypointConverter(BaseTransform):
 
         # Interpolate keypoints if pairs of source indexes provided
         if self.interpolation:
-            keypoints[:, self.target_index, :c] = 0.5 * (
-                results[key][:, self.source_index] +
-                results[key][:, self.source_index2])
-            keypoints_visible[:, self.target_index] = results[
-                'keypoints_visible'][:, self.source_index] * results[
-                    'keypoints_visible'][:, self.source_index2]
+            keypoints[:, self.target_index, :c] = 0.5 * (results[key][:, self.source_index] + results[key][:, self.source_index2])
+            keypoints_visible[:, self.target_index] = (
+                results["keypoints_visible"][:, self.source_index] * results["keypoints_visible"][:, self.source_index2]
+            )
             # Flip keypoints if flip_indices provided
             if flip_indices is not None:
-                for i, (x1, x2) in enumerate(
-                        zip(self.source_index, self.source_index2)):
+                for i, (x1, x2) in enumerate(zip(self.source_index, self.source_index2)):
                     idx = flip_indices[x1] if x1 == x2 else i
                     flip_indices[i] = idx if idx < self.num_keypoints else i
-                flip_indices = flip_indices[:len(self.source_index)]
+                flip_indices = flip_indices[: len(self.source_index)]
         # Otherwise just copy from the source index
         else:
-            keypoints[:,
-                      self.target_index, :c] = results[key][:,
-                                                            self.source_index]
-            keypoints_visible[:, self.target_index] = results[
-                'keypoints_visible'][:, self.source_index]
+            keypoints[:, self.target_index, :c] = results[key][:, self.source_index]
+            keypoints_visible[:, self.target_index] = results["keypoints_visible"][:, self.source_index]
 
         # Update the results dict
-        results['keypoints'] = keypoints[..., :2]
-        results['keypoints_visible'] = np.stack(
-            [keypoints_visible, keypoints_visible_weights], axis=2)
-        if 'keypoints_3d' in results:
-            results['keypoints_3d'] = keypoints
-            results['lifting_target'] = keypoints[results['target_idx']]
-            results['lifting_target_visible'] = keypoints_visible[
-                results['target_idx']]
-        results['flip_indices'] = flip_indices
+        results["keypoints"] = keypoints[..., :2]
+        results["keypoints_visible"] = np.stack([keypoints_visible, keypoints_visible_weights], axis=2)
+        if "keypoints_3d" in results:
+            results["keypoints_3d"] = keypoints
+            results["lifting_target"] = keypoints[results["target_idx"]]
+            results["lifting_target_visible"] = keypoints_visible[results["target_idx"]]
+        results["flip_indices"] = flip_indices
 
         return results
 
@@ -156,8 +143,7 @@ class KeypointConverter(BaseTransform):
             str: Formatted string.
         """
         repr_str = self.__class__.__name__
-        repr_str += f'(num_keypoints={self.num_keypoints}, '\
-                    f'mapping={self.mapping})'
+        repr_str += f"(num_keypoints={self.num_keypoints}, " f"mapping={self.mapping})"
         return repr_str
 
 
@@ -201,22 +187,20 @@ class SingleHandConverter(BaseTransform):
         >>> results = self(results)
     """
 
-    def __init__(self, num_keypoints: int,
-                 left_hand_mapping: Union[List[Tuple[int, int]],
-                                          List[Tuple[Tuple, int]]],
-                 right_hand_mapping: Union[List[Tuple[int, int]],
-                                           List[Tuple[Tuple, int]]]):
+    def __init__(
+        self,
+        num_keypoints: int,
+        left_hand_mapping: Union[List[Tuple[int, int]], List[Tuple[Tuple, int]]],
+        right_hand_mapping: Union[List[Tuple[int, int]], List[Tuple[Tuple, int]]],
+    ):
         self.num_keypoints = num_keypoints
-        self.left_hand_converter = KeypointConverter(num_keypoints,
-                                                     left_hand_mapping)
-        self.right_hand_converter = KeypointConverter(num_keypoints,
-                                                      right_hand_mapping)
+        self.left_hand_converter = KeypointConverter(num_keypoints, left_hand_mapping)
+        self.right_hand_converter = KeypointConverter(num_keypoints, right_hand_mapping)
 
     def transform(self, results: dict) -> dict:
         """Transforms the keypoint results to match the target keypoints."""
-        assert 'hand_type' in results, (
-            'hand_type should be provided in results')
-        hand_type = results['hand_type']
+        assert "hand_type" in results, "hand_type should be provided in results"
+        hand_type = results["hand_type"]
 
         if np.sum(hand_type - [[0, 1]]) <= 1e-6:
             # left hand
@@ -224,7 +208,7 @@ class SingleHandConverter(BaseTransform):
         elif np.sum(hand_type - [[1, 0]]) <= 1e-6:
             results = self.right_hand_converter(results)
         else:
-            raise ValueError('hand_type should be left or right')
+            raise ValueError("hand_type should be left or right")
 
         return results
 
@@ -235,7 +219,9 @@ class SingleHandConverter(BaseTransform):
             str: Formatted string.
         """
         repr_str = self.__class__.__name__
-        repr_str += f'(num_keypoints={self.num_keypoints}, '\
-                    f'left_hand_converter={self.left_hand_converter}, '\
-                    f'right_hand_converter={self.right_hand_converter})'
+        repr_str += (
+            f"(num_keypoints={self.num_keypoints}, "
+            f"left_hand_converter={self.left_hand_converter}, "
+            f"right_hand_converter={self.right_hand_converter})"
+        )
         return repr_str

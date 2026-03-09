@@ -13,8 +13,8 @@ from mmpose.evaluation.functional import simcc_pck_accuracy
 from mmpose.models.utils.tta import flip_vectors
 from mmpose.registry import KEYPOINT_CODECS, MODELS
 from mmpose.utils.tensor_utils import to_numpy
-from mmpose.utils.typing import (ConfigType, InstanceList, OptConfigType,
-                                 OptSampleList)
+from mmpose.utils.typing import ConfigType, InstanceList, OptConfigType, OptSampleList
+
 from ..base_head import BaseHead
 
 OptIntSeq = Optional[Sequence[int]]
@@ -77,14 +77,14 @@ class SimCCHead(BaseHead):
         input_size: Tuple[int, int],
         in_featuremap_size: Tuple[int, int],
         simcc_split_ratio: float = 2.0,
-        deconv_type: str = 'heatmap',
+        deconv_type: str = "heatmap",
         deconv_out_channels: OptIntSeq = (256, 256, 256),
         deconv_kernel_sizes: OptIntSeq = (4, 4, 4),
         deconv_num_groups: OptIntSeq = (16, 16, 16),
         conv_out_channels: OptIntSeq = None,
         conv_kernel_sizes: OptIntSeq = None,
         final_layer: dict = dict(kernel_size=1),
-        loss: ConfigType = dict(type='KLDiscretLoss', use_target_weight=True),
+        loss: ConfigType = dict(type="KLDiscretLoss", use_target_weight=True),
         decoder: OptConfigType = None,
         init_cfg: OptConfigType = None,
     ):
@@ -94,11 +94,10 @@ class SimCCHead(BaseHead):
 
         super().__init__(init_cfg)
 
-        if deconv_type not in {'heatmap', 'vipnas'}:
+        if deconv_type not in {"heatmap", "vipnas"}:
             raise ValueError(
-                f'{self.__class__.__name__} got invalid `deconv_type` value'
-                f'{deconv_type}. Should be one of '
-                '{"heatmap", "vipnas"}')
+                f"{self.__class__.__name__} got invalid `deconv_type` value" f"{deconv_type}. Should be one of " '{"heatmap", "vipnas"}'
+            )
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -113,8 +112,7 @@ class SimCCHead(BaseHead):
 
         num_deconv = len(deconv_out_channels) if deconv_out_channels else 0
         if num_deconv != 0:
-            self.heatmap_size = tuple(
-                [s * (2**num_deconv) for s in in_featuremap_size])
+            self.heatmap_size = tuple([s * (2**num_deconv) for s in in_featuremap_size])
 
             # deconv layers + 1x1 conv
             self.deconv_head = self._make_deconv_head(
@@ -126,7 +124,8 @@ class SimCCHead(BaseHead):
                 deconv_num_groups=deconv_num_groups,
                 conv_out_channels=conv_out_channels,
                 conv_kernel_sizes=conv_kernel_sizes,
-                final_layer=final_layer)
+                final_layer=final_layer,
+            )
 
             if final_layer is not None:
                 in_channels = out_channels
@@ -137,11 +136,7 @@ class SimCCHead(BaseHead):
             self.deconv_head = None
 
             if final_layer is not None:
-                cfg = dict(
-                    type='Conv2d',
-                    in_channels=in_channels,
-                    out_channels=out_channels,
-                    kernel_size=1)
+                cfg = dict(type="Conv2d", in_channels=in_channels, out_channels=out_channels, kernel_size=1)
                 cfg.update(final_layer)
                 self.final_layer = build_conv_layer(cfg)
             else:
@@ -162,38 +157,42 @@ class SimCCHead(BaseHead):
         self,
         in_channels: Union[int, Sequence[int]],
         out_channels: int,
-        deconv_type: str = 'heatmap',
+        deconv_type: str = "heatmap",
         deconv_out_channels: OptIntSeq = (256, 256, 256),
         deconv_kernel_sizes: OptIntSeq = (4, 4, 4),
         deconv_num_groups: OptIntSeq = (16, 16, 16),
         conv_out_channels: OptIntSeq = None,
         conv_kernel_sizes: OptIntSeq = None,
-        final_layer: dict = dict(kernel_size=1)
+        final_layer: dict = dict(kernel_size=1),
     ) -> nn.Module:
         """Create deconvolutional layers by given parameters."""
 
-        if deconv_type == 'heatmap':
+        if deconv_type == "heatmap":
             deconv_head = MODELS.build(
                 dict(
-                    type='HeatmapHead',
+                    type="HeatmapHead",
                     in_channels=self.in_channels,
                     out_channels=out_channels,
                     deconv_out_channels=deconv_out_channels,
                     deconv_kernel_sizes=deconv_kernel_sizes,
                     conv_out_channels=conv_out_channels,
                     conv_kernel_sizes=conv_kernel_sizes,
-                    final_layer=final_layer))
+                    final_layer=final_layer,
+                )
+            )
         else:
             deconv_head = MODELS.build(
                 dict(
-                    type='ViPNASHead',
+                    type="ViPNASHead",
                     in_channels=in_channels,
                     out_channels=out_channels,
                     deconv_out_channels=deconv_out_channels,
                     deconv_num_groups=deconv_num_groups,
                     conv_out_channels=conv_out_channels,
                     conv_kernel_sizes=conv_kernel_sizes,
-                    final_layer=final_layer))
+                    final_layer=final_layer,
+                )
+            )
 
         return deconv_head
 
@@ -256,19 +255,16 @@ class SimCCHead(BaseHead):
                     intensity distribution in the y direction
         """
 
-        if test_cfg.get('flip_test', False):
+        if test_cfg.get("flip_test", False):
             # TTA: flip test -> feats = [orig, flipped]
             assert isinstance(feats, list) and len(feats) == 2
-            flip_indices = batch_data_samples[0].metainfo['flip_indices']
+            flip_indices = batch_data_samples[0].metainfo["flip_indices"]
             _feats, _feats_flip = feats
 
             _batch_pred_x, _batch_pred_y = self.forward(_feats)
 
             _batch_pred_x_flip, _batch_pred_y_flip = self.forward(_feats_flip)
-            _batch_pred_x_flip, _batch_pred_y_flip = flip_vectors(
-                _batch_pred_x_flip,
-                _batch_pred_y_flip,
-                flip_indices=flip_indices)
+            _batch_pred_x_flip, _batch_pred_y_flip = flip_vectors(_batch_pred_x_flip, _batch_pred_y_flip, flip_indices=flip_indices)
 
             batch_pred_x = (_batch_pred_x + _batch_pred_x_flip) * 0.5
             batch_pred_y = (_batch_pred_y + _batch_pred_y_flip) * 0.5
@@ -277,13 +273,15 @@ class SimCCHead(BaseHead):
 
         preds = self.decode((batch_pred_x, batch_pred_y))
 
-        if test_cfg.get('output_heatmaps', False):
+        if test_cfg.get("output_heatmaps", False):
             rank, _ = get_dist_info()
             if rank == 0:
-                warnings.warn('The predicted simcc values are normalized for '
-                              'visualization. This may cause discrepancy '
-                              'between the keypoint scores and the 1D heatmaps'
-                              '.')
+                warnings.warn(
+                    "The predicted simcc values are normalized for "
+                    "visualization. This may cause discrepancy "
+                    "between the keypoint scores and the 1D heatmaps"
+                    "."
+                )
 
             # normalize the predicted 1d distribution
             sigma = self.decoder.sigma
@@ -297,13 +295,9 @@ class SimCCHead(BaseHead):
             y = batch_pred_y.reshape(B, K, -1, 1)
             # B, K, Wx, Wy
             batch_heatmaps = torch.matmul(y, x)
-            pred_fields = [
-                PixelData(heatmaps=hm) for hm in batch_heatmaps.detach()
-            ]
+            pred_fields = [PixelData(heatmaps=hm) for hm in batch_heatmaps.detach()]
 
-            for pred_instances, pred_x, pred_y in zip(preds,
-                                                      to_numpy(batch_pred_x),
-                                                      to_numpy(batch_pred_y)):
+            for pred_instances, pred_x, pred_y in zip(preds, to_numpy(batch_pred_x), to_numpy(batch_pred_y)):
 
                 pred_instances.keypoint_x_labels = pred_x[None]
                 pred_instances.keypoint_y_labels = pred_y[None]
@@ -322,19 +316,10 @@ class SimCCHead(BaseHead):
 
         pred_x, pred_y = self.forward(feats)
 
-        gt_x = torch.cat([
-            d.gt_instance_labels.keypoint_x_labels for d in batch_data_samples
-        ],
-                         dim=0)
-        gt_y = torch.cat([
-            d.gt_instance_labels.keypoint_y_labels for d in batch_data_samples
-        ],
-                         dim=0)
+        gt_x = torch.cat([d.gt_instance_labels.keypoint_x_labels for d in batch_data_samples], dim=0)
+        gt_y = torch.cat([d.gt_instance_labels.keypoint_y_labels for d in batch_data_samples], dim=0)
         keypoint_weights = torch.cat(
-            [
-                d.gt_instance_labels.keypoint_weights
-                for d in batch_data_samples
-            ],
+            [d.gt_instance_labels.keypoint_weights for d in batch_data_samples],
             dim=0,
         )
 
@@ -363,9 +348,8 @@ class SimCCHead(BaseHead):
     @property
     def default_init_cfg(self):
         init_cfg = [
-            dict(
-                type='Normal', layer=['Conv2d', 'ConvTranspose2d'], std=0.001),
-            dict(type='Constant', layer='BatchNorm2d', val=1),
-            dict(type='Normal', layer=['Linear'], std=0.01, bias=0),
+            dict(type="Normal", layer=["Conv2d", "ConvTranspose2d"], std=0.001),
+            dict(type="Constant", layer="BatchNorm2d", val=1),
+            dict(type="Normal", layer=["Linear"], std=0.01, bias=0),
         ]
         return init_cfg

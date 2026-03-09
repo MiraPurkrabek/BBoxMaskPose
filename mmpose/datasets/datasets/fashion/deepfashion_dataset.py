@@ -2,6 +2,7 @@
 from typing import Callable, List, Optional, Sequence, Union
 
 from mmpose.registry import DATASETS
+
 from ..base import BaseCocoStyleDataset
 
 
@@ -82,21 +83,23 @@ class DeepFashionDataset(BaseCocoStyleDataset):
             image. Default: 1000.
     """
 
-    def __init__(self,
-                 ann_file: str = '',
-                 subset: str = '',
-                 bbox_file: Optional[str] = None,
-                 data_mode: str = 'topdown',
-                 metainfo: Optional[dict] = None,
-                 data_root: Optional[str] = None,
-                 data_prefix: dict = dict(img=''),
-                 filter_cfg: Optional[dict] = None,
-                 indices: Optional[Union[int, Sequence[int]]] = None,
-                 serialize_data: bool = True,
-                 pipeline: List[Union[dict, Callable]] = [],
-                 test_mode: bool = False,
-                 lazy_init: bool = False,
-                 max_refetch: int = 1000):
+    def __init__(
+        self,
+        ann_file: str = "",
+        subset: str = "",
+        bbox_file: Optional[str] = None,
+        data_mode: str = "topdown",
+        metainfo: Optional[dict] = None,
+        data_root: Optional[str] = None,
+        data_prefix: dict = dict(img=""),
+        filter_cfg: Optional[dict] = None,
+        indices: Optional[Union[int, Sequence[int]]] = None,
+        serialize_data: bool = True,
+        pipeline: List[Union[dict, Callable]] = [],
+        test_mode: bool = False,
+        lazy_init: bool = False,
+        max_refetch: int = 1000,
+    ):
         self._check_subset_and_metainfo(subset)
 
         super().__init__(
@@ -112,26 +115,22 @@ class DeepFashionDataset(BaseCocoStyleDataset):
             pipeline=pipeline,
             test_mode=test_mode,
             lazy_init=lazy_init,
-            max_refetch=max_refetch)
+            max_refetch=max_refetch,
+        )
 
     @classmethod
-    def _check_subset_and_metainfo(cls, subset: str = '') -> None:
+    def _check_subset_and_metainfo(cls, subset: str = "") -> None:
         """Check the subset of body and set the corresponding metainfo.
 
         Args:
             subset(str): the subset of body: could be ``'full'``, ``'upper'``
             or ``'lower'``. Default: '', which means ``'full'``.
         """
-        if subset == '' or subset == 'full':
-            cls.METAINFO = dict(
-                from_file='configs/_base_/datasets/deepfashion_full.py')
-        elif subset == 'upper':
-            cls.METAINFO = dict(
-                from_file='configs/_base_/datasets/deepfashion_upper.py')
-        elif subset == 'lower':
-            cls.METAINFO = dict(
-                from_file='configs/_base_/datasets/deepfashion_lower.py')
+        if subset == "" or subset == "full":
+            cls.METAINFO = dict(from_file="configs/_base_/datasets/deepfashion_full.py")
+        elif subset == "upper":
+            cls.METAINFO = dict(from_file="configs/_base_/datasets/deepfashion_upper.py")
+        elif subset == "lower":
+            cls.METAINFO = dict(from_file="configs/_base_/datasets/deepfashion_lower.py")
         else:
-            raise ValueError(
-                f'{cls.__class__.__name__} got invalid subset: '
-                f'{subset}. Should be "full", "lower" or "upper".')
+            raise ValueError(f"{cls.__class__.__name__} got invalid subset: " f'{subset}. Should be "full", "lower" or "upper".')

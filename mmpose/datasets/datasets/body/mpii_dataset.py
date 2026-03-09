@@ -9,6 +9,7 @@ from scipy.io import loadmat
 
 from mmpose.registry import DATASETS
 from mmpose.structures.bbox import bbox_cs2xyxy
+
 from ..base import BaseCocoStyleDataset
 
 
@@ -80,43 +81,43 @@ class MpiiDataset(BaseCocoStyleDataset):
             image. Default: 1000.
     """
 
-    METAINFO: dict = dict(from_file='configs/_base_/datasets/mpii.py')
+    METAINFO: dict = dict(from_file="configs/_base_/datasets/mpii.py")
 
-    def __init__(self,
-                 ann_file: str = '',
-                 bbox_file: Optional[str] = None,
-                 headbox_file: Optional[str] = None,
-                 data_mode: str = 'topdown',
-                 metainfo: Optional[dict] = None,
-                 data_root: Optional[str] = None,
-                 data_prefix: dict = dict(img=''),
-                 filter_cfg: Optional[dict] = None,
-                 indices: Optional[Union[int, Sequence[int]]] = None,
-                 serialize_data: bool = True,
-                 pipeline: List[Union[dict, Callable]] = [],
-                 test_mode: bool = False,
-                 lazy_init: bool = False,
-                 max_refetch: int = 1000):
+    def __init__(
+        self,
+        ann_file: str = "",
+        bbox_file: Optional[str] = None,
+        headbox_file: Optional[str] = None,
+        data_mode: str = "topdown",
+        metainfo: Optional[dict] = None,
+        data_root: Optional[str] = None,
+        data_prefix: dict = dict(img=""),
+        filter_cfg: Optional[dict] = None,
+        indices: Optional[Union[int, Sequence[int]]] = None,
+        serialize_data: bool = True,
+        pipeline: List[Union[dict, Callable]] = [],
+        test_mode: bool = False,
+        lazy_init: bool = False,
+        max_refetch: int = 1000,
+    ):
 
         if headbox_file:
-            if data_mode != 'topdown':
+            if data_mode != "topdown":
                 raise ValueError(
-                    f'{self.__class__.__name__} is set to {data_mode}: '
-                    'mode, while "headbox_file" is only '
-                    'supported in topdown mode.')
+                    f"{self.__class__.__name__} is set to {data_mode}: " 'mode, while "headbox_file" is only ' "supported in topdown mode."
+                )
 
             if not test_mode:
                 raise ValueError(
-                    f'{self.__class__.__name__} has `test_mode==False` '
-                    'while "headbox_file" is only '
-                    'supported when `test_mode==True`.')
+                    f"{self.__class__.__name__} has `test_mode==False` " 'while "headbox_file" is only ' "supported when `test_mode==True`."
+                )
 
             headbox_file_type = headbox_file[-3:]
-            allow_headbox_file_type = ['mat']
+            allow_headbox_file_type = ["mat"]
             if headbox_file_type not in allow_headbox_file_type:
                 raise KeyError(
-                    f'The head boxes file type {headbox_file_type} is not '
-                    f'supported. Should be `mat` but got {headbox_file_type}.')
+                    f"The head boxes file type {headbox_file_type} is not " f"supported. Should be `mat` but got {headbox_file_type}."
+                )
         self.headbox_file = headbox_file
 
         super().__init__(
@@ -132,26 +133,24 @@ class MpiiDataset(BaseCocoStyleDataset):
             pipeline=pipeline,
             test_mode=test_mode,
             lazy_init=lazy_init,
-            max_refetch=max_refetch)
+            max_refetch=max_refetch,
+        )
 
     def _load_annotations(self) -> Tuple[List[dict], List[dict]]:
         """Load data from annotations in MPII format."""
 
-        assert exists(self.ann_file), (
-            f'Annotation file `{self.ann_file}` does not exist')
+        assert exists(self.ann_file), f"Annotation file `{self.ann_file}` does not exist"
 
         with get_local_path(self.ann_file) as local_path:
             with open(local_path) as anno_file:
                 self.anns = json.load(anno_file)
 
         if self.headbox_file:
-            assert exists(self.headbox_file), (
-                f'Headbox file `{self.headbox_file}` does not exist')
+            assert exists(self.headbox_file), f"Headbox file `{self.headbox_file}` does not exist"
 
             with get_local_path(self.headbox_file) as local_path:
                 self.headbox_dict = loadmat(local_path)
-            headboxes_src = np.transpose(self.headbox_dict['headboxes_src'],
-                                         [2, 0, 1])
+            headboxes_src = np.transpose(self.headbox_dict["headboxes_src"], [2, 0, 1])
             SC_BIAS = 0.6
 
         instance_list = []
@@ -160,16 +159,15 @@ class MpiiDataset(BaseCocoStyleDataset):
         ann_id = 0
 
         # mpii bbox scales are normalized with factor 200.
-        pixel_std = 200.
+        pixel_std = 200.0
 
         for idx, ann in enumerate(self.anns):
-            center = np.array(ann['center'], dtype=np.float32)
-            scale = np.array([ann['scale'], ann['scale']],
-                             dtype=np.float32) * pixel_std
+            center = np.array(ann["center"], dtype=np.float32)
+            scale = np.array([ann["scale"], ann["scale"]], dtype=np.float32) * pixel_std
 
             # Adjust center/scale slightly to avoid cropping limbs
             if center[0] != -1:
-                center[1] = center[1] + 15. / pixel_std * scale[1]
+                center[1] = center[1] + 15.0 / pixel_std * scale[1]
 
             # MPII uses matlab format, index is 1-based,
             # we should first convert to 0-based index
@@ -181,49 +179,50 @@ class MpiiDataset(BaseCocoStyleDataset):
             bbox = bbox_cs2xyxy(center, scale)
 
             # load keypoints in shape [1, K, 2] and keypoints_visible in [1, K]
-            keypoints = np.array(
-                ann['joints'], dtype=np.float32).reshape(1, -1, 2)
-            keypoints_visible = np.array(ann['joints_vis']).reshape(1, -1)
+            keypoints = np.array(ann["joints"], dtype=np.float32).reshape(1, -1, 2)
+            keypoints_visible = np.array(ann["joints_vis"]).reshape(1, -1)
 
             x1, y1, x2, y2 = np.split(bbox, axis=1, indices_or_sections=4)
             area = np.clip((x2 - x1) * (y2 - y1) * 0.53, a_min=1.0, a_max=None)
             area = area[..., 0].astype(np.float32)
 
-            category_id = ann.get('category_id', [1] * len(bbox))
+            category_id = ann.get("category_id", [1] * len(bbox))
 
-            segmentation = ann.get('segmentation', None)
+            segmentation = ann.get("segmentation", None)
 
             instance_info = {
-                'id': ann_id,
-                'img_id': int(ann['image'].split('.')[0]),
-                'img_path': osp.join(self.data_prefix['img'], ann['image']),
-                'bbox_center': center,
-                'bbox_scale': scale,
-                'bbox': bbox,
-                'bbox_score': np.ones(1, dtype=np.float32),
-                'keypoints': keypoints,
-                'keypoints_visible': keypoints_visible,
-                'keypoints_visibility': keypoints_visible,
-                'area': area,
-                'category_id': category_id,
+                "id": ann_id,
+                "img_id": int(ann["image"].split(".")[0]),
+                "img_path": osp.join(self.data_prefix["img"], ann["image"]),
+                "bbox_center": center,
+                "bbox_scale": scale,
+                "bbox": bbox,
+                "bbox_score": np.ones(1, dtype=np.float32),
+                "keypoints": keypoints,
+                "keypoints_visible": keypoints_visible,
+                "keypoints_visibility": keypoints_visible,
+                "area": area,
+                "category_id": category_id,
             }
 
             if segmentation is not None:
-                instance_info['segmentation'] = segmentation
+                instance_info["segmentation"] = segmentation
 
             if self.headbox_file:
                 # calculate the diagonal length of head box as norm_factor
                 headbox = headboxes_src[idx]
                 head_size = np.linalg.norm(headbox[1] - headbox[0], axis=0)
                 head_size *= SC_BIAS
-                instance_info['head_size'] = head_size.reshape(1, -1)
+                instance_info["head_size"] = head_size.reshape(1, -1)
 
-            if instance_info['img_id'] not in used_img_ids:
-                used_img_ids.add(instance_info['img_id'])
-                image_list.append({
-                    'img_id': instance_info['img_id'],
-                    'img_path': instance_info['img_path'],
-                })
+            if instance_info["img_id"] not in used_img_ids:
+                used_img_ids.add(instance_info["img_id"])
+                image_list.append(
+                    {
+                        "img_id": instance_info["img_id"],
+                        "img_path": instance_info["img_path"],
+                    }
+                )
 
             instance_list.append(instance_info)
             ann_id = ann_id + 1

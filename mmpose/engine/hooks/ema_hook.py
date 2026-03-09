@@ -37,24 +37,20 @@ class ExpMomentumEMA(ExponentialMovingAverage):
             False.
     """
 
-    def __init__(self,
-                 model: nn.Module,
-                 momentum: float = 0.0002,
-                 gamma: int = 2000,
-                 interval=1,
-                 device: Optional[torch.device] = None,
-                 update_buffers: bool = False) -> None:
-        super().__init__(
-            model=model,
-            momentum=momentum,
-            interval=interval,
-            device=device,
-            update_buffers=update_buffers)
-        assert gamma > 0, f'gamma must be greater than 0, but got {gamma}'
+    def __init__(
+        self,
+        model: nn.Module,
+        momentum: float = 0.0002,
+        gamma: int = 2000,
+        interval=1,
+        device: Optional[torch.device] = None,
+        update_buffers: bool = False,
+    ) -> None:
+        super().__init__(model=model, momentum=momentum, interval=interval, device=device, update_buffers=update_buffers)
+        assert gamma > 0, f"gamma must be greater than 0, but got {gamma}"
         self.gamma = gamma
 
-    def avg_func(self, averaged_param: Tensor, source_param: Tensor,
-                 steps: int) -> None:
+    def avg_func(self, averaged_param: Tensor, source_param: Tensor, steps: int) -> None:
         """Compute the moving average of the parameters using the exponential
         momentum strategy.
 
@@ -64,6 +60,5 @@ class ExpMomentumEMA(ExponentialMovingAverage):
             steps (int): The number of times the parameters have been
                 updated.
         """
-        momentum = (1 - self.momentum) * math.exp(
-            -float(1 + steps) / self.gamma) + self.momentum
+        momentum = (1 - self.momentum) * math.exp(-float(1 + steps) / self.gamma) + self.momentum
         averaged_param.mul_(1 - momentum).add_(source_param, alpha=momentum)

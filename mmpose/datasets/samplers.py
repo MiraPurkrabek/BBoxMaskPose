@@ -29,24 +29,24 @@ class MultiSourceSampler(Sampler):
             Defaults to ``None``
     """
 
-    def __init__(self,
-                 dataset: Sized,
-                 batch_size: int,
-                 source_ratio: List[Union[int, float]],
-                 shuffle: bool = True,
-                 round_up: bool = True,
-                 seed: Optional[int] = None) -> None:
+    def __init__(
+        self,
+        dataset: Sized,
+        batch_size: int,
+        source_ratio: List[Union[int, float]],
+        shuffle: bool = True,
+        round_up: bool = True,
+        seed: Optional[int] = None,
+    ) -> None:
 
-        assert isinstance(dataset, CombinedDataset),\
-            f'The dataset must be CombinedDataset, but get {dataset}'
-        assert isinstance(batch_size, int) and batch_size > 0, \
-            'batch_size must be a positive integer value, ' \
-            f'but got batch_size={batch_size}'
-        assert isinstance(source_ratio, list), \
-            f'source_ratio must be a list, but got source_ratio={source_ratio}'
-        assert len(source_ratio) == len(dataset._lens), \
-            'The length of source_ratio must be equal to ' \
-            f'the number of datasets, but got source_ratio={source_ratio}'
+        assert isinstance(dataset, CombinedDataset), f"The dataset must be CombinedDataset, but get {dataset}"
+        assert isinstance(batch_size, int) and batch_size > 0, (
+            "batch_size must be a positive integer value, " f"but got batch_size={batch_size}"
+        )
+        assert isinstance(source_ratio, list), f"source_ratio must be a list, but got source_ratio={source_ratio}"
+        assert len(source_ratio) == len(dataset._lens), (
+            "The length of source_ratio must be equal to " f"the number of datasets, but got source_ratio={source_ratio}"
+        )
 
         rank, world_size = get_dist_info()
         self.rank = rank
@@ -57,22 +57,17 @@ class MultiSourceSampler(Sampler):
         self.batch_size = batch_size
         self.source_ratio = source_ratio
         self.num_samples = int(math.ceil(len(self.dataset) * 1.0 / world_size))
-        self.num_per_source = [
-            int(batch_size * sr / sum(source_ratio)) for sr in source_ratio
-        ]
+        self.num_per_source = [int(batch_size * sr / sum(source_ratio)) for sr in source_ratio]
         self.num_per_source[0] = batch_size - sum(self.num_per_source[1:])
 
-        assert sum(self.num_per_source) == batch_size, \
-            'The sum of num_per_source must be equal to ' \
-            f'batch_size, but get {self.num_per_source}'
+        assert sum(self.num_per_source) == batch_size, (
+            "The sum of num_per_source must be equal to " f"batch_size, but get {self.num_per_source}"
+        )
 
         self.seed = sync_random_seed() if seed is None else seed
         self.shuffle = shuffle
         self.round_up = round_up
-        self.source2inds = {
-            source: self._indices_of_rank(len(ds))
-            for source, ds in enumerate(dataset.datasets)
-        }
+        self.source2inds = {source: self._indices_of_rank(len(ds)) for source, ds in enumerate(dataset.datasets)}
 
     def _infinite_indices(self, sample_size: int) -> Iterator[int]:
         """Infinitely yield a sequence of indices."""
@@ -86,9 +81,7 @@ class MultiSourceSampler(Sampler):
 
     def _indices_of_rank(self, sample_size: int) -> Iterator[int]:
         """Slice the infinite indices by rank."""
-        yield from itertools.islice(
-            self._infinite_indices(sample_size), self.rank, None,
-            self.world_size)
+        yield from itertools.islice(self._infinite_indices(sample_size), self.rank, None, self.world_size)
 
     def __iter__(self) -> Iterator[int]:
         batch_buffer = []

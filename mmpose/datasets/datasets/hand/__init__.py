@@ -7,6 +7,10 @@ from .panoptic_hand2d_dataset import PanopticHand2DDataset
 from .rhd2d_dataset import Rhd2DDataset
 
 __all__ = [
-    'OneHand10KDataset', 'FreiHandDataset', 'PanopticHand2DDataset',
-    'Rhd2DDataset', 'CocoWholeBodyHandDataset', 'InterHand2DDoubleDataset'
+    "OneHand10KDataset",
+    "FreiHandDataset",
+    "PanopticHand2DDataset",
+    "Rhd2DDataset",
+    "CocoWholeBodyHandDataset",
+    "InterHand2DDoubleDataset",
 ]

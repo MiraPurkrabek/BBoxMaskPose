@@ -36,34 +36,35 @@ class SimOTAAssigner:
             Defaults to dict(type='PoseOKS').
     """
 
-    def __init__(self,
-                 center_radius: float = 2.5,
-                 candidate_topk: int = 10,
-                 iou_weight: float = 3.0,
-                 cls_weight: float = 1.0,
-                 oks_weight: float = 3.0,
-                 vis_weight: float = 0.0,
-                 dynamic_k_indicator: str = 'iou',
-                 use_keypoints_for_center: bool = False,
-                 iou_calculator: ConfigType = dict(type='BBoxOverlaps2D'),
-                 oks_calculator: ConfigType = dict(type='PoseOKS')):
+    def __init__(
+        self,
+        center_radius: float = 2.5,
+        candidate_topk: int = 10,
+        iou_weight: float = 3.0,
+        cls_weight: float = 1.0,
+        oks_weight: float = 3.0,
+        vis_weight: float = 0.0,
+        dynamic_k_indicator: str = "iou",
+        use_keypoints_for_center: bool = False,
+        iou_calculator: ConfigType = dict(type="BBoxOverlaps2D"),
+        oks_calculator: ConfigType = dict(type="PoseOKS"),
+    ):
         self.center_radius = center_radius
         self.candidate_topk = candidate_topk
         self.iou_weight = iou_weight
         self.cls_weight = cls_weight
         self.oks_weight = oks_weight
         self.vis_weight = vis_weight
-        assert dynamic_k_indicator in ('iou', 'oks'), f'the argument ' \
-            f'`dynamic_k_indicator` should be either \'iou\' or \'oks\', ' \
-            f'but got {dynamic_k_indicator}'
+        assert dynamic_k_indicator in ("iou", "oks"), (
+            f"the argument " f"`dynamic_k_indicator` should be either 'iou' or 'oks', " f"but got {dynamic_k_indicator}"
+        )
         self.dynamic_k_indicator = dynamic_k_indicator
 
         self.use_keypoints_for_center = use_keypoints_for_center
         self.iou_calculator = TASK_UTILS.build(iou_calculator)
         self.oks_calculator = TASK_UTILS.build(oks_calculator)
 
-    def assign(self, pred_instances: InstanceData, gt_instances: InstanceData,
-               **kwargs) -> dict:
+    def assign(self, pred_instances: InstanceData, gt_instances: InstanceData, **kwargs) -> dict:
         """Assign gt to priors using SimOTA.
 
         Args:
@@ -96,23 +97,14 @@ class SimOTAAssigner:
         num_bboxes = decoded_bboxes.size(0)
 
         # assign 0 by default
-        assigned_gt_inds = decoded_bboxes.new_full((num_bboxes, ),
-                                                   0,
-                                                   dtype=torch.long)
+        assigned_gt_inds = decoded_bboxes.new_full((num_bboxes,), 0, dtype=torch.long)
         if num_gt == 0 or num_bboxes == 0:
             # No ground truth or boxes, return empty assignment
-            max_overlaps = decoded_bboxes.new_zeros((num_bboxes, ))
-            assigned_labels = decoded_bboxes.new_full((num_bboxes, ),
-                                                      -1,
-                                                      dtype=torch.long)
-            return dict(
-                num_gts=num_gt,
-                gt_inds=assigned_gt_inds,
-                max_overlaps=max_overlaps,
-                labels=assigned_labels)
+            max_overlaps = decoded_bboxes.new_zeros((num_bboxes,))
+            assigned_labels = decoded_bboxes.new_full((num_bboxes,), -1, dtype=torch.long)
+            return dict(num_gts=num_gt, gt_inds=assigned_gt_inds, max_overlaps=max_overlaps, labels=assigned_labels)
 
-        valid_mask, is_in_boxes_and_center = self.get_in_gt_and_in_center_info(
-            priors, gt_bboxes, gt_keypoints, gt_keypoints_visible)
+        valid_mask, is_in_boxes_and_center = self.get_in_gt_and_in_center_info(priors, gt_bboxes, gt_keypoints, gt_keypoints_visible)
         valid_decoded_bbox = decoded_bboxes[valid_mask]
         valid_pred_scores = pred_scores[valid_mask]
         valid_pred_kpts = keypoints[valid_mask]
@@ -121,15 +113,9 @@ class SimOTAAssigner:
         num_valid = valid_decoded_bbox.size(0)
         if num_valid == 0:
             # No valid bboxes, return empty assignment
-            max_overlaps = decoded_bboxes.new_zeros((num_bboxes, ))
-            assigned_labels = decoded_bboxes.new_full((num_bboxes, ),
-                                                      -1,
-                                                      dtype=torch.long)
-            return dict(
-                num_gts=num_gt,
-                gt_inds=assigned_gt_inds,
-                max_overlaps=max_overlaps,
-                labels=assigned_labels)
+            max_overlaps = decoded_bboxes.new_zeros((num_bboxes,))
+            assigned_labels = decoded_bboxes.new_full((num_bboxes,), -1, dtype=torch.long)
+            return dict(num_gts=num_gt, gt_inds=assigned_gt_inds, max_overlaps=max_overlaps, labels=assigned_labels)
 
         cost_matrix = (~is_in_boxes_and_center) * INF
 
@@ -140,12 +126,11 @@ class SimOTAAssigner:
             cost_matrix = cost_matrix + iou_cost * self.iou_weight
 
         # calculate oks
-        if self.oks_weight > 0 or self.dynamic_k_indicator == 'oks':
+        if self.oks_weight > 0 or self.dynamic_k_indicator == "oks":
             pairwise_oks = self.oks_calculator(
                 valid_pred_kpts.unsqueeze(1),  # [num_valid, 1, k, 2]
                 target=gt_keypoints.unsqueeze(0),  # [1, num_gt, k, 2]
-                target_weights=gt_keypoints_visible.unsqueeze(
-                    0),  # [1, num_gt, k]
+                target_weights=gt_keypoints_visible.unsqueeze(0),  # [1, num_gt, k]
                 areas=gt_areas.unsqueeze(0),  # [1, num_gt]
             )  # -> [num_valid, num_gt]
 
@@ -154,58 +139,48 @@ class SimOTAAssigner:
 
         # calculate cls
         if self.cls_weight > 0:
-            gt_onehot_label = (
-                F.one_hot(gt_labels.to(torch.int64),
-                          pred_scores.shape[-1]).float().unsqueeze(0).repeat(
-                              num_valid, 1, 1))
-            valid_pred_scores = valid_pred_scores.unsqueeze(1).repeat(
-                1, num_gt, 1)
+            gt_onehot_label = F.one_hot(gt_labels.to(torch.int64), pred_scores.shape[-1]).float().unsqueeze(0).repeat(num_valid, 1, 1)
+            valid_pred_scores = valid_pred_scores.unsqueeze(1).repeat(1, num_gt, 1)
             # disable AMP autocast to avoid overflow
             with torch.cuda.amp.autocast(enabled=False):
                 cls_cost = (
                     F.binary_cross_entropy(
                         valid_pred_scores.to(dtype=torch.float32),
                         gt_onehot_label,
-                        reduction='none',
-                    ).sum(-1).to(dtype=valid_pred_scores.dtype))
+                        reduction="none",
+                    )
+                    .sum(-1)
+                    .to(dtype=valid_pred_scores.dtype)
+                )
             cost_matrix = cost_matrix + cls_cost * self.cls_weight
         # calculate vis
         if self.vis_weight > 0:
-            valid_pred_kpts_vis = valid_pred_kpts_vis.unsqueeze(1).repeat(
-                1, num_gt, 1)  # [num_valid, 1, k]
-            gt_kpt_vis = gt_keypoints_visible.unsqueeze(
-                0).float()  # [1, num_gt, k]
+            valid_pred_kpts_vis = valid_pred_kpts_vis.unsqueeze(1).repeat(1, num_gt, 1)  # [num_valid, 1, k]
+            gt_kpt_vis = gt_keypoints_visible.unsqueeze(0).float()  # [1, num_gt, k]
             with torch.cuda.amp.autocast(enabled=False):
                 vis_cost = (
                     F.binary_cross_entropy(
                         valid_pred_kpts_vis.to(dtype=torch.float32),
                         gt_kpt_vis.repeat(num_valid, 1, 1),
-                        reduction='none',
-                    ).sum(-1).to(dtype=valid_pred_kpts_vis.dtype))
+                        reduction="none",
+                    )
+                    .sum(-1)
+                    .to(dtype=valid_pred_kpts_vis.dtype)
+                )
             cost_matrix = cost_matrix + vis_cost * self.vis_weight
 
-        if self.dynamic_k_indicator == 'iou':
-            matched_pred_ious, matched_gt_inds = \
-                self.dynamic_k_matching(
-                    cost_matrix, pairwise_ious, num_gt, valid_mask)
-        elif self.dynamic_k_indicator == 'oks':
-            matched_pred_ious, matched_gt_inds = \
-                self.dynamic_k_matching(
-                    cost_matrix, pairwise_oks, num_gt, valid_mask)
+        if self.dynamic_k_indicator == "iou":
+            matched_pred_ious, matched_gt_inds = self.dynamic_k_matching(cost_matrix, pairwise_ious, num_gt, valid_mask)
+        elif self.dynamic_k_indicator == "oks":
+            matched_pred_ious, matched_gt_inds = self.dynamic_k_matching(cost_matrix, pairwise_oks, num_gt, valid_mask)
 
         # convert to AssignResult format
         assigned_gt_inds[valid_mask] = matched_gt_inds + 1
-        assigned_labels = assigned_gt_inds.new_full((num_bboxes, ), -1)
+        assigned_labels = assigned_gt_inds.new_full((num_bboxes,), -1)
         assigned_labels[valid_mask] = gt_labels[matched_gt_inds].long()
-        max_overlaps = assigned_gt_inds.new_full((num_bboxes, ),
-                                                 -INF,
-                                                 dtype=torch.float32)
+        max_overlaps = assigned_gt_inds.new_full((num_bboxes,), -INF, dtype=torch.float32)
         max_overlaps[valid_mask] = matched_pred_ious.to(max_overlaps)
-        return dict(
-            num_gts=num_gt,
-            gt_inds=assigned_gt_inds,
-            max_overlaps=max_overlaps,
-            labels=assigned_labels)
+        return dict(num_gts=num_gt, gt_inds=assigned_gt_inds, max_overlaps=max_overlaps, labels=assigned_labels)
 
     def get_in_gt_and_in_center_info(
         self,
@@ -237,9 +212,9 @@ class SimOTAAssigner:
         gt_cxs = (gt_bboxes[:, 0] + gt_bboxes[:, 2]) / 2.0
         gt_cys = (gt_bboxes[:, 1] + gt_bboxes[:, 3]) / 2.0
         if self.use_keypoints_for_center and gt_keypoints_visible is not None:
-            gt_kpts_cts = (gt_keypoints * gt_keypoints_visible.unsqueeze(-1)
-                           ).sum(dim=-2) / gt_keypoints_visible.sum(
-                               dim=-1, keepdims=True).clip(min=0)
+            gt_kpts_cts = (gt_keypoints * gt_keypoints_visible.unsqueeze(-1)).sum(dim=-2) / gt_keypoints_visible.sum(
+                dim=-1, keepdims=True
+            ).clip(min=0)
             gt_kpts_cts = gt_kpts_cts.to(gt_bboxes)
             valid_mask = gt_keypoints_visible.sum(-1) > 0
             gt_cxs[valid_mask] = gt_kpts_cts[valid_mask][..., 0]
@@ -263,14 +238,10 @@ class SimOTAAssigner:
         is_in_gts_or_centers = is_in_gts_all | is_in_cts_all
 
         # both in boxes and centers, shape: [num_fg, num_gt]
-        is_in_boxes_and_centers = (
-            is_in_gts[is_in_gts_or_centers, :]
-            & is_in_cts[is_in_gts_or_centers, :])
+        is_in_boxes_and_centers = is_in_gts[is_in_gts_or_centers, :] & is_in_cts[is_in_gts_or_centers, :]
         return is_in_gts_or_centers, is_in_boxes_and_centers
 
-    def dynamic_k_matching(self, cost: Tensor, pairwise_ious: Tensor,
-                           num_gt: int,
-                           valid_mask: Tensor) -> Tuple[Tensor, Tensor]:
+    def dynamic_k_matching(self, cost: Tensor, pairwise_ious: Tensor, num_gt: int, valid_mask: Tensor) -> Tuple[Tensor, Tensor]:
         """Use IoU and matching cost to calculate the dynamic top-k positive
         targets."""
         matching_matrix = torch.zeros_like(cost, dtype=torch.uint8)
@@ -280,16 +251,14 @@ class SimOTAAssigner:
         # calculate dynamic k for each gt
         dynamic_ks = torch.clamp(topk_ious.sum(0).int(), min=1)
         for gt_idx in range(num_gt):
-            _, pos_idx = torch.topk(
-                cost[:, gt_idx], k=dynamic_ks[gt_idx], largest=False)
+            _, pos_idx = torch.topk(cost[:, gt_idx], k=dynamic_ks[gt_idx], largest=False)
             matching_matrix[:, gt_idx][pos_idx] = 1
 
         del topk_ious, dynamic_ks, pos_idx
 
         prior_match_gt_mask = matching_matrix.sum(1) > 1
         if prior_match_gt_mask.sum() > 0:
-            cost_min, cost_argmin = torch.min(
-                cost[prior_match_gt_mask, :], dim=1)
+            cost_min, cost_argmin = torch.min(cost[prior_match_gt_mask, :], dim=1)
             matching_matrix[prior_match_gt_mask, :] *= 0
             matching_matrix[prior_match_gt_mask, cost_argmin] = 1
         # get foreground mask inside box and center prior
@@ -297,6 +266,5 @@ class SimOTAAssigner:
         valid_mask[valid_mask.clone()] = fg_mask_inboxes
 
         matched_gt_inds = matching_matrix[fg_mask_inboxes, :].argmax(1)
-        matched_pred_ious = (matching_matrix *
-                             pairwise_ious).sum(1)[fg_mask_inboxes]
+        matched_pred_ious = (matching_matrix * pairwise_ious).sum(1)[fg_mask_inboxes]
         return matched_pred_ious, matched_gt_inds

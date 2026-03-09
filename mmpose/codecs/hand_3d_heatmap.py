@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 import numpy as np
 
 from mmpose.registry import KEYPOINT_CODECS
+
 from .base import BaseKeypointCodec
 from .utils.gaussian_heatmap import generate_3d_gaussian_heatmaps
 from .utils.post_processing import get_heatmap_3d_maximum
@@ -41,36 +42,43 @@ class Hand3DHeatmap(BaseKeypointCodec):
     """
 
     auxiliary_encode_keys = {
-        'dataset_keypoint_weights', 'rel_root_depth', 'rel_root_valid',
-        'hand_type', 'hand_type_valid', 'focal', 'principal_pt'
+        "dataset_keypoint_weights",
+        "rel_root_depth",
+        "rel_root_valid",
+        "hand_type",
+        "hand_type_valid",
+        "focal",
+        "principal_pt",
     }
 
     instance_mapping_table = {
-        'keypoints': 'keypoints',
-        'keypoints_visible': 'keypoints_visible',
-        'keypoints_cam': 'keypoints_cam',
+        "keypoints": "keypoints",
+        "keypoints_visible": "keypoints_visible",
+        "keypoints_cam": "keypoints_cam",
     }
 
     label_mapping_table = {
-        'keypoint_weights': 'keypoint_weights',
-        'root_depth_weight': 'root_depth_weight',
-        'type_weight': 'type_weight',
-        'root_depth': 'root_depth',
-        'type': 'type'
+        "keypoint_weights": "keypoint_weights",
+        "root_depth_weight": "root_depth_weight",
+        "type_weight": "type_weight",
+        "root_depth": "root_depth",
+        "type": "type",
     }
 
-    def __init__(self,
-                 image_size: Tuple[int, int] = [256, 256],
-                 root_heatmap_size: int = 64,
-                 heatmap_size: Tuple[int, int, int] = [64, 64, 64],
-                 heatmap3d_depth_bound: float = 400.0,
-                 heatmap_size_root: int = 64,
-                 root_depth_bound: float = 400.0,
-                 depth_size: int = 64,
-                 use_different_joint_weights: bool = False,
-                 sigma: int = 2,
-                 joint_indices: Optional[list] = None,
-                 max_bound: float = 1.0):
+    def __init__(
+        self,
+        image_size: Tuple[int, int] = [256, 256],
+        root_heatmap_size: int = 64,
+        heatmap_size: Tuple[int, int, int] = [64, 64, 64],
+        heatmap3d_depth_bound: float = 400.0,
+        heatmap_size_root: int = 64,
+        root_depth_bound: float = 400.0,
+        depth_size: int = 64,
+        use_different_joint_weights: bool = False,
+        sigma: int = 2,
+        joint_indices: Optional[list] = None,
+        max_bound: float = 1.0,
+    ):
         super().__init__()
 
         self.image_size = np.array(image_size)
@@ -85,8 +93,7 @@ class Hand3DHeatmap(BaseKeypointCodec):
         self.sigma = sigma
         self.joint_indices = joint_indices
         self.max_bound = max_bound
-        self.scale_factor = (np.array(image_size) /
-                             heatmap_size[:-1]).astype(np.float32)
+        self.scale_factor = (np.array(image_size) / heatmap_size[:-1]).astype(np.float32)
 
     def encode(
         self,
@@ -132,8 +139,7 @@ class Hand3DHeatmap(BaseKeypointCodec):
             keypoints_visible = np.ones(keypoints.shape[:-1], dtype=np.float32)
 
         if self.use_different_joint_weights:
-            assert dataset_keypoint_weights is not None, 'To use different ' \
-                'joint weights,`dataset_keypoint_weights` cannot be None.'
+            assert dataset_keypoint_weights is not None, "To use different " "joint weights,`dataset_keypoint_weights` cannot be None."
 
         heatmaps, keypoint_weights = generate_3d_gaussian_heatmaps(
             heatmap_size=self.heatmap_size,
@@ -145,12 +151,11 @@ class Hand3DHeatmap(BaseKeypointCodec):
             joint_indices=self.joint_indices,
             max_bound=self.max_bound,
             use_different_joint_weights=self.use_different_joint_weights,
-            dataset_keypoint_weights=dataset_keypoint_weights)
+            dataset_keypoint_weights=dataset_keypoint_weights,
+        )
 
-        rel_root_depth = (rel_root_depth / self.root_depth_bound +
-                          0.5) * self.heatmap_size_root
-        rel_root_valid = rel_root_valid * (rel_root_depth >= 0) * (
-            rel_root_depth <= self.heatmap_size_root)
+        rel_root_depth = (rel_root_depth / self.root_depth_bound + 0.5) * self.heatmap_size_root
+        rel_root_valid = rel_root_valid * (rel_root_depth >= 0) * (rel_root_depth <= self.heatmap_size_root)
 
         encoded = dict(
             heatmaps=heatmaps,
@@ -158,11 +163,11 @@ class Hand3DHeatmap(BaseKeypointCodec):
             root_depth=rel_root_depth * np.ones(1, dtype=np.float32),
             type=hand_type,
             type_weight=hand_type_valid,
-            root_depth_weight=rel_root_valid * np.ones(1, dtype=np.float32))
+            root_depth_weight=rel_root_valid * np.ones(1, dtype=np.float32),
+        )
         return encoded
 
-    def decode(self, heatmaps: np.ndarray, root_depth: np.ndarray,
-               hand_type: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def decode(self, heatmaps: np.ndarray, root_depth: np.ndarray, hand_type: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """Decode keypoint coordinates from heatmaps. The decoded keypoint
         coordinates are in the input image space.
 
@@ -183,8 +188,7 @@ class Hand3DHeatmap(BaseKeypointCodec):
         keypoints, scores = get_heatmap_3d_maximum(heatmap3d)
 
         # transform keypoint depth to camera space
-        keypoints[..., 2] = (keypoints[..., 2] / self.depth_size -
-                             0.5) * self.heatmap3d_depth_bound
+        keypoints[..., 2] = (keypoints[..., 2] / self.depth_size - 0.5) * self.heatmap3d_depth_bound
 
         # Unsqueeze the instance dimension for single-instance results
         keypoints, scores = keypoints[None], scores[None]
@@ -194,8 +198,7 @@ class Hand3DHeatmap(BaseKeypointCodec):
 
         # decode relative hand root depth
         # transform relative root depth to camera space
-        rel_root_depth = ((root_depth / self.root_heatmap_size - 0.5) *
-                          self.root_depth_bound)
+        rel_root_depth = (root_depth / self.root_heatmap_size - 0.5) * self.root_depth_bound
 
         hand_type = (hand_type > 0).reshape(1, -1).astype(int)
 

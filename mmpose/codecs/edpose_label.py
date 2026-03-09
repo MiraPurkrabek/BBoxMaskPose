@@ -5,6 +5,7 @@ import numpy as np
 
 from mmpose.registry import KEYPOINT_CODECS
 from mmpose.structures import bbox_cs2xyxy, bbox_xyxy2cs
+
 from .base import BaseKeypointCodec
 
 
@@ -33,12 +34,12 @@ class EDPoseLabel(BaseKeypointCodec):
         num_keypoints (int): The Number of keypoints
     """
 
-    auxiliary_encode_keys = {'area', 'bboxes', 'img_shape'}
+    auxiliary_encode_keys = {"area", "bboxes", "img_shape"}
     instance_mapping_table = dict(
-        bbox='bboxes',
-        keypoints='keypoints',
-        keypoints_visible='keypoints_visible',
-        area='areas',
+        bbox="bboxes",
+        keypoints="keypoints",
+        keypoints_visible="keypoints_visible",
+        area="areas",
     )
 
     def __init__(self, num_select: int = 100, num_keypoints: int = 17):
@@ -95,16 +96,11 @@ class EDPoseLabel(BaseKeypointCodec):
         if keypoints is not None:
             keypoints = keypoints / np.array([w, h], dtype=np.float32)
 
-        encoded = dict(
-            keypoints=keypoints,
-            area=area,
-            bbox=bboxes,
-            keypoints_visible=keypoints_visible)
+        encoded = dict(keypoints=keypoints, area=area, bbox=bboxes, keypoints_visible=keypoints_visible)
 
         return encoded
 
-    def decode(self, input_shapes: np.ndarray, pred_logits: np.ndarray,
-               pred_boxes: np.ndarray, pred_keypoints: np.ndarray):
+    def decode(self, input_shapes: np.ndarray, pred_logits: np.ndarray, pred_boxes: np.ndarray, pred_keypoints: np.ndarray):
         """Select the final top-k keypoints, and decode the results from
         normalize size to origin input size.
 
@@ -124,15 +120,14 @@ class EDPoseLabel(BaseKeypointCodec):
         prob = pred_logits.reshape(-1)
 
         # Select top-k instances based on prediction scores
-        topk_indexes = np.argsort(-prob)[:self.num_select]
+        topk_indexes = np.argsort(-prob)[: self.num_select]
         topk_values = np.take_along_axis(prob, topk_indexes, axis=0)
         scores = np.tile(topk_values[:, np.newaxis], [1, num_keypoints])
 
         # Decode bounding boxes
         topk_boxes = topk_indexes // pred_logits.shape[1]
         boxes = bbox_cs2xyxy(*np.split(pred_boxes, [2], axis=-1))
-        boxes = np.take_along_axis(
-            boxes, np.tile(topk_boxes[:, np.newaxis], [1, 4]), axis=0)
+        boxes = np.take_along_axis(boxes, np.tile(topk_boxes[:, np.newaxis], [1, 4]), axis=0)
 
         # Convert from relative to absolute coordinates
         img_h, img_w = np.split(input_shapes, 2, axis=0)
@@ -141,13 +136,9 @@ class EDPoseLabel(BaseKeypointCodec):
 
         # Decode keypoints
         topk_keypoints = topk_indexes // pred_logits.shape[1]
-        keypoints = np.take_along_axis(
-            pred_keypoints,
-            np.tile(topk_keypoints[:, np.newaxis], [1, num_keypoints * 3]),
-            axis=0)
-        keypoints = keypoints[:, :(num_keypoints * 2)]
-        keypoints = keypoints * np.tile(
-            np.hstack([img_w, img_h]), [num_keypoints])[np.newaxis, :]
+        keypoints = np.take_along_axis(pred_keypoints, np.tile(topk_keypoints[:, np.newaxis], [1, num_keypoints * 3]), axis=0)
+        keypoints = keypoints[:, : (num_keypoints * 2)]
+        keypoints = keypoints * np.tile(np.hstack([img_w, img_h]), [num_keypoints])[np.newaxis, :]
         keypoints = keypoints.reshape(-1, num_keypoints, 2)
 
         return boxes, keypoints, scores

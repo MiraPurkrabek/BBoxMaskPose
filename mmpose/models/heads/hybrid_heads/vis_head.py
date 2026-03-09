@@ -7,8 +7,8 @@ from torch import Tensor, nn
 from mmpose.models.utils.tta import flip_visibility
 from mmpose.registry import MODELS
 from mmpose.utils.tensor_utils import to_numpy
-from mmpose.utils.typing import (ConfigType, InstanceList, OptConfigType,
-                                 OptSampleList, Predictions)
+from mmpose.utils.typing import ConfigType, InstanceList, OptConfigType, OptSampleList, Predictions
+
 from ..base_head import BaseHead
 
 
@@ -27,39 +27,34 @@ class VisPredictHead(BaseHead):
             :attr:`default_init_cfg` for default settings
     """
 
-    def __init__(self,
-                 pose_cfg: ConfigType,
-                 loss: ConfigType = dict(
-                     type='BCELoss', use_target_weight=False,
-                     use_sigmoid=True),
-                 init_cfg: OptConfigType = None):
+    def __init__(
+        self,
+        pose_cfg: ConfigType,
+        loss: ConfigType = dict(type="BCELoss", use_target_weight=False, use_sigmoid=True),
+        init_cfg: OptConfigType = None,
+    ):
 
         if init_cfg is None:
             init_cfg = self.default_init_cfg
 
         super().__init__(init_cfg)
 
-        self.in_channels = pose_cfg['in_channels']
-        if pose_cfg.get('num_joints', None) is not None:
-            self.out_channels = pose_cfg['num_joints']
-        elif pose_cfg.get('out_channels', None) is not None:
-            self.out_channels = pose_cfg['out_channels']
+        self.in_channels = pose_cfg["in_channels"]
+        if pose_cfg.get("num_joints", None) is not None:
+            self.out_channels = pose_cfg["num_joints"]
+        elif pose_cfg.get("out_channels", None) is not None:
+            self.out_channels = pose_cfg["out_channels"]
         else:
-            raise ValueError('VisPredictHead requires \'num_joints\' or'
-                             ' \'out_channels\' in the pose_cfg.')
+            raise ValueError("VisPredictHead requires 'num_joints' or" " 'out_channels' in the pose_cfg.")
 
         self.loss_module = MODELS.build(loss)
 
         self.pose_head = MODELS.build(pose_cfg)
         self.pose_cfg = pose_cfg
 
-        self.use_sigmoid = loss.get('use_sigmoid', False)
+        self.use_sigmoid = loss.get("use_sigmoid", False)
 
-        modules = [
-            nn.AdaptiveAvgPool2d(1),
-            nn.Flatten(),
-            nn.Linear(self.in_channels, self.out_channels)
-        ]
+        modules = [nn.AdaptiveAvgPool2d(1), nn.Flatten(), nn.Linear(self.in_channels, self.out_channels)]
         if self.use_sigmoid:
             modules.append(nn.Sigmoid())
 
@@ -96,8 +91,7 @@ class VisPredictHead(BaseHead):
 
         return x_pose, x_vis
 
-    def integrate(self, batch_vis: Tensor,
-                  pose_preds: Union[Tuple, Predictions]) -> InstanceList:
+    def integrate(self, batch_vis: Tensor, pose_preds: Union[Tuple, Predictions]) -> InstanceList:
         """Add keypoints visibility prediction to pose prediction.
 
         Overwrite the original keypoint_scores.
@@ -116,10 +110,7 @@ class VisPredictHead(BaseHead):
 
         return pose_pred_instances, pose_pred_fields
 
-    def predict(self,
-                feats: Tuple[Tensor],
-                batch_data_samples: OptSampleList,
-                test_cfg: ConfigType = {}) -> Predictions:
+    def predict(self, feats: Tuple[Tensor], batch_data_samples: OptSampleList, test_cfg: ConfigType = {}) -> Predictions:
         """Predict results from features.
 
         Args:
@@ -152,15 +143,14 @@ class VisPredictHead(BaseHead):
 
                 - heatmaps (Tensor): The predicted heatmaps in shape (K, h, w)
         """
-        if test_cfg.get('flip_test', False):
+        if test_cfg.get("flip_test", False):
             # TTA: flip test -> feats = [orig, flipped]
             assert isinstance(feats, list) and len(feats) == 2
-            flip_indices = batch_data_samples[0].metainfo['flip_indices']
+            flip_indices = batch_data_samples[0].metainfo["flip_indices"]
             _feats, _feats_flip = feats
 
             _batch_vis = self.vis_forward(_feats)
-            _batch_vis_flip = flip_visibility(
-                self.vis_forward(_feats_flip), flip_indices=flip_indices)
+            _batch_vis_flip = flip_visibility(self.vis_forward(_feats_flip), flip_indices=flip_indices)
             batch_vis = (_batch_vis + _batch_vis_flip) * 0.5
         else:
             batch_vis = self.vis_forward(feats)  # (B, K, D)
@@ -170,8 +160,7 @@ class VisPredictHead(BaseHead):
         if not self.use_sigmoid:
             batch_vis = torch.sigmoid(batch_vis)
 
-        batch_pose = self.pose_head.predict(feats, batch_data_samples,
-                                            test_cfg)
+        batch_pose = self.pose_head.predict(feats, batch_data_samples, test_cfg)
 
         return self.integrate(batch_vis, batch_pose)
 
@@ -184,16 +173,12 @@ class VisPredictHead(BaseHead):
         predictions = (vis_pred_outputs >= threshold).float()
         correct = (predictions == vis_labels).float()
         if vis_weights is not None:
-            accuracy = (correct * vis_weights).sum(dim=1) / (
-                vis_weights.sum(dim=1) + 1e-6)
+            accuracy = (correct * vis_weights).sum(dim=1) / (vis_weights.sum(dim=1) + 1e-6)
         else:
             accuracy = correct.mean(dim=1)
         return accuracy.mean()
 
-    def loss(self,
-             feats: Tuple[Tensor],
-             batch_data_samples: OptSampleList,
-             train_cfg: OptConfigType = {}) -> dict:
+    def loss(self, feats: Tuple[Tensor], batch_data_samples: OptSampleList, train_cfg: OptConfigType = {}) -> dict:
         """Calculate losses from a batch of inputs and data samples.
 
         Args:
@@ -213,9 +198,7 @@ class VisPredictHead(BaseHead):
             vis_label = d.gt_instance_labels.keypoint_weights.float()
             vis_labels.append(vis_label)
             if vis_weights is not None:
-                vis_weights.append(
-                    getattr(d.gt_instance_labels, 'keypoints_visible_weights',
-                            vis_label.new_ones(vis_label.shape)))
+                vis_weights.append(getattr(d.gt_instance_labels, "keypoints_visible_weights", vis_label.new_ones(vis_label.shape)))
         vis_labels = torch.cat(vis_labels)
         vis_weights = torch.cat(vis_weights) if vis_weights else None
 
@@ -237,5 +220,5 @@ class VisPredictHead(BaseHead):
 
     @property
     def default_init_cfg(self):
-        init_cfg = [dict(type='Normal', layer=['Linear'], std=0.01, bias=0)]
+        init_cfg = [dict(type="Normal", layer=["Linear"], std=0.01, bias=0)]
         return init_cfg

@@ -8,6 +8,7 @@ from mmengine.evaluator import BaseMetric
 from mmengine.logging import MMLogger
 
 from mmpose.registry import METRICS
+
 from ..functional import keypoint_mpjpe
 
 
@@ -42,24 +43,18 @@ class MPJPE(BaseMetric):
             to be skipped. Default: [].
     """
 
-    ALIGNMENT = {'mpjpe': 'none', 'p-mpjpe': 'procrustes', 'n-mpjpe': 'scale'}
+    ALIGNMENT = {"mpjpe": "none", "p-mpjpe": "procrustes", "n-mpjpe": "scale"}
 
-    def __init__(self,
-                 mode: str = 'mpjpe',
-                 collect_device: str = 'cpu',
-                 prefix: Optional[str] = None,
-                 skip_list: List[str] = []) -> None:
+    def __init__(self, mode: str = "mpjpe", collect_device: str = "cpu", prefix: Optional[str] = None, skip_list: List[str] = []) -> None:
         super().__init__(collect_device=collect_device, prefix=prefix)
         allowed_modes = self.ALIGNMENT.keys()
         if mode not in allowed_modes:
-            raise KeyError("`mode` should be 'mpjpe', 'p-mpjpe', or "
-                           f"'n-mpjpe', but got '{mode}'.")
+            raise KeyError("`mode` should be 'mpjpe', 'p-mpjpe', or " f"'n-mpjpe', but got '{mode}'.")
 
         self.mode = mode
         self.skip_list = skip_list
 
-    def process(self, data_batch: Sequence[dict],
-                data_samples: Sequence[dict]) -> None:
+    def process(self, data_batch: Sequence[dict], data_samples: Sequence[dict]) -> None:
         """Process one batch of data samples and predictions. The processed
         results should be stored in ``self.results``, which will be used to
         compute the metrics when all batches have been processed.
@@ -72,32 +67,26 @@ class MPJPE(BaseMetric):
         """
         for data_sample in data_samples:
             # predicted keypoints coordinates, [T, K, D]
-            pred_coords = data_sample['pred_instances']['keypoints']
+            pred_coords = data_sample["pred_instances"]["keypoints"]
             if pred_coords.ndim == 4:
                 pred_coords = np.squeeze(pred_coords, axis=0)
             # ground truth data_info
-            gt = data_sample['gt_instances']
+            gt = data_sample["gt_instances"]
             # ground truth keypoints coordinates, [T, K, D]
-            gt_coords = gt['lifting_target']
+            gt_coords = gt["lifting_target"]
             # ground truth keypoints_visible, [T, K, 1]
-            mask = gt['lifting_target_visible'].astype(bool).reshape(
-                gt_coords.shape[0], -1)
+            mask = gt["lifting_target_visible"].astype(bool).reshape(gt_coords.shape[0], -1)
             # instance action
-            img_path = data_sample['target_img_path'][0]
-            _, rest = osp.basename(img_path).split('_', 1)
-            action, _ = rest.split('.', 1)
+            img_path = data_sample["target_img_path"][0]
+            _, rest = osp.basename(img_path).split("_", 1)
+            action, _ = rest.split(".", 1)
             actions = np.array([action] * gt_coords.shape[0])
 
-            subj_act = osp.basename(img_path).split('.')[0]
+            subj_act = osp.basename(img_path).split(".")[0]
             if subj_act in self.skip_list:
                 continue
 
-            result = {
-                'pred_coords': pred_coords,
-                'gt_coords': gt_coords,
-                'mask': mask,
-                'actions': actions
-            }
+            result = {"pred_coords": pred_coords, "gt_coords": gt_coords, "mask": mask, "actions": actions}
 
             self.results.append(result)
 
@@ -114,30 +103,28 @@ class MPJPE(BaseMetric):
         logger: MMLogger = MMLogger.get_current_instance()
 
         # pred_coords: [N, K, D]
-        pred_coords = np.concatenate(
-            [result['pred_coords'] for result in results])
+        pred_coords = np.concatenate([result["pred_coords"] for result in results])
         # gt_coords: [N, K, D]
-        gt_coords = np.concatenate([result['gt_coords'] for result in results])
+        gt_coords = np.concatenate([result["gt_coords"] for result in results])
         # mask: [N, K]
-        mask = np.concatenate([result['mask'] for result in results])
+        mask = np.concatenate([result["mask"] for result in results])
         # action_category_indices: Dict[List[int]]
         action_category_indices = defaultdict(list)
-        actions = np.concatenate([result['actions'] for result in results])
+        actions = np.concatenate([result["actions"] for result in results])
         for idx, action in enumerate(actions):
-            action_category = action.split('_')[0]
+            action_category = action.split("_")[0]
             action_category_indices[action_category].append(idx)
 
         error_name = self.mode.upper()
 
-        logger.info(f'Evaluating {self.mode.upper()}...')
+        logger.info(f"Evaluating {self.mode.upper()}...")
         metrics = dict()
 
-        metrics[error_name] = keypoint_mpjpe(pred_coords, gt_coords, mask,
-                                             self.ALIGNMENT[self.mode])
+        metrics[error_name] = keypoint_mpjpe(pred_coords, gt_coords, mask, self.ALIGNMENT[self.mode])
 
         for action_category, indices in action_category_indices.items():
-            metrics[f'{error_name}_{action_category}'] = keypoint_mpjpe(
-                pred_coords[indices], gt_coords[indices], mask[indices],
-                self.ALIGNMENT[self.mode])
+            metrics[f"{error_name}_{action_category}"] = keypoint_mpjpe(
+                pred_coords[indices], gt_coords[indices], mask[indices], self.ALIGNMENT[self.mode]
+            )
 
         return metrics

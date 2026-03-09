@@ -6,8 +6,8 @@ from mmengine.utils import is_list_of
 from torch import Tensor
 
 from mmpose.registry import MODELS
-from mmpose.utils.typing import (ConfigType, InstanceList, OptConfigType,
-                                 OptMultiConfig, PixelDataList, SampleList)
+from mmpose.utils.typing import ConfigType, InstanceList, OptConfigType, OptMultiConfig, PixelDataList, SampleList
+
 from .base import BasePoseEstimator
 
 
@@ -31,15 +31,17 @@ class BottomupPoseEstimator(BasePoseEstimator):
             Defaults to ``None``
     """
 
-    def __init__(self,
-                 backbone: ConfigType,
-                 neck: OptConfigType = None,
-                 head: OptConfigType = None,
-                 train_cfg: OptConfigType = None,
-                 test_cfg: OptConfigType = None,
-                 use_syncbn: bool = False,
-                 data_preprocessor: OptConfigType = None,
-                 init_cfg: OptMultiConfig = None):
+    def __init__(
+        self,
+        backbone: ConfigType,
+        neck: OptConfigType = None,
+        head: OptConfigType = None,
+        train_cfg: OptConfigType = None,
+        test_cfg: OptConfigType = None,
+        use_syncbn: bool = False,
+        data_preprocessor: OptConfigType = None,
+        init_cfg: OptMultiConfig = None,
+    ):
         super().__init__(
             backbone=backbone,
             neck=neck,
@@ -48,7 +50,8 @@ class BottomupPoseEstimator(BasePoseEstimator):
             test_cfg=test_cfg,
             use_syncbn=use_syncbn,
             data_preprocessor=data_preprocessor,
-            init_cfg=init_cfg)
+            init_cfg=init_cfg,
+        )
 
     def loss(self, inputs: Tensor, data_samples: SampleList) -> dict:
         """Calculate losses from a batch of inputs and data samples.
@@ -66,13 +69,11 @@ class BottomupPoseEstimator(BasePoseEstimator):
         losses = dict()
 
         if self.with_head:
-            losses.update(
-                self.head.loss(feats, data_samples, train_cfg=self.train_cfg))
+            losses.update(self.head.loss(feats, data_samples, train_cfg=self.train_cfg))
 
         return losses
 
-    def predict(self, inputs: Union[Tensor, List[Tensor]],
-                data_samples: SampleList) -> SampleList:
+    def predict(self, inputs: Union[Tensor, List[Tensor]], data_samples: SampleList) -> SampleList:
         """Predict results from a batch of inputs and data samples with post-
         processing.
 
@@ -95,14 +96,13 @@ class BottomupPoseEstimator(BasePoseEstimator):
                 - keypoint_scores (Tensor): predicted keypoint scores in shape
                     (num_instances, K)
         """
-        assert self.with_head, (
-            'The model must have head to perform prediction.')
+        assert self.with_head, "The model must have head to perform prediction."
 
-        multiscale_test = self.test_cfg.get('multiscale_test', False)
-        flip_test = self.test_cfg.get('flip_test', False)
+        multiscale_test = self.test_cfg.get("multiscale_test", False)
+        flip_test = self.test_cfg.get("flip_test", False)
 
         # enable multi-scale test
-        aug_scales = data_samples[0].metainfo.get('aug_scales', None)
+        aug_scales = data_samples[0].metainfo.get("aug_scales", None)
         if multiscale_test:
             assert isinstance(aug_scales, list)
             assert is_list_of(inputs, Tensor)
@@ -135,14 +135,13 @@ class BottomupPoseEstimator(BasePoseEstimator):
             batch_pred_instances = preds
             batch_pred_fields = None
 
-        results = self.add_pred_to_datasample(batch_pred_instances,
-                                              batch_pred_fields, data_samples)
+        results = self.add_pred_to_datasample(batch_pred_instances, batch_pred_fields, data_samples)
 
         return results
 
-    def add_pred_to_datasample(self, batch_pred_instances: InstanceList,
-                               batch_pred_fields: Optional[PixelDataList],
-                               batch_data_samples: SampleList) -> SampleList:
+    def add_pred_to_datasample(
+        self, batch_pred_instances: InstanceList, batch_pred_fields: Optional[PixelDataList], batch_data_samples: SampleList
+    ) -> SampleList:
         """Add predictions into data samples.
 
         Args:
@@ -162,26 +161,21 @@ class BottomupPoseEstimator(BasePoseEstimator):
         if batch_pred_fields is None:
             batch_pred_fields = []
 
-        for pred_instances, pred_fields, data_sample in zip_longest(
-                batch_pred_instances, batch_pred_fields, batch_data_samples):
+        for pred_instances, pred_fields, data_sample in zip_longest(batch_pred_instances, batch_pred_fields, batch_data_samples):
 
-            input_size = data_sample.metainfo['input_size']
-            input_center = data_sample.metainfo['input_center']
-            input_scale = data_sample.metainfo['input_scale']
+            input_size = data_sample.metainfo["input_size"]
+            input_center = data_sample.metainfo["input_center"]
+            input_scale = data_sample.metainfo["input_scale"]
 
             # convert keypoint coordinates from input space to image space
-            pred_instances.keypoints = pred_instances.keypoints / input_size \
-                * input_scale + input_center - 0.5 * input_scale
-            if 'keypoints_visible' not in pred_instances:
-                pred_instances.keypoints_visible = \
-                    pred_instances.keypoint_scores
+            pred_instances.keypoints = pred_instances.keypoints / input_size * input_scale + input_center - 0.5 * input_scale
+            if "keypoints_visible" not in pred_instances:
+                pred_instances.keypoints_visible = pred_instances.keypoint_scores
 
             # convert bbox coordinates from input space to image space
-            if 'bboxes' in pred_instances:
-                bboxes = pred_instances.bboxes.reshape(
-                    pred_instances.bboxes.shape[0], 2, 2)
-                bboxes = bboxes / input_size * input_scale + input_center \
-                    - 0.5 * input_scale
+            if "bboxes" in pred_instances:
+                bboxes = pred_instances.bboxes.reshape(pred_instances.bboxes.shape[0], 2, 2)
+                bboxes = bboxes / input_size * input_scale + input_center - 0.5 * input_scale
                 pred_instances.bboxes = bboxes.reshape(bboxes.shape[0], 4)
 
             data_sample.pred_instances = pred_instances

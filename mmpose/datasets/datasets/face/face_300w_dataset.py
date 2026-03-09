@@ -6,6 +6,7 @@ import numpy as np
 
 from mmpose.registry import DATASETS
 from mmpose.structures.bbox import bbox_cs2xyxy
+
 from ..base import BaseCocoStyleDataset
 
 
@@ -57,7 +58,7 @@ class Face300WDataset(BaseCocoStyleDataset):
             image. Default: 1000.
     """
 
-    METAINFO: dict = dict(from_file='configs/_base_/datasets/300w.py')
+    METAINFO: dict = dict(from_file="configs/_base_/datasets/300w.py")
 
     def parse_data_info(self, raw_data_info: dict) -> Optional[dict]:
         """Parse raw Face300W annotation of an instance.
@@ -74,39 +75,37 @@ class Face300WDataset(BaseCocoStyleDataset):
             dict: Parsed instance annotation
         """
 
-        ann = raw_data_info['raw_ann_info']
-        img = raw_data_info['raw_img_info']
+        ann = raw_data_info["raw_ann_info"]
+        img = raw_data_info["raw_img_info"]
 
-        img_path = osp.join(self.data_prefix['img'], img['file_name'])
+        img_path = osp.join(self.data_prefix["img"], img["file_name"])
 
         # 300w bbox scales are normalized with factor 200.
-        pixel_std = 200.
+        pixel_std = 200.0
 
         # center, scale in shape [1, 2] and bbox in [1, 4]
-        center = np.array([ann['center']], dtype=np.float32)
-        scale = np.array([[ann['scale'], ann['scale']]],
-                         dtype=np.float32) * pixel_std
+        center = np.array([ann["center"]], dtype=np.float32)
+        scale = np.array([[ann["scale"], ann["scale"]]], dtype=np.float32) * pixel_std
         bbox = bbox_cs2xyxy(center, scale)
 
         # keypoints in shape [1, K, 2] and keypoints_visible in [1, K]
-        _keypoints = np.array(
-            ann['keypoints'], dtype=np.float32).reshape(1, -1, 3)
+        _keypoints = np.array(ann["keypoints"], dtype=np.float32).reshape(1, -1, 3)
         keypoints = _keypoints[..., :2]
         keypoints_visible = np.minimum(1, _keypoints[..., 2])
 
-        num_keypoints = ann['num_keypoints']
+        num_keypoints = ann["num_keypoints"]
 
         data_info = {
-            'img_id': ann['image_id'],
-            'img_path': img_path,
-            'bbox': bbox,
-            'bbox_center': center,
-            'bbox_scale': scale,
-            'bbox_score': np.ones(1, dtype=np.float32),
-            'num_keypoints': num_keypoints,
-            'keypoints': keypoints,
-            'keypoints_visible': keypoints_visible,
-            'iscrowd': ann['iscrowd'],
-            'id': ann['id'],
+            "img_id": ann["image_id"],
+            "img_path": img_path,
+            "bbox": bbox,
+            "bbox_center": center,
+            "bbox_scale": scale,
+            "bbox_score": np.ones(1, dtype=np.float32),
+            "num_keypoints": num_keypoints,
+            "keypoints": keypoints,
+            "keypoints_visible": keypoints_visible,
+            "iscrowd": ann["iscrowd"],
+            "id": ann["id"],
         }
         return data_info

@@ -10,6 +10,7 @@ from mmpose.evaluation.functional import keypoint_pck_accuracy
 from mmpose.registry import MODELS
 from mmpose.utils.tensor_utils import to_numpy
 from mmpose.utils.typing import ConfigType, OptConfigType, OptSampleList
+
 from .integral_regression_head import IntegralRegressionHead
 
 OptIntSeq = Optional[Sequence[int]]
@@ -62,26 +63,26 @@ class DSNTHead(IntegralRegressionHead):
 
     _version = 2
 
-    def __init__(self,
-                 in_channels: Union[int, Sequence[int]],
-                 in_featuremap_size: Tuple[int, int],
-                 num_joints: int,
-                 lambda_t: int = -1,
-                 debias: bool = False,
-                 beta: float = 1.0,
-                 deconv_out_channels: OptIntSeq = (256, 256, 256),
-                 deconv_kernel_sizes: OptIntSeq = (4, 4, 4),
-                 conv_out_channels: OptIntSeq = None,
-                 conv_kernel_sizes: OptIntSeq = None,
-                 final_layer: dict = dict(kernel_size=1),
-                 loss: ConfigType = dict(
-                     type='MultipleLossWrapper',
-                     losses=[
-                         dict(type='SmoothL1Loss', use_target_weight=True),
-                         dict(type='JSDiscretLoss', use_target_weight=True)
-                     ]),
-                 decoder: OptConfigType = None,
-                 init_cfg: OptConfigType = None):
+    def __init__(
+        self,
+        in_channels: Union[int, Sequence[int]],
+        in_featuremap_size: Tuple[int, int],
+        num_joints: int,
+        lambda_t: int = -1,
+        debias: bool = False,
+        beta: float = 1.0,
+        deconv_out_channels: OptIntSeq = (256, 256, 256),
+        deconv_kernel_sizes: OptIntSeq = (4, 4, 4),
+        conv_out_channels: OptIntSeq = None,
+        conv_kernel_sizes: OptIntSeq = None,
+        final_layer: dict = dict(kernel_size=1),
+        loss: ConfigType = dict(
+            type="MultipleLossWrapper",
+            losses=[dict(type="SmoothL1Loss", use_target_weight=True), dict(type="JSDiscretLoss", use_target_weight=True)],
+        ),
+        decoder: OptConfigType = None,
+        init_cfg: OptConfigType = None,
+    ):
 
         super().__init__(
             in_channels=in_channels,
@@ -96,24 +97,18 @@ class DSNTHead(IntegralRegressionHead):
             final_layer=final_layer,
             loss=loss,
             decoder=decoder,
-            init_cfg=init_cfg)
+            init_cfg=init_cfg,
+        )
 
         self.lambda_t = lambda_t
 
-    def loss(self,
-             inputs: Tuple[Tensor],
-             batch_data_samples: OptSampleList,
-             train_cfg: ConfigType = {}) -> dict:
+    def loss(self, inputs: Tuple[Tensor], batch_data_samples: OptSampleList, train_cfg: ConfigType = {}) -> dict:
         """Calculate losses from a batch of inputs and data samples."""
 
         pred_coords, pred_heatmaps = self.forward(inputs)
-        keypoint_labels = torch.cat(
-            [d.gt_instance_labels.keypoint_labels for d in batch_data_samples])
-        keypoint_weights = torch.cat([
-            d.gt_instance_labels.keypoint_weights for d in batch_data_samples
-        ])
-        gt_heatmaps = torch.stack(
-            [d.gt_fields.heatmaps for d in batch_data_samples])
+        keypoint_labels = torch.cat([d.gt_instance_labels.keypoint_labels for d in batch_data_samples])
+        keypoint_weights = torch.cat([d.gt_instance_labels.keypoint_weights for d in batch_data_samples])
+        gt_heatmaps = torch.stack([d.gt_fields.heatmaps for d in batch_data_samples])
 
         input_list = [pred_coords, pred_heatmaps]
         target_list = [keypoint_labels, gt_heatmaps]
@@ -126,7 +121,7 @@ class DSNTHead(IntegralRegressionHead):
 
         if self.lambda_t > 0:
             mh = MessageHub.get_current_instance()
-            cur_epoch = mh.get_info('epoch')
+            cur_epoch = mh.get_info("epoch")
             if cur_epoch >= self.lambda_t:
                 loss = loss_list[0]
 
@@ -138,7 +133,8 @@ class DSNTHead(IntegralRegressionHead):
             gt=to_numpy(keypoint_labels),
             mask=to_numpy(keypoint_weights) > 0,
             thr=0.05,
-            norm_factor=np.ones((pred_coords.size(0), 2), dtype=np.float32))
+            norm_factor=np.ones((pred_coords.size(0), 2), dtype=np.float32),
+        )
 
         acc_pose = torch.tensor(avg_acc, device=keypoint_labels.device)
         losses.update(acc_pose=acc_pose)

@@ -36,18 +36,20 @@ class RepVGGBlock(BaseModule):
         init_cfg (dict): The config dict for initialization. Defaults to None.
     """
 
-    def __init__(self,
-                 in_channels: int,
-                 out_channels: int,
-                 stride: int = 1,
-                 padding: int = 1,
-                 dilation: int = 1,
-                 groups: int = 1,
-                 padding_mode: str = 'zeros',
-                 norm_cfg: OptConfigType = dict(type='BN'),
-                 act_cfg: OptConfigType = dict(type='ReLU'),
-                 without_branch_norm: bool = True,
-                 init_cfg: OptConfigType = None):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        stride: int = 1,
+        padding: int = 1,
+        dilation: int = 1,
+        groups: int = 1,
+        padding_mode: str = "zeros",
+        norm_cfg: OptConfigType = dict(type="BN"),
+        act_cfg: OptConfigType = dict(type="ReLU"),
+        without_branch_norm: bool = True,
+        init_cfg: OptConfigType = None,
+    ):
         super(RepVGGBlock, self).__init__(init_cfg)
 
         self.in_channels = in_channels
@@ -62,8 +64,7 @@ class RepVGGBlock(BaseModule):
         # judge if input shape and output shape are the same.
         # If true, add a normalized identity shortcut.
         self.branch_norm = None
-        if out_channels == in_channels and stride == 1 and \
-                padding == dilation and not without_branch_norm:
+        if out_channels == in_channels and stride == 1 and padding == dilation and not without_branch_norm:
             self.branch_norm = build_norm_layer(norm_cfg, in_channels)[1]
 
         self.branch_3x3 = ConvModule(
@@ -75,15 +76,10 @@ class RepVGGBlock(BaseModule):
             groups=self.groups,
             dilation=self.dilation,
             norm_cfg=self.norm_cfg,
-            act_cfg=None)
+            act_cfg=None,
+        )
 
-        self.branch_1x1 = ConvModule(
-            self.in_channels,
-            self.out_channels,
-            1,
-            groups=self.groups,
-            norm_cfg=self.norm_cfg,
-            act_cfg=None)
+        self.branch_1x1 = ConvModule(self.in_channels, self.out_channels, 1, groups=self.groups, norm_cfg=self.norm_cfg, act_cfg=None)
 
         self.act = build_activation_layer(act_cfg)
 
@@ -147,14 +143,12 @@ class RepVGGBlock(BaseModule):
             eps = branch.bn.eps
         else:
             assert isinstance(branch, (nn.SyncBatchNorm, nn.BatchNorm2d))
-            if not hasattr(self, 'id_tensor'):
+            if not hasattr(self, "id_tensor"):
                 input_dim = self.in_channels // self.groups
-                kernel_value = np.zeros((self.in_channels, input_dim, 3, 3),
-                                        dtype=np.float32)
+                kernel_value = np.zeros((self.in_channels, input_dim, 3, 3), dtype=np.float32)
                 for i in range(self.in_channels):
                     kernel_value[i, i % input_dim, 1, 1] = 1
-                self.id_tensor = torch.from_numpy(kernel_value).to(
-                    branch.weight.device)
+                self.id_tensor = torch.from_numpy(kernel_value).to(branch.weight.device)
             kernel = self.id_tensor
             running_mean = branch.running_mean
             running_var = branch.running_var
@@ -174,11 +168,9 @@ class RepVGGBlock(BaseModule):
         """
         kernel3x3, bias3x3 = self._fuse_bn_tensor(self.branch_3x3)
         kernel1x1, bias1x1 = self._fuse_bn_tensor(self.branch_1x1)
-        kernelid, biasid = (0, 0) if self.branch_norm is None else \
-            self._fuse_bn_tensor(self.branch_norm)
+        kernelid, biasid = (0, 0) if self.branch_norm is None else self._fuse_bn_tensor(self.branch_norm)
 
-        return (kernel3x3 + self._pad_1x1_to_3x3_tensor(kernel1x1) + kernelid,
-                bias3x3 + bias1x1 + biasid)
+        return (kernel3x3 + self._pad_1x1_to_3x3_tensor(kernel1x1) + kernelid, bias3x3 + bias1x1 + biasid)
 
     def switch_to_deploy(self, test_cfg: Optional[Dict] = None):
         """Switches the block to deployment mode.
@@ -187,7 +179,7 @@ class RepVGGBlock(BaseModule):
         derived from the equivalent kernel and bias, replacing the original
         branches. This reduces computational complexity during inference.
         """
-        if getattr(self, 'deploy', False):
+        if getattr(self, "deploy", False):
             return
 
         kernel, bias = self.get_equivalent_kernel_bias()
@@ -199,15 +191,16 @@ class RepVGGBlock(BaseModule):
             padding=self.branch_3x3.conv.padding,
             dilation=self.branch_3x3.conv.dilation,
             groups=self.branch_3x3.conv.groups,
-            bias=True)
+            bias=True,
+        )
         self.conv_reparam.weight.data = kernel
         self.conv_reparam.bias.data = bias
         for para in self.parameters():
             para.detach_()
-        self.__delattr__('branch_3x3')
-        self.__delattr__('branch_1x1')
-        if hasattr(self, 'branch_norm'):
-            self.__delattr__('branch_norm')
+        self.__delattr__("branch_3x3")
+        self.__delattr__("branch_1x1")
+        if hasattr(self, "branch_norm"):
+            self.__delattr__("branch_norm")
 
         def _forward(self, x):
             return self.act(self.conv_reparam(x))

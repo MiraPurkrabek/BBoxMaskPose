@@ -14,8 +14,7 @@ from mmpose.evaluation.functional import simcc_pck_accuracy
 from mmpose.models import build_pose_estimator
 from mmpose.registry import MODELS
 from mmpose.utils.tensor_utils import to_numpy
-from mmpose.utils.typing import (ForwardResults, OptConfigType, OptMultiConfig,
-                                 OptSampleList, SampleList)
+from mmpose.utils.typing import ForwardResults, OptConfigType, OptMultiConfig, OptSampleList, SampleList
 
 
 @MODELS.register_module()
@@ -46,27 +45,26 @@ class DWPoseDistiller(BaseModel, metaclass=ABCMeta):
     .. _`DWPose`: https://arxiv.org/abs/2307.15880
     """
 
-    def __init__(self,
-                 teacher_cfg,
-                 student_cfg,
-                 two_dis=False,
-                 distill_cfg=None,
-                 teacher_pretrained=None,
-                 train_cfg: OptConfigType = None,
-                 data_preprocessor: OptConfigType = None,
-                 init_cfg: OptMultiConfig = None):
-        super().__init__(
-            data_preprocessor=data_preprocessor, init_cfg=init_cfg)
+    def __init__(
+        self,
+        teacher_cfg,
+        student_cfg,
+        two_dis=False,
+        distill_cfg=None,
+        teacher_pretrained=None,
+        train_cfg: OptConfigType = None,
+        data_preprocessor: OptConfigType = None,
+        init_cfg: OptMultiConfig = None,
+    ):
+        super().__init__(data_preprocessor=data_preprocessor, init_cfg=init_cfg)
 
-        self.teacher = build_pose_estimator(
-            (Config.fromfile(teacher_cfg)).model)
+        self.teacher = build_pose_estimator((Config.fromfile(teacher_cfg)).model)
         self.teacher_pretrained = teacher_pretrained
         self.teacher.eval()
         for param in self.teacher.parameters():
             param.requires_grad = False
 
-        self.student = build_pose_estimator(
-            (Config.fromfile(student_cfg)).model)
+        self.student = build_pose_estimator((Config.fromfile(student_cfg)).model)
 
         self.distill_cfg = distill_cfg
         self.distill_losses = nn.ModuleDict()
@@ -76,8 +74,7 @@ class DWPoseDistiller(BaseModel, metaclass=ABCMeta):
                     loss_name = item_loss.name
                     use_this = item_loss.use_this
                     if use_this:
-                        self.distill_losses[loss_name] = MODELS.build(
-                            item_loss)
+                        self.distill_losses[loss_name] = MODELS.build(item_loss)
 
         self.two_dis = two_dis
         self.train_cfg = train_cfg if train_cfg else self.student.train_cfg
@@ -86,8 +83,7 @@ class DWPoseDistiller(BaseModel, metaclass=ABCMeta):
 
     def init_weights(self):
         if self.teacher_pretrained is not None:
-            load_checkpoint(
-                self.teacher, self.teacher_pretrained, map_location='cpu')
+            load_checkpoint(self.teacher, self.teacher_pretrained, map_location="cpu")
         self.student.init_weights()
 
     def set_epoch(self):
@@ -96,26 +92,22 @@ class DWPoseDistiller(BaseModel, metaclass=ABCMeta):
         Used for the decay of distillation loss.
         """
         self.message_hub = MessageHub.get_current_instance()
-        self.epoch = self.message_hub.get_info('epoch')
-        self.max_epochs = self.message_hub.get_info('max_epochs')
+        self.epoch = self.message_hub.get_info("epoch")
+        self.max_epochs = self.message_hub.get_info("max_epochs")
 
-    def forward(self,
-                inputs: torch.Tensor,
-                data_samples: OptSampleList,
-                mode: str = 'tensor') -> ForwardResults:
-        if mode == 'loss':
+    def forward(self, inputs: torch.Tensor, data_samples: OptSampleList, mode: str = "tensor") -> ForwardResults:
+        if mode == "loss":
             return self.loss(inputs, data_samples)
-        elif mode == 'predict':
+        elif mode == "predict":
             # use customed metainfo to override the default metainfo
             if self.metainfo is not None:
                 for data_sample in data_samples:
                     data_sample.set_metainfo(self.metainfo)
             return self.predict(inputs, data_samples)
-        elif mode == 'tensor':
+        elif mode == "tensor":
             return self._forward(inputs)
         else:
-            raise RuntimeError(f'Invalid mode "{mode}". '
-                               'Only supports loss, predict and tensor mode.')
+            raise RuntimeError(f'Invalid mode "{mode}". ' "Only supports loss, predict and tensor mode.")
 
     def loss(self, inputs: Tensor, data_samples: SampleList) -> dict:
         """Calculate losses from a batch of inputs and data samples.
@@ -139,31 +131,24 @@ class DWPoseDistiller(BaseModel, metaclass=ABCMeta):
 
         if not self.two_dis:
             fea_s = self.student.extract_feat(inputs)
-            ori_loss, pred, gt, target_weight = self.head_loss(
-                fea_s, data_samples, train_cfg=self.train_cfg)
+            ori_loss, pred, gt, target_weight = self.head_loss(fea_s, data_samples, train_cfg=self.train_cfg)
             losses.update(ori_loss)
         else:
-            ori_loss, pred, gt, target_weight = self.head_loss(
-                fea_t, data_samples, train_cfg=self.train_cfg)
+            ori_loss, pred, gt, target_weight = self.head_loss(fea_t, data_samples, train_cfg=self.train_cfg)
 
         all_keys = self.distill_losses.keys()
 
-        if 'loss_fea' in all_keys:
-            loss_name = 'loss_fea'
-            losses[loss_name] = self.distill_losses[loss_name](fea_s[-1],
-                                                               fea_t[-1])
+        if "loss_fea" in all_keys:
+            loss_name = "loss_fea"
+            losses[loss_name] = self.distill_losses[loss_name](fea_s[-1], fea_t[-1])
             if not self.two_dis:
-                losses[loss_name] = (
-                    1 - self.epoch / self.max_epochs) * losses[loss_name]
+                losses[loss_name] = (1 - self.epoch / self.max_epochs) * losses[loss_name]
 
-        if 'loss_logit' in all_keys:
-            loss_name = 'loss_logit'
-            losses[loss_name] = self.distill_losses[loss_name](
-                pred, pred_t, self.student.head.loss_module.beta,
-                target_weight)
+        if "loss_logit" in all_keys:
+            loss_name = "loss_logit"
+            losses[loss_name] = self.distill_losses[loss_name](pred, pred_t, self.student.head.loss_module.beta, target_weight)
             if not self.two_dis:
-                losses[loss_name] = (
-                    1 - self.epoch / self.max_epochs) * losses[loss_name]
+                losses[loss_name] = (1 - self.epoch / self.max_epochs) * losses[loss_name]
 
         return losses
 
@@ -189,18 +174,16 @@ class DWPoseDistiller(BaseModel, metaclass=ABCMeta):
                     (num_instances, K)
         """
         if self.two_dis:
-            assert self.student.with_head, (
-                'The model must have head to perform prediction.')
+            assert self.student.with_head, "The model must have head to perform prediction."
 
-            if self.test_cfg.get('flip_test', False):
+            if self.test_cfg.get("flip_test", False):
                 _feats = self.extract_feat(inputs)
                 _feats_flip = self.extract_feat(inputs.flip(-1))
                 feats = [_feats, _feats_flip]
             else:
                 feats = self.extract_feat(inputs)
 
-            preds = self.student.head.predict(
-                feats, data_samples, test_cfg=self.student.test_cfg)
+            preds = self.student.head.predict(feats, data_samples, test_cfg=self.student.test_cfg)
 
             if isinstance(preds, tuple):
                 batch_pred_instances, batch_pred_fields = preds
@@ -208,8 +191,7 @@ class DWPoseDistiller(BaseModel, metaclass=ABCMeta):
                 batch_pred_instances = preds
                 batch_pred_fields = None
 
-            results = self.student.add_pred_to_datasample(
-                batch_pred_instances, batch_pred_fields, data_samples)
+            results = self.student.add_pred_to_datasample(batch_pred_instances, batch_pred_fields, data_samples)
 
             return results
         else:
@@ -238,19 +220,10 @@ class DWPoseDistiller(BaseModel, metaclass=ABCMeta):
 
         pred_x, pred_y = self.student.head.forward(feats)
 
-        gt_x = torch.cat([
-            d.gt_instance_labels.keypoint_x_labels for d in batch_data_samples
-        ],
-                         dim=0)
-        gt_y = torch.cat([
-            d.gt_instance_labels.keypoint_y_labels for d in batch_data_samples
-        ],
-                         dim=0)
+        gt_x = torch.cat([d.gt_instance_labels.keypoint_x_labels for d in batch_data_samples], dim=0)
+        gt_y = torch.cat([d.gt_instance_labels.keypoint_y_labels for d in batch_data_samples], dim=0)
         keypoint_weights = torch.cat(
-            [
-                d.gt_instance_labels.keypoint_weights
-                for d in batch_data_samples
-            ],
+            [d.gt_instance_labels.keypoint_weights for d in batch_data_samples],
             dim=0,
         )
 
@@ -259,8 +232,7 @@ class DWPoseDistiller(BaseModel, metaclass=ABCMeta):
 
         # calculate losses
         losses = dict()
-        loss = self.student.head.loss_module(pred_simcc, gt_simcc,
-                                             keypoint_weights)
+        loss = self.student.head.loss_module(pred_simcc, gt_simcc, keypoint_weights)
 
         losses.update(loss_kpt=loss)
 

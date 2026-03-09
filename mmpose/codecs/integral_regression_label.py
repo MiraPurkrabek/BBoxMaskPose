@@ -5,6 +5,7 @@ from typing import Optional, Tuple
 import numpy as np
 
 from mmpose.registry import KEYPOINT_CODECS
+
 from .base import BaseKeypointCodec
 from .msra_heatmap import MSRAHeatmap
 from .regression_label import RegressionLabel
@@ -46,28 +47,29 @@ class IntegralRegressionLabel(BaseKeypointCodec):
     """
 
     label_mapping_table = dict(
-        keypoint_labels='keypoint_labels',
-        keypoint_weights='keypoint_weights',
+        keypoint_labels="keypoint_labels",
+        keypoint_weights="keypoint_weights",
     )
-    field_mapping_table = dict(heatmaps='heatmaps', )
+    field_mapping_table = dict(
+        heatmaps="heatmaps",
+    )
 
-    def __init__(self,
-                 input_size: Tuple[int, int],
-                 heatmap_size: Tuple[int, int],
-                 sigma: float,
-                 unbiased: bool = False,
-                 blur_kernel_size: int = 11,
-                 normalize: bool = True) -> None:
+    def __init__(
+        self,
+        input_size: Tuple[int, int],
+        heatmap_size: Tuple[int, int],
+        sigma: float,
+        unbiased: bool = False,
+        blur_kernel_size: int = 11,
+        normalize: bool = True,
+    ) -> None:
         super().__init__()
 
-        self.heatmap_codec = MSRAHeatmap(input_size, heatmap_size, sigma,
-                                         unbiased, blur_kernel_size)
+        self.heatmap_codec = MSRAHeatmap(input_size, heatmap_size, sigma, unbiased, blur_kernel_size)
         self.keypoint_codec = RegressionLabel(input_size)
         self.normalize = normalize
 
-    def encode(self,
-               keypoints: np.ndarray,
-               keypoints_visible: Optional[np.ndarray] = None) -> dict:
+    def encode(self, keypoints: np.ndarray, keypoints_visible: Optional[np.ndarray] = None) -> dict:
         """Encoding keypoints to regression labels and heatmaps.
 
         Args:
@@ -87,18 +89,15 @@ class IntegralRegressionLabel(BaseKeypointCodec):
         encoded_hm = self.heatmap_codec.encode(keypoints, keypoints_visible)
         encoded_kp = self.keypoint_codec.encode(keypoints, keypoints_visible)
 
-        heatmaps = encoded_hm['heatmaps']
-        keypoint_labels = encoded_kp['keypoint_labels']
-        keypoint_weights = encoded_kp['keypoint_weights']
+        heatmaps = encoded_hm["heatmaps"]
+        keypoint_labels = encoded_kp["keypoint_labels"]
+        keypoint_weights = encoded_kp["keypoint_weights"]
 
         if self.normalize:
             val_sum = heatmaps.sum(axis=(-1, -2)).reshape(-1, 1, 1) + 1e-24
             heatmaps = heatmaps / val_sum
 
-        encoded = dict(
-            keypoint_labels=keypoint_labels,
-            heatmaps=heatmaps,
-            keypoint_weights=keypoint_weights)
+        encoded = dict(keypoint_labels=keypoint_labels, heatmaps=heatmaps, keypoint_weights=keypoint_weights)
 
         return encoded
 

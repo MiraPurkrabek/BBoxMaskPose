@@ -15,8 +15,18 @@ from .posetrack18_dataset import PoseTrack18Dataset
 from .posetrack18_video_dataset import PoseTrack18VideoDataset
 
 __all__ = [
-    'CocoDataset', 'MpiiDataset', 'MpiiTrbDataset', 'AicDataset',
-    'CrowdPoseDataset', 'OCHumanDataset', 'MhpDataset', 'PoseTrack18Dataset',
-    'JhmdbDataset', 'PoseTrack18VideoDataset', 'HumanArtDataset',
-    'HumanArt21Dataset', 'ExlposeDataset', 'CocoCropDataset'
+    "CocoDataset",
+    "MpiiDataset",
+    "MpiiTrbDataset",
+    "AicDataset",
+    "CrowdPoseDataset",
+    "OCHumanDataset",
+    "MhpDataset",
+    "PoseTrack18Dataset",
+    "JhmdbDataset",
+    "PoseTrack18VideoDataset",
+    "HumanArtDataset",
+    "HumanArt21Dataset",
+    "ExlposeDataset",
+    "CocoCropDataset",
 ]

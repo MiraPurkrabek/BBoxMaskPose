@@ -36,16 +36,13 @@ def rope(x, dim):
     for i in spatial_shape:
         total_len *= i
 
-    position = torch.reshape(
-        torch.arange(total_len, dtype=torch.int, device=x.device),
-        spatial_shape)
+    position = torch.reshape(torch.arange(total_len, dtype=torch.int, device=x.device), spatial_shape)
 
     for i in range(dim[-1] + 1, len(shape) - 1, 1):
         position = torch.unsqueeze(position, dim=-1)
 
     half_size = shape[-1] // 2
-    freq_seq = -torch.arange(
-        half_size, dtype=torch.int, device=x.device) / float(half_size)
+    freq_seq = -torch.arange(half_size, dtype=torch.int, device=x.device) / float(half_size)
     inv_freq = 10000**-freq_seq
 
     sinusoid = position[..., None] * inv_freq[None, None, :]
@@ -68,10 +65,9 @@ class Scale(nn.Module):
             Defaults to True.
     """
 
-    def __init__(self, dim, init_value=1., trainable=True):
+    def __init__(self, dim, init_value=1.0, trainable=True):
         super().__init__()
-        self.scale = nn.Parameter(
-            init_value * torch.ones(dim), requires_grad=trainable)
+        self.scale = nn.Parameter(init_value * torch.ones(dim), requires_grad=trainable)
 
     def forward(self, x):
         """Forward function."""
@@ -119,20 +115,22 @@ class RTMCCBlock(nn.Module):
         <https://arxiv.org/abs/2202.10447>`_
     """
 
-    def __init__(self,
-                 num_token,
-                 in_token_dims,
-                 out_token_dims,
-                 expansion_factor=2,
-                 s=128,
-                 eps=1e-5,
-                 dropout_rate=0.,
-                 drop_path=0.,
-                 attn_type='self-attn',
-                 act_fn='SiLU',
-                 bias=False,
-                 use_rel_bias=True,
-                 pos_enc=False):
+    def __init__(
+        self,
+        num_token,
+        in_token_dims,
+        out_token_dims,
+        expansion_factor=2,
+        s=128,
+        eps=1e-5,
+        dropout_rate=0.0,
+        drop_path=0.0,
+        attn_type="self-attn",
+        act_fn="SiLU",
+        bias=False,
+        use_rel_bias=True,
+        pos_enc=False,
+    ):
 
         super(RTMCCBlock, self).__init__()
         self.s = s
@@ -140,20 +138,18 @@ class RTMCCBlock(nn.Module):
         self.use_rel_bias = use_rel_bias
         self.attn_type = attn_type
         self.pos_enc = pos_enc
-        self.drop_path = DropPath(drop_path) \
-            if drop_path > 0. else nn.Identity()
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
         self.e = int(in_token_dims * expansion_factor)
         if use_rel_bias:
-            if attn_type == 'self-attn':
-                self.w = nn.Parameter(
-                    torch.rand([2 * num_token - 1], dtype=torch.float))
+            if attn_type == "self-attn":
+                self.w = nn.Parameter(torch.rand([2 * num_token - 1], dtype=torch.float))
             else:
                 self.a = nn.Parameter(torch.rand([1, s], dtype=torch.float))
                 self.b = nn.Parameter(torch.rand([1, s], dtype=torch.float))
         self.o = nn.Linear(self.e, out_token_dims, bias=bias)
 
-        if attn_type == 'self-attn':
+        if attn_type == "self-attn":
             self.uv = nn.Linear(in_token_dims, 2 * self.e + self.s, bias=bias)
             self.gamma = nn.Parameter(torch.rand((2, self.s)))
             self.beta = nn.Parameter(torch.rand((2, self.s)))
@@ -168,12 +164,11 @@ class RTMCCBlock(nn.Module):
 
         nn.init.xavier_uniform_(self.uv.weight)
 
-        if act_fn == 'SiLU' or act_fn == nn.SiLU:
-            assert digit_version(TORCH_VERSION) >= digit_version('1.7.0'), \
-                'SiLU activation requires PyTorch version >= 1.7'
+        if act_fn == "SiLU" or act_fn == nn.SiLU:
+            assert digit_version(TORCH_VERSION) >= digit_version("1.7.0"), "SiLU activation requires PyTorch version >= 1.7"
 
             self.act_fn = nn.SiLU(True)
-        elif act_fn == 'ReLU' or act_fn == nn.ReLU:
+        elif act_fn == "ReLU" or act_fn == nn.ReLU:
             self.act_fn = nn.ReLU(True)
         else:
             raise NotImplementedError
@@ -188,14 +183,14 @@ class RTMCCBlock(nn.Module):
 
         self.dropout_rate = dropout_rate
 
-        if dropout_rate > 0.:
+        if dropout_rate > 0.0:
             self.dropout = nn.Dropout(dropout_rate)
 
     def rel_pos_bias(self, seq_len, k_len=None):
         """Add relative position bias."""
 
-        if self.attn_type == 'self-attn':
-            t = F.pad(self.w[:2 * seq_len - 1], [0, seq_len]).repeat(seq_len)
+        if self.attn_type == "self-attn":
+            t = F.pad(self.w[: 2 * seq_len - 1], [0, seq_len]).repeat(seq_len)
             t = t[..., :-seq_len].reshape(-1, seq_len, 3 * seq_len - 2)
             r = (2 * seq_len - 1) // 2
             t = t[..., r:-r]
@@ -208,7 +203,7 @@ class RTMCCBlock(nn.Module):
     def _forward(self, inputs):
         """GAU Forward function."""
 
-        if self.attn_type == 'self-attn':
+        if self.attn_type == "self-attn":
             x = inputs
         else:
             x, k, v = inputs
@@ -219,7 +214,7 @@ class RTMCCBlock(nn.Module):
         uv = self.uv(x)
         uv = self.act_fn(uv)
 
-        if self.attn_type == 'self-attn':
+        if self.attn_type == "self-attn":
             # [B, K, e + e + s] -> [B, K, e], [B, K, e], [B, K, s]
             u, v, base = torch.split(uv, [self.e, self.e, self.s], dim=2)
             # [B, K, 1, s] * [1, 1, 2, s] + [2, s] -> [B, K, 2, s]
@@ -246,15 +241,15 @@ class RTMCCBlock(nn.Module):
         qk = torch.bmm(q, k.permute(0, 2, 1))
 
         if self.use_rel_bias:
-            if self.attn_type == 'self-attn':
+            if self.attn_type == "self-attn":
                 bias = self.rel_pos_bias(q.size(1))
             else:
                 bias = self.rel_pos_bias(q.size(1), k.size(1))
-            qk += bias[:, :q.size(1), :k.size(1)]
+            qk += bias[:, : q.size(1), : k.size(1)]
         # [B, K, K]
         kernel = torch.square(F.relu(qk / self.sqrt_s))
 
-        if self.dropout_rate > 0.:
+        if self.dropout_rate > 0.0:
             kernel = self.dropout(kernel)
         # [B, K, K] x [B, K, e] -> [B, K, e]
         x = u * torch.bmm(kernel, v)
@@ -267,7 +262,7 @@ class RTMCCBlock(nn.Module):
         """Forward function."""
 
         if self.shortcut:
-            if self.attn_type == 'cross-attn':
+            if self.attn_type == "cross-attn":
                 res_shortcut = x[0]
             else:
                 res_shortcut = x

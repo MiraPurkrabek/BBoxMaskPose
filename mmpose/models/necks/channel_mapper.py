@@ -54,11 +54,10 @@ class ChannelMapper(BaseModule):
         kernel_size: int = 3,
         conv_cfg: OptConfigType = None,
         norm_cfg: OptConfigType = None,
-        act_cfg: OptConfigType = dict(type='ReLU'),
+        act_cfg: OptConfigType = dict(type="ReLU"),
         num_outs: int = None,
-        bias: Union[bool, str] = 'auto',
-        init_cfg: OptMultiConfig = dict(
-            type='Xavier', layer='Conv2d', distribution='uniform')
+        bias: Union[bool, str] = "auto",
+        init_cfg: OptMultiConfig = dict(type="Xavier", layer="Conv2d", distribution="uniform"),
     ) -> None:
         super().__init__(init_cfg=init_cfg)
         assert isinstance(in_channels, list)
@@ -76,7 +75,9 @@ class ChannelMapper(BaseModule):
                     padding=(kernel_size - 1) // 2,
                     conv_cfg=conv_cfg,
                     norm_cfg=norm_cfg,
-                    act_cfg=act_cfg))
+                    act_cfg=act_cfg,
+                )
+            )
         if num_outs > len(in_channels):
             self.extra_convs = nn.ModuleList()
             for i in range(len(in_channels), num_outs):
@@ -86,15 +87,9 @@ class ChannelMapper(BaseModule):
                     in_channel = out_channels
                 self.extra_convs.append(
                     ConvModule(
-                        in_channel,
-                        out_channels,
-                        3,
-                        stride=2,
-                        padding=1,
-                        bias=bias,
-                        conv_cfg=conv_cfg,
-                        norm_cfg=norm_cfg,
-                        act_cfg=act_cfg))
+                        in_channel, out_channels, 3, stride=2, padding=1, bias=bias, conv_cfg=conv_cfg, norm_cfg=norm_cfg, act_cfg=act_cfg
+                    )
+                )
 
     def forward(self, inputs: Tuple[Tensor]) -> Tuple[Tensor]:
         """Forward function."""

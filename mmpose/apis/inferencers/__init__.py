@@ -5,7 +5,4 @@ from .pose2d_inferencer import Pose2DInferencer
 from .pose3d_inferencer import Pose3DInferencer
 from .utils import get_model_aliases
 
-__all__ = [
-    'Pose2DInferencer', 'MMPoseInferencer', 'get_model_aliases',
-    'Pose3DInferencer', 'Hand3DInferencer'
-]
+__all__ = ["Pose2DInferencer", "MMPoseInferencer", "get_model_aliases", "Pose3DInferencer", "Hand3DInferencer"]

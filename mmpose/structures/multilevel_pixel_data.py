@@ -7,9 +7,7 @@ import torch
 from mmengine.structures import BaseDataElement, PixelData
 from mmengine.utils import is_list_of
 
-IndexType = Union[str, slice, int, list, torch.LongTensor,
-                  torch.cuda.LongTensor, torch.BoolTensor,
-                  torch.cuda.BoolTensor, np.ndarray]
+IndexType = Union[str, slice, int, list, torch.LongTensor, torch.cuda.LongTensor, torch.BoolTensor, torch.cuda.BoolTensor, np.ndarray]
 
 
 class MultilevelPixelData(BaseDataElement):
@@ -51,7 +49,7 @@ class MultilevelPixelData(BaseDataElement):
     """
 
     def __init__(self, *, metainfo: Optional[dict] = None, **kwargs) -> None:
-        object.__setattr__(self, '_nlevel', None)
+        object.__setattr__(self, "_nlevel", None)
         super().__init__(metainfo=metainfo, **kwargs)
 
     @property
@@ -64,13 +62,11 @@ class MultilevelPixelData(BaseDataElement):
         """
         return self._nlevel
 
-    def __getitem__(self, item: Union[int, str, list,
-                                      slice]) -> Union[PixelData, Sequence]:
+    def __getitem__(self, item: Union[int, str, list, slice]) -> Union[PixelData, Sequence]:
         if isinstance(item, int):
             if self.nlevel is None or item >= self.nlevel:
-                raise IndexError(
-                    f'Lcale index {item} out of range ({self.nlevel})')
-            return self.get(f'_level_{item}')
+                raise IndexError(f"Lcale index {item} out of range ({self.nlevel})")
+            return self.get(f"_level_{item}")
 
         if isinstance(item, str):
             if item not in self:
@@ -78,9 +74,7 @@ class MultilevelPixelData(BaseDataElement):
             return getattr(self, item)
 
         # TODO: support indexing by list and slice over levels
-        raise NotImplementedError(
-            f'{self.__class__.__name__} does not support index type '
-            f'{type(item)}')
+        raise NotImplementedError(f"{self.__class__.__name__} does not support index type " f"{type(item)}")
 
     def levels(self) -> List[PixelData]:
         if self.nlevel:
@@ -108,66 +102,51 @@ class MultilevelPixelData(BaseDataElement):
             data (dict): A dict contains annotations of image or
                 model predictions.
         """
-        assert isinstance(data,
-                          dict), f'meta should be a `dict` but got {data}'
+        assert isinstance(data, dict), f"meta should be a `dict` but got {data}"
         for k, v in data.items():
-            self.set_field(v, k, field_type='data')
+            self.set_field(v, k, field_type="data")
 
-    def set_field(self,
-                  value: Any,
-                  name: str,
-                  dtype: Optional[Union[Type, Tuple[Type, ...]]] = None,
-                  field_type: str = 'data') -> None:
+    def set_field(self, value: Any, name: str, dtype: Optional[Union[Type, Tuple[Type, ...]]] = None, field_type: str = "data") -> None:
         """Special method for set union field, used as property.setter
         functions."""
-        assert field_type in ['metainfo', 'data']
+        assert field_type in ["metainfo", "data"]
         if dtype is not None:
-            assert isinstance(
-                value,
-                dtype), f'{value} should be a {dtype} but got {type(value)}'
+            assert isinstance(value, dtype), f"{value} should be a {dtype} but got {type(value)}"
 
-        if name.startswith('_level_'):
-            raise AttributeError(
-                f'Cannot set {name} to be a field because the pattern '
-                '<_level_{n}> is reserved for inner data field')
+        if name.startswith("_level_"):
+            raise AttributeError(f"Cannot set {name} to be a field because the pattern " "<_level_{n}> is reserved for inner data field")
 
-        if field_type == 'metainfo':
+        if field_type == "metainfo":
             if name in self._data_fields:
-                raise AttributeError(
-                    f'Cannot set {name} to be a field of metainfo '
-                    f'because {name} is already a data field')
+                raise AttributeError(f"Cannot set {name} to be a field of metainfo " f"because {name} is already a data field")
             self._metainfo_fields.add(name)
 
         else:
             if name in self._metainfo_fields:
-                raise AttributeError(
-                    f'Cannot set {name} to be a field of data '
-                    f'because {name} is already a metainfo field')
+                raise AttributeError(f"Cannot set {name} to be a field of data " f"because {name} is already a metainfo field")
 
             if not isinstance(value, abc.Sequence):
-                raise TypeError(
-                    'The value should be a sequence (of numpy.ndarray or'
-                    f'torch.Tesnor), but got a {type(value)}')
+                raise TypeError("The value should be a sequence (of numpy.ndarray or" f"torch.Tesnor), but got a {type(value)}")
 
             if len(value) == 0:
-                raise ValueError('Setting empty value is not allowed')
+                raise ValueError("Setting empty value is not allowed")
 
             if not isinstance(value[0], (torch.Tensor, np.ndarray)):
                 raise TypeError(
-                    'The value should be a sequence of numpy.ndarray or'
-                    f'torch.Tesnor, but got a sequence of {type(value[0])}')
+                    "The value should be a sequence of numpy.ndarray or" f"torch.Tesnor, but got a sequence of {type(value[0])}"
+                )
 
             if self.nlevel is not None:
                 assert len(value) == self.nlevel, (
-                    f'The length of the value ({len(value)}) should match the'
-                    f'number of the levels ({self.nlevel})')
+                    f"The length of the value ({len(value)}) should match the" f"number of the levels ({self.nlevel})"
+                )
             else:
-                object.__setattr__(self, '_nlevel', len(value))
+                object.__setattr__(self, "_nlevel", len(value))
                 for i in range(self.nlevel):
-                    object.__setattr__(self, f'_level_{i}', PixelData())
+                    object.__setattr__(self, f"_level_{i}", PixelData())
 
             for i, v in enumerate(value):
-                self[i].set_field(v, name, field_type='data')
+                self[i].set_field(v, name, field_type="data")
 
             self._data_fields.add(name)
 
@@ -179,9 +158,8 @@ class MultilevelPixelData(BaseDataElement):
         Args:
             item (str): The key to delete.
         """
-        if item in ('_metainfo_fields', '_data_fields'):
-            raise AttributeError(f'{item} has been used as a '
-                                 'private attribute, which is immutable. ')
+        if item in ("_metainfo_fields", "_data_fields"):
+            raise AttributeError(f"{item} has been used as a " "private attribute, which is immutable. ")
 
         if item in self._metainfo_fields:
             super().__delattr__(item)
@@ -191,17 +169,14 @@ class MultilevelPixelData(BaseDataElement):
             self._data_fields.remove(item)
 
     def __getattr__(self, name):
-        if name in {'_data_fields', '_metainfo_fields'
-                    } or name not in self._data_fields:
-            raise AttributeError(
-                f'\'{self.__class__.__name__}\' object has no attribute '
-                f'\'{name}\'')
+        if name in {"_data_fields", "_metainfo_fields"} or name not in self._data_fields:
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute " f"'{name}'")
 
         return [getattr(level, name) for level in self.levels()]
 
     def pop(self, *args) -> Any:
         """pop property in data and metainfo as the same as python."""
-        assert len(args) < 3, '``pop`` get more than 2 arguments'
+        assert len(args) < 3, "``pop`` get more than 2 arguments"
         name = args[0]
         if name in self._metainfo_fields:
             self._metainfo_fields.remove(name)
@@ -217,10 +192,9 @@ class MultilevelPixelData(BaseDataElement):
         else:
             # don't just use 'self.__dict__.pop(*args)' for only popping key in
             # metainfo or data
-            raise KeyError(f'{args[0]} is not contained in metainfo or data')
+            raise KeyError(f"{args[0]} is not contained in metainfo or data")
 
-    def _convert(self, apply_to: Type,
-                 func: Callable[[Any], Any]) -> 'MultilevelPixelData':
+    def _convert(self, apply_to: Type, func: Callable[[Any], Any]) -> "MultilevelPixelData":
         """Convert data items with the given function.
 
         Args:
@@ -239,34 +213,32 @@ class MultilevelPixelData(BaseDataElement):
                 new_data.set_data(data)
         return new_data
 
-    def cpu(self) -> 'MultilevelPixelData':
+    def cpu(self) -> "MultilevelPixelData":
         """Convert all tensors to CPU in data."""
         return self._convert(apply_to=torch.Tensor, func=lambda x: x.cpu())
 
-    def cuda(self) -> 'MultilevelPixelData':
+    def cuda(self) -> "MultilevelPixelData":
         """Convert all tensors to GPU in data."""
         return self._convert(apply_to=torch.Tensor, func=lambda x: x.cuda())
 
-    def detach(self) -> 'MultilevelPixelData':
+    def detach(self) -> "MultilevelPixelData":
         """Detach all tensors in data."""
         return self._convert(apply_to=torch.Tensor, func=lambda x: x.detach())
 
-    def numpy(self) -> 'MultilevelPixelData':
+    def numpy(self) -> "MultilevelPixelData":
         """Convert all tensor to np.narray in data."""
-        return self._convert(
-            apply_to=torch.Tensor, func=lambda x: x.detach().cpu().numpy())
+        return self._convert(apply_to=torch.Tensor, func=lambda x: x.detach().cpu().numpy())
 
-    def to_tensor(self) -> 'MultilevelPixelData':
+    def to_tensor(self) -> "MultilevelPixelData":
         """Convert all tensor to np.narray in data."""
-        return self._convert(
-            apply_to=np.ndarray, func=lambda x: torch.from_numpy(x))
+        return self._convert(apply_to=np.ndarray, func=lambda x: torch.from_numpy(x))
 
     # Tensor-like methods
-    def to(self, *args, **kwargs) -> 'MultilevelPixelData':
+    def to(self, *args, **kwargs) -> "MultilevelPixelData":
         """Apply same name function to all tensors in data_fields."""
         new_data = self.new()
         for k, v in self.items():
-            if hasattr(v[0], 'to'):
+            if hasattr(v[0], "to"):
                 v = [v_.to(*args, **kwargs) for v_ in v]
                 data = {k: v}
                 new_data.set_data(data)

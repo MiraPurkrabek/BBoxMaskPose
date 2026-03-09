@@ -8,6 +8,7 @@ from mmcv.cnn import ConvModule
 from mmengine.model import BaseModule
 
 from mmpose.registry import MODELS
+
 from .base_backbone import BaseBackbone
 from .utils import channel_shuffle
 
@@ -31,15 +32,17 @@ class InvertedResidual(BaseModule):
             Default: None
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 stride=1,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN'),
-                 act_cfg=dict(type='ReLU'),
-                 with_cp=False,
-                 init_cfg=None):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        stride=1,
+        conv_cfg=None,
+        norm_cfg=dict(type="BN"),
+        act_cfg=dict(type="ReLU"),
+        with_cp=False,
+        init_cfg=None,
+    ):
         # Protect mutable default arguments
         norm_cfg = copy.deepcopy(norm_cfg)
         act_cfg = copy.deepcopy(act_cfg)
@@ -50,14 +53,11 @@ class InvertedResidual(BaseModule):
         branch_features = out_channels // 2
         if self.stride == 1:
             assert in_channels == branch_features * 2, (
-                f'in_channels ({in_channels}) should equal to '
-                f'branch_features * 2 ({branch_features * 2}) '
-                'when stride is 1')
+                f"in_channels ({in_channels}) should equal to " f"branch_features * 2 ({branch_features * 2}) " "when stride is 1"
+            )
 
         if in_channels != branch_features * 2:
-            assert self.stride != 1, (
-                f'stride ({self.stride}) should not equal 1 when '
-                f'in_channels != branch_features * 2')
+            assert self.stride != 1, f"stride ({self.stride}) should not equal 1 when " f"in_channels != branch_features * 2"
 
         if self.stride > 1:
             self.branch1 = nn.Sequential(
@@ -70,16 +70,11 @@ class InvertedResidual(BaseModule):
                     groups=in_channels,
                     conv_cfg=conv_cfg,
                     norm_cfg=norm_cfg,
-                    act_cfg=None),
+                    act_cfg=None,
+                ),
                 ConvModule(
-                    in_channels,
-                    branch_features,
-                    kernel_size=1,
-                    stride=1,
-                    padding=0,
-                    conv_cfg=conv_cfg,
-                    norm_cfg=norm_cfg,
-                    act_cfg=act_cfg),
+                    in_channels, branch_features, kernel_size=1, stride=1, padding=0, conv_cfg=conv_cfg, norm_cfg=norm_cfg, act_cfg=act_cfg
+                ),
             )
 
         self.branch2 = nn.Sequential(
@@ -91,7 +86,8 @@ class InvertedResidual(BaseModule):
                 padding=0,
                 conv_cfg=conv_cfg,
                 norm_cfg=norm_cfg,
-                act_cfg=act_cfg),
+                act_cfg=act_cfg,
+            ),
             ConvModule(
                 branch_features,
                 branch_features,
@@ -101,16 +97,12 @@ class InvertedResidual(BaseModule):
                 groups=branch_features,
                 conv_cfg=conv_cfg,
                 norm_cfg=norm_cfg,
-                act_cfg=None),
+                act_cfg=None,
+            ),
             ConvModule(
-                branch_features,
-                branch_features,
-                kernel_size=1,
-                stride=1,
-                padding=0,
-                conv_cfg=conv_cfg,
-                norm_cfg=norm_cfg,
-                act_cfg=act_cfg))
+                branch_features, branch_features, kernel_size=1, stride=1, padding=0, conv_cfg=conv_cfg, norm_cfg=norm_cfg, act_cfg=act_cfg
+            ),
+        )
 
     def forward(self, x):
 
@@ -167,23 +159,21 @@ class ShuffleNetV2(BaseBackbone):
             ]``
     """
 
-    def __init__(self,
-                 widen_factor=1.0,
-                 out_indices=(3, ),
-                 frozen_stages=-1,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN'),
-                 act_cfg=dict(type='ReLU'),
-                 norm_eval=False,
-                 with_cp=False,
-                 init_cfg=[
-                     dict(type='Normal', std=0.01, layer=['Conv2d']),
-                     dict(
-                         type='Constant',
-                         val=1,
-                         bias=0.0001,
-                         layer=['_BatchNorm', 'GroupNorm'])
-                 ]):
+    def __init__(
+        self,
+        widen_factor=1.0,
+        out_indices=(3,),
+        frozen_stages=-1,
+        conv_cfg=None,
+        norm_cfg=dict(type="BN"),
+        act_cfg=dict(type="ReLU"),
+        norm_eval=False,
+        with_cp=False,
+        init_cfg=[
+            dict(type="Normal", std=0.01, layer=["Conv2d"]),
+            dict(type="Constant", val=1, bias=0.0001, layer=["_BatchNorm", "GroupNorm"]),
+        ],
+    ):
         # Protect mutable default arguments
         norm_cfg = copy.deepcopy(norm_cfg)
         act_cfg = copy.deepcopy(act_cfg)
@@ -191,12 +181,10 @@ class ShuffleNetV2(BaseBackbone):
         self.stage_blocks = [4, 8, 4]
         for index in out_indices:
             if index not in range(0, 4):
-                raise ValueError('the item in out_indices must in '
-                                 f'range(0, 4). But received {index}')
+                raise ValueError("the item in out_indices must in " f"range(0, 4). But received {index}")
 
         if frozen_stages not in range(-1, 4):
-            raise ValueError('frozen_stages must be in range(-1, 4). '
-                             f'But received {frozen_stages}')
+            raise ValueError("frozen_stages must be in range(-1, 4). " f"But received {frozen_stages}")
         self.out_indices = out_indices
         self.frozen_stages = frozen_stages
         self.conv_cfg = conv_cfg
@@ -214,8 +202,7 @@ class ShuffleNetV2(BaseBackbone):
         elif widen_factor == 2.0:
             channels = [244, 488, 976, 2048]
         else:
-            raise ValueError('widen_factor must be in [0.5, 1.0, 1.5, 2.0]. '
-                             f'But received {widen_factor}')
+            raise ValueError("widen_factor must be in [0.5, 1.0, 1.5, 2.0]. " f"But received {widen_factor}")
 
         self.in_channels = 24
         self.conv1 = ConvModule(
@@ -226,7 +213,8 @@ class ShuffleNetV2(BaseBackbone):
             padding=1,
             conv_cfg=conv_cfg,
             norm_cfg=norm_cfg,
-            act_cfg=act_cfg)
+            act_cfg=act_cfg,
+        )
 
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
@@ -243,7 +231,9 @@ class ShuffleNetV2(BaseBackbone):
                 kernel_size=1,
                 conv_cfg=conv_cfg,
                 norm_cfg=norm_cfg,
-                act_cfg=act_cfg))
+                act_cfg=act_cfg,
+            )
+        )
 
     def _make_layer(self, out_channels, num_blocks):
         """Stack blocks to make a layer.
@@ -263,7 +253,9 @@ class ShuffleNetV2(BaseBackbone):
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg,
                     act_cfg=self.act_cfg,
-                    with_cp=self.with_cp))
+                    with_cp=self.with_cp,
+                )
+            )
             self.in_channels = out_channels
 
         return nn.Sequential(*layers)
@@ -282,12 +274,11 @@ class ShuffleNetV2(BaseBackbone):
     def init_weights(self):
         super(ShuffleNetV2, self).init_weights()
 
-        if (isinstance(self.init_cfg, dict)
-                and self.init_cfg['type'] == 'Pretrained'):
+        if isinstance(self.init_cfg, dict) and self.init_cfg["type"] == "Pretrained":
             return
 
         for name, m in self.named_modules():
-            if isinstance(m, nn.Conv2d) and 'conv1' not in name:
+            if isinstance(m, nn.Conv2d) and "conv1" not in name:
                 nn.init.normal_(m.weight, mean=0, std=1.0 / m.weight.shape[1])
 
     def forward(self, x):

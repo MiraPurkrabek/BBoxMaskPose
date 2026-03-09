@@ -1,7 +1,7 @@
 # data settings
 
-dataset_type = 'CocoCaptionDataset'
-data_root = 'data/coco/'
+dataset_type = "CocoCaptionDataset"
+data_root = "data/coco/"
 
 # Example to use different file client
 # Method 1: simply set the data root and let the file I/O module
@@ -19,16 +19,9 @@ data_root = 'data/coco/'
 backend_args = None
 
 test_pipeline = [
-    dict(
-        type='LoadImageFromFile',
-        imdecode_backend='pillow',
-        backend_args=backend_args),
-    dict(
-        type='Resize',
-        scale=(224, 224),
-        interpolation='bicubic',
-        backend='pillow'),
-    dict(type='PackInputs', meta_keys=['image_id']),
+    dict(type="LoadImageFromFile", imdecode_backend="pillow", backend_args=backend_args),
+    dict(type="Resize", scale=(224, 224), interpolation="bicubic", backend="pillow"),
+    dict(type="PackInputs", meta_keys=["image_id"]),
 ]
 
 # ann_file download from
@@ -42,17 +35,18 @@ val_dataloader = dict(
     num_workers=2,
     persistent_workers=True,
     drop_last=False,
-    sampler=dict(type='DefaultSampler', shuffle=False),
+    sampler=dict(type="DefaultSampler", shuffle=False),
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
-        ann_file='annotations/coco_karpathy_val.json',
+        ann_file="annotations/coco_karpathy_val.json",
         pipeline=test_pipeline,
-    ))
+    ),
+)
 
 val_evaluator = dict(
-    type='COCOCaptionMetric',
-    ann_file=data_root + 'annotations/coco_karpathy_val_gt.json',
+    type="COCOCaptionMetric",
+    ann_file=data_root + "annotations/coco_karpathy_val_gt.json",
 )
 
 # # If you want standard test, please manually configure the test dataset

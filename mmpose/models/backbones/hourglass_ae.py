@@ -6,6 +6,7 @@ from mmcv.cnn import ConvModule, MaxPool2d
 from mmengine.model import BaseModule
 
 from mmpose.registry import MODELS
+
 from .base_backbone import BaseBackbone
 
 
@@ -23,11 +24,7 @@ class HourglassAEModule(BaseModule):
             Default: None
     """
 
-    def __init__(self,
-                 depth,
-                 stage_channels,
-                 norm_cfg=dict(type='BN', requires_grad=True),
-                 init_cfg=None):
+    def __init__(self, depth, stage_channels, norm_cfg=dict(type="BN", requires_grad=True), init_cfg=None):
         # Protect mutable default arguments
         norm_cfg = copy.deepcopy(norm_cfg)
         super().__init__(init_cfg=init_cfg)
@@ -37,22 +34,18 @@ class HourglassAEModule(BaseModule):
         cur_channel = stage_channels[0]
         next_channel = stage_channels[1]
 
-        self.up1 = ConvModule(
-            cur_channel, cur_channel, 3, padding=1, norm_cfg=norm_cfg)
+        self.up1 = ConvModule(cur_channel, cur_channel, 3, padding=1, norm_cfg=norm_cfg)
 
         self.pool1 = MaxPool2d(2, 2)
 
-        self.low1 = ConvModule(
-            cur_channel, next_channel, 3, padding=1, norm_cfg=norm_cfg)
+        self.low1 = ConvModule(cur_channel, next_channel, 3, padding=1, norm_cfg=norm_cfg)
 
         if self.depth > 1:
             self.low2 = HourglassAEModule(depth - 1, stage_channels[1:])
         else:
-            self.low2 = ConvModule(
-                next_channel, next_channel, 3, padding=1, norm_cfg=norm_cfg)
+            self.low2 = ConvModule(next_channel, next_channel, 3, padding=1, norm_cfg=norm_cfg)
 
-        self.low3 = ConvModule(
-            next_channel, cur_channel, 3, padding=1, norm_cfg=norm_cfg)
+        self.low3 = ConvModule(next_channel, cur_channel, 3, padding=1, norm_cfg=norm_cfg)
 
         self.up2 = nn.UpsamplingNearest2d(scale_factor=2)
 
@@ -116,11 +109,8 @@ class HourglassAENet(BaseBackbone):
         out_channels=34,
         stage_channels=(256, 384, 512, 640, 768),
         feat_channels=256,
-        norm_cfg=dict(type='BN', requires_grad=True),
-        init_cfg=[
-            dict(type='Normal', std=0.001, layer=['Conv2d']),
-            dict(type='Constant', val=1, layer=['_BatchNorm', 'GroupNorm'])
-        ],
+        norm_cfg=dict(type="BN", requires_grad=True),
+        init_cfg=[dict(type="Normal", std=0.001, layer=["Conv2d"]), dict(type="Constant", val=1, layer=["_BatchNorm", "GroupNorm"])],
     ):
         # Protect mutable default arguments
         norm_cfg = copy.deepcopy(norm_cfg)
@@ -140,51 +130,28 @@ class HourglassAENet(BaseBackbone):
             ConvModule(128, feat_channels, 3, padding=1, norm_cfg=norm_cfg),
         )
 
-        self.hourglass_modules = nn.ModuleList([
-            nn.Sequential(
-                HourglassAEModule(
-                    downsample_times, stage_channels, norm_cfg=norm_cfg),
-                ConvModule(
-                    feat_channels,
-                    feat_channels,
-                    3,
-                    padding=1,
-                    norm_cfg=norm_cfg),
-                ConvModule(
-                    feat_channels,
-                    feat_channels,
-                    3,
-                    padding=1,
-                    norm_cfg=norm_cfg)) for _ in range(num_stacks)
-        ])
+        self.hourglass_modules = nn.ModuleList(
+            [
+                nn.Sequential(
+                    HourglassAEModule(downsample_times, stage_channels, norm_cfg=norm_cfg),
+                    ConvModule(feat_channels, feat_channels, 3, padding=1, norm_cfg=norm_cfg),
+                    ConvModule(feat_channels, feat_channels, 3, padding=1, norm_cfg=norm_cfg),
+                )
+                for _ in range(num_stacks)
+            ]
+        )
 
-        self.out_convs = nn.ModuleList([
-            ConvModule(
-                cur_channels,
-                out_channels,
-                1,
-                padding=0,
-                norm_cfg=None,
-                act_cfg=None) for _ in range(num_stacks)
-        ])
+        self.out_convs = nn.ModuleList(
+            [ConvModule(cur_channels, out_channels, 1, padding=0, norm_cfg=None, act_cfg=None) for _ in range(num_stacks)]
+        )
 
-        self.remap_out_convs = nn.ModuleList([
-            ConvModule(
-                out_channels,
-                feat_channels,
-                1,
-                norm_cfg=norm_cfg,
-                act_cfg=None) for _ in range(num_stacks - 1)
-        ])
+        self.remap_out_convs = nn.ModuleList(
+            [ConvModule(out_channels, feat_channels, 1, norm_cfg=norm_cfg, act_cfg=None) for _ in range(num_stacks - 1)]
+        )
 
-        self.remap_feature_convs = nn.ModuleList([
-            ConvModule(
-                feat_channels,
-                feat_channels,
-                1,
-                norm_cfg=norm_cfg,
-                act_cfg=None) for _ in range(num_stacks - 1)
-        ])
+        self.remap_feature_convs = nn.ModuleList(
+            [ConvModule(feat_channels, feat_channels, 1, norm_cfg=norm_cfg, act_cfg=None) for _ in range(num_stacks - 1)]
+        )
 
         self.relu = nn.ReLU(inplace=True)
 
@@ -202,8 +169,6 @@ class HourglassAENet(BaseBackbone):
             out_feats.append(out_feat)
 
             if ind < self.num_stacks - 1:
-                inter_feat = inter_feat + self.remap_out_convs[ind](
-                    out_feat) + self.remap_feature_convs[ind](
-                        hourglass_feat)
+                inter_feat = inter_feat + self.remap_out_convs[ind](out_feat) + self.remap_feature_convs[ind](hourglass_feat)
 
         return out_feats

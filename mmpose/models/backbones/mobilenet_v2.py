@@ -8,6 +8,7 @@ from mmengine.model import BaseModule
 from torch.nn.modules.batchnorm import _BatchNorm
 
 from mmpose.registry import MODELS
+
 from .base_backbone import BaseBackbone
 from .utils import make_divisible
 
@@ -33,23 +34,24 @@ class InvertedResidual(BaseModule):
             Default: None
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 stride,
-                 expand_ratio,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN'),
-                 act_cfg=dict(type='ReLU6'),
-                 with_cp=False,
-                 init_cfg=None):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        stride,
+        expand_ratio,
+        conv_cfg=None,
+        norm_cfg=dict(type="BN"),
+        act_cfg=dict(type="ReLU6"),
+        with_cp=False,
+        init_cfg=None,
+    ):
         # Protect mutable default arguments
         norm_cfg = copy.deepcopy(norm_cfg)
         act_cfg = copy.deepcopy(act_cfg)
         super().__init__(init_cfg=init_cfg)
         self.stride = stride
-        assert stride in [1, 2], f'stride must in [1, 2]. ' \
-            f'But received {stride}.'
+        assert stride in [1, 2], f"stride must in [1, 2]. " f"But received {stride}."
         self.with_cp = with_cp
         self.use_res_connect = self.stride == 1 and in_channels == out_channels
         hidden_dim = int(round(in_channels * expand_ratio))
@@ -58,31 +60,27 @@ class InvertedResidual(BaseModule):
         if expand_ratio != 1:
             layers.append(
                 ConvModule(
-                    in_channels=in_channels,
+                    in_channels=in_channels, out_channels=hidden_dim, kernel_size=1, conv_cfg=conv_cfg, norm_cfg=norm_cfg, act_cfg=act_cfg
+                )
+            )
+        layers.extend(
+            [
+                ConvModule(
+                    in_channels=hidden_dim,
                     out_channels=hidden_dim,
-                    kernel_size=1,
+                    kernel_size=3,
+                    stride=stride,
+                    padding=1,
+                    groups=hidden_dim,
                     conv_cfg=conv_cfg,
                     norm_cfg=norm_cfg,
-                    act_cfg=act_cfg))
-        layers.extend([
-            ConvModule(
-                in_channels=hidden_dim,
-                out_channels=hidden_dim,
-                kernel_size=3,
-                stride=stride,
-                padding=1,
-                groups=hidden_dim,
-                conv_cfg=conv_cfg,
-                norm_cfg=norm_cfg,
-                act_cfg=act_cfg),
-            ConvModule(
-                in_channels=hidden_dim,
-                out_channels=out_channels,
-                kernel_size=1,
-                conv_cfg=conv_cfg,
-                norm_cfg=norm_cfg,
-                act_cfg=None)
-        ])
+                    act_cfg=act_cfg,
+                ),
+                ConvModule(
+                    in_channels=hidden_dim, out_channels=out_channels, kernel_size=1, conv_cfg=conv_cfg, norm_cfg=norm_cfg, act_cfg=None
+                ),
+            ]
+        )
         self.conv = nn.Sequential(*layers)
 
     def forward(self, x):
@@ -135,26 +133,20 @@ class MobileNetV2(BaseBackbone):
 
     # Parameters to build layers. 4 parameters are needed to construct a
     # layer, from left to right: expand_ratio, channel, num_blocks, stride.
-    arch_settings = [[1, 16, 1, 1], [6, 24, 2, 2], [6, 32, 3, 2],
-                     [6, 64, 4, 2], [6, 96, 3, 1], [6, 160, 3, 2],
-                     [6, 320, 1, 1]]
+    arch_settings = [[1, 16, 1, 1], [6, 24, 2, 2], [6, 32, 3, 2], [6, 64, 4, 2], [6, 96, 3, 1], [6, 160, 3, 2], [6, 320, 1, 1]]
 
-    def __init__(self,
-                 widen_factor=1.,
-                 out_indices=(7, ),
-                 frozen_stages=-1,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN'),
-                 act_cfg=dict(type='ReLU6'),
-                 norm_eval=False,
-                 with_cp=False,
-                 init_cfg=[
-                     dict(type='Kaiming', layer=['Conv2d']),
-                     dict(
-                         type='Constant',
-                         val=1,
-                         layer=['_BatchNorm', 'GroupNorm'])
-                 ]):
+    def __init__(
+        self,
+        widen_factor=1.0,
+        out_indices=(7,),
+        frozen_stages=-1,
+        conv_cfg=None,
+        norm_cfg=dict(type="BN"),
+        act_cfg=dict(type="ReLU6"),
+        norm_eval=False,
+        with_cp=False,
+        init_cfg=[dict(type="Kaiming", layer=["Conv2d"]), dict(type="Constant", val=1, layer=["_BatchNorm", "GroupNorm"])],
+    ):
         # Protect mutable default arguments
         norm_cfg = copy.deepcopy(norm_cfg)
         act_cfg = copy.deepcopy(act_cfg)
@@ -163,12 +155,10 @@ class MobileNetV2(BaseBackbone):
         self.out_indices = out_indices
         for index in out_indices:
             if index not in range(0, 8):
-                raise ValueError('the item in out_indices must in '
-                                 f'range(0, 8). But received {index}')
+                raise ValueError("the item in out_indices must in " f"range(0, 8). But received {index}")
 
         if frozen_stages not in range(-1, 8):
-            raise ValueError('frozen_stages must be in range(-1, 8). '
-                             f'But received {frozen_stages}')
+            raise ValueError("frozen_stages must be in range(-1, 8). " f"But received {frozen_stages}")
         self.out_indices = out_indices
         self.frozen_stages = frozen_stages
         self.conv_cfg = conv_cfg
@@ -187,19 +177,16 @@ class MobileNetV2(BaseBackbone):
             padding=1,
             conv_cfg=self.conv_cfg,
             norm_cfg=self.norm_cfg,
-            act_cfg=self.act_cfg)
+            act_cfg=self.act_cfg,
+        )
 
         self.layers = []
 
         for i, layer_cfg in enumerate(self.arch_settings):
             expand_ratio, channel, num_blocks, stride = layer_cfg
             out_channels = make_divisible(channel * widen_factor, 8)
-            inverted_res_layer = self.make_layer(
-                out_channels=out_channels,
-                num_blocks=num_blocks,
-                stride=stride,
-                expand_ratio=expand_ratio)
-            layer_name = f'layer{i + 1}'
+            inverted_res_layer = self.make_layer(out_channels=out_channels, num_blocks=num_blocks, stride=stride, expand_ratio=expand_ratio)
+            layer_name = f"layer{i + 1}"
             self.add_module(layer_name, inverted_res_layer)
             self.layers.append(layer_name)
 
@@ -216,9 +203,10 @@ class MobileNetV2(BaseBackbone):
             padding=0,
             conv_cfg=self.conv_cfg,
             norm_cfg=self.norm_cfg,
-            act_cfg=self.act_cfg)
-        self.add_module('conv2', layer)
-        self.layers.append('conv2')
+            act_cfg=self.act_cfg,
+        )
+        self.add_module("conv2", layer)
+        self.layers.append("conv2")
 
     def make_layer(self, out_channels, num_blocks, stride, expand_ratio):
         """Stack InvertedResidual blocks to build a layer for MobileNetV2.
@@ -243,7 +231,9 @@ class MobileNetV2(BaseBackbone):
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg,
                     act_cfg=self.act_cfg,
-                    with_cp=self.with_cp))
+                    with_cp=self.with_cp,
+                )
+            )
             self.in_channels = out_channels
 
         return nn.Sequential(*layers)
@@ -265,7 +255,7 @@ class MobileNetV2(BaseBackbone):
             for param in self.conv1.parameters():
                 param.requires_grad = False
         for i in range(1, self.frozen_stages + 1):
-            layer = getattr(self, f'layer{i}')
+            layer = getattr(self, f"layer{i}")
             layer.eval()
             for param in layer.parameters():
                 param.requires_grad = False

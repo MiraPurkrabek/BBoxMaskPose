@@ -25,7 +25,7 @@ class KDLoss(nn.Module):
         super(KDLoss, self).__init__()
 
         self.log_softmax = nn.LogSoftmax(dim=1)
-        self.kl_loss = nn.KLDivLoss(reduction='none')
+        self.kl_loss = nn.KLDivLoss(reduction="none")
         self.weight = weight
 
     def forward(self, pred, pred_t, beta, target_weight):
@@ -38,8 +38,8 @@ class KDLoss(nn.Module):
         num_joints = ls_x.size(1)
         loss = 0
 
-        loss += (self.loss(ls_x, lt_x, beta, target_weight))
-        loss += (self.loss(ls_y, lt_y, beta, target_weight))
+        loss += self.loss(ls_x, lt_x, beta, target_weight)
+        loss += self.loss(ls_y, lt_y, beta, target_weight)
 
         return loss / num_joints
 

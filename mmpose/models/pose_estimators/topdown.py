@@ -5,8 +5,8 @@ from typing import Optional
 from torch import Tensor
 
 from mmpose.registry import MODELS
-from mmpose.utils.typing import (ConfigType, InstanceList, OptConfigType,
-                                 OptMultiConfig, PixelDataList, SampleList)
+from mmpose.utils.typing import ConfigType, InstanceList, OptConfigType, OptMultiConfig, PixelDataList, SampleList
+
 from .base import BasePoseEstimator
 
 
@@ -35,16 +35,18 @@ class TopdownPoseEstimator(BasePoseEstimator):
             config-file-for-the-dataset. Defaults to ``None``
     """
 
-    def __init__(self,
-                 backbone: ConfigType,
-                 neck: OptConfigType = None,
-                 head: OptConfigType = None,
-                 train_cfg: OptConfigType = None,
-                 test_cfg: OptConfigType = None,
-                 data_preprocessor: OptConfigType = None,
-                 init_cfg: OptMultiConfig = None,
-                 metainfo: Optional[dict] = None,
-                 freeze_backbone: bool = False):
+    def __init__(
+        self,
+        backbone: ConfigType,
+        neck: OptConfigType = None,
+        head: OptConfigType = None,
+        train_cfg: OptConfigType = None,
+        test_cfg: OptConfigType = None,
+        data_preprocessor: OptConfigType = None,
+        init_cfg: OptMultiConfig = None,
+        metainfo: Optional[dict] = None,
+        freeze_backbone: bool = False,
+    ):
         super().__init__(
             backbone=backbone,
             neck=neck,
@@ -53,14 +55,13 @@ class TopdownPoseEstimator(BasePoseEstimator):
             test_cfg=test_cfg,
             data_preprocessor=data_preprocessor,
             init_cfg=init_cfg,
-            metainfo=metainfo)
-        
+            metainfo=metainfo,
+        )
+
         # Freeze all params of the backbone
         if freeze_backbone:
-            print("Freezing backbone!")
             for param in self.backbone.parameters():
                 param.requires_grad = False
-
 
     def loss(self, inputs: Tensor, data_samples: SampleList) -> dict:
         """Calculate losses from a batch of inputs and data samples.
@@ -78,8 +79,7 @@ class TopdownPoseEstimator(BasePoseEstimator):
         losses = dict()
 
         if self.with_head:
-            losses.update(
-                self.head.loss(feats, data_samples, train_cfg=self.train_cfg))
+            losses.update(self.head.loss(feats, data_samples, train_cfg=self.train_cfg))
 
         return losses
 
@@ -104,10 +104,9 @@ class TopdownPoseEstimator(BasePoseEstimator):
                 - keypoint_scores (Tensor): predicted keypoint scores in shape
                     (num_instances, K)
         """
-        assert self.with_head, (
-            'The model must have head to perform prediction.')
+        assert self.with_head, "The model must have head to perform prediction."
 
-        if self.test_cfg.get('flip_test', False):
+        if self.test_cfg.get("flip_test", False):
             _feats = self.extract_feat(inputs)
             _feats_flip = self.extract_feat(inputs.flip(-1))
             feats = [_feats, _feats_flip]
@@ -122,14 +121,13 @@ class TopdownPoseEstimator(BasePoseEstimator):
             batch_pred_instances = preds
             batch_pred_fields = None
 
-        results = self.add_pred_to_datasample(batch_pred_instances,
-                                              batch_pred_fields, data_samples)
+        results = self.add_pred_to_datasample(batch_pred_instances, batch_pred_fields, data_samples)
 
         return results
 
-    def add_pred_to_datasample(self, batch_pred_instances: InstanceList,
-                               batch_pred_fields: Optional[PixelDataList],
-                               batch_data_samples: SampleList) -> SampleList:
+    def add_pred_to_datasample(
+        self, batch_pred_instances: InstanceList, batch_pred_fields: Optional[PixelDataList], batch_data_samples: SampleList
+    ) -> SampleList:
         """Add predictions into data samples.
 
         Args:
@@ -146,35 +144,31 @@ class TopdownPoseEstimator(BasePoseEstimator):
         assert len(batch_pred_instances) == len(batch_data_samples)
         if batch_pred_fields is None:
             batch_pred_fields = []
-        output_keypoint_indices = self.test_cfg.get('output_keypoint_indices',
-                                                    None)
+        output_keypoint_indices = self.test_cfg.get("output_keypoint_indices", None)
 
-        for pred_instances, pred_fields, data_sample in zip_longest(
-                batch_pred_instances, batch_pred_fields, batch_data_samples):
+        for pred_instances, pred_fields, data_sample in zip_longest(batch_pred_instances, batch_pred_fields, batch_data_samples):
 
             if pred_instances is None:
                 continue
             gt_instances = data_sample.gt_instances
 
             # convert keypoint coordinates from input space to image space
-            input_center = data_sample.metainfo['input_center']
-            input_scale = data_sample.metainfo['input_scale']
-            input_size = data_sample.metainfo['input_size']
+            input_center = data_sample.metainfo["input_center"]
+            input_scale = data_sample.metainfo["input_scale"]
+            input_size = data_sample.metainfo["input_size"]
 
-            pred_instances.keypoints[..., :2] = \
-                pred_instances.keypoints[..., :2] / input_size * input_scale \
-                + input_center - 0.5 * input_scale
-            if 'keypoints_visible' not in pred_instances:
-                pred_instances.keypoints_visible = \
-                    pred_instances.keypoint_scores
+            pred_instances.keypoints[..., :2] = (
+                pred_instances.keypoints[..., :2] / input_size * input_scale + input_center - 0.5 * input_scale
+            )
+            if "keypoints_visible" not in pred_instances:
+                pred_instances.keypoints_visible = pred_instances.keypoint_scores
 
             if output_keypoint_indices is not None:
                 # select output keypoints with given indices
                 num_keypoints = pred_instances.keypoints.shape[1]
                 for key, value in pred_instances.all_items():
-                    if key.startswith('keypoint'):
-                        pred_instances.set_field(
-                            value[:, output_keypoint_indices], key)
+                    if key.startswith("keypoint"):
+                        pred_instances.set_field(value[:, output_keypoint_indices], key)
 
             # add bbox information into pred_instances
             pred_instances.bboxes = gt_instances.bboxes
@@ -189,8 +183,7 @@ class TopdownPoseEstimator(BasePoseEstimator):
                     for key, value in pred_fields.all_items():
                         if value.shape[0] != num_keypoints:
                             continue
-                        pred_fields.set_field(value[output_keypoint_indices],
-                                              key)
+                        pred_fields.set_field(value[output_keypoint_indices], key)
                 data_sample.pred_fields = pred_fields
 
         return batch_data_samples

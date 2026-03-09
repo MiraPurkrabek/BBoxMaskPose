@@ -11,9 +11,7 @@ from torch import Tensor
 from mmpose.datasets.datasets.utils import parse_pose_metainfo
 from mmpose.models.utils import check_and_update_config
 from mmpose.registry import MODELS
-from mmpose.utils.typing import (ConfigType, ForwardResults, OptConfigType,
-                                 Optional, OptMultiConfig, OptSampleList,
-                                 SampleList)
+from mmpose.utils.typing import ConfigType, ForwardResults, OptConfigType, Optional, OptMultiConfig, OptSampleList, SampleList
 
 
 class BasePoseEstimator(BaseModel, metaclass=ABCMeta):
@@ -32,20 +30,22 @@ class BasePoseEstimator(BaseModel, metaclass=ABCMeta):
             prepare_datasets.html#create-a-custom-dataset-info-
             config-file-for-the-dataset. Defaults to ``None``
     """
+
     _version = 2
 
-    def __init__(self,
-                 backbone: ConfigType,
-                 neck: OptConfigType = None,
-                 head: OptConfigType = None,
-                 train_cfg: OptConfigType = None,
-                 test_cfg: OptConfigType = None,
-                 data_preprocessor: OptConfigType = None,
-                 use_syncbn: bool = False,
-                 init_cfg: OptMultiConfig = None,
-                 metainfo: Optional[dict] = None):
-        super().__init__(
-            data_preprocessor=data_preprocessor, init_cfg=init_cfg)
+    def __init__(
+        self,
+        backbone: ConfigType,
+        neck: OptConfigType = None,
+        head: OptConfigType = None,
+        train_cfg: OptConfigType = None,
+        test_cfg: OptConfigType = None,
+        data_preprocessor: OptConfigType = None,
+        use_syncbn: bool = False,
+        init_cfg: OptMultiConfig = None,
+        metainfo: Optional[dict] = None,
+    ):
+        super().__init__(data_preprocessor=data_preprocessor, init_cfg=init_cfg)
         self.metainfo = self._load_metainfo(metainfo)
         self.train_cfg = train_cfg if train_cfg else {}
         self.test_cfg = test_cfg if test_cfg else {}
@@ -71,27 +71,26 @@ class BasePoseEstimator(BaseModel, metaclass=ABCMeta):
         # TODO： Waiting for mmengine support
         if use_syncbn and get_world_size() > 1:
             torch.nn.SyncBatchNorm.convert_sync_batchnorm(self)
-            print_log('Using SyncBatchNorm()', 'current')
+            print_log("Using SyncBatchNorm()", "current")
 
     def switch_to_deploy(self):
         """Switch the sub-modules to deploy mode."""
         for name, layer in self.named_modules():
             if layer == self:
                 continue
-            if callable(getattr(layer, 'switch_to_deploy', None)):
-                print_log(f'module {name} has been switched to deploy mode',
-                          'current')
+            if callable(getattr(layer, "switch_to_deploy", None)):
+                print_log(f"module {name} has been switched to deploy mode", "current")
                 layer.switch_to_deploy(self.test_cfg)
 
     @property
     def with_neck(self) -> bool:
         """bool: whether the pose estimator has a neck."""
-        return hasattr(self, 'neck') and self.neck is not None
+        return hasattr(self, "neck") and self.neck is not None
 
     @property
     def with_head(self) -> bool:
         """bool: whether the pose estimator has a head."""
-        return hasattr(self, 'head') and self.head is not None
+        return hasattr(self, "head") and self.head is not None
 
     @staticmethod
     def _load_metainfo(metainfo: dict = None) -> dict:
@@ -108,16 +107,12 @@ class BasePoseEstimator(BaseModel, metaclass=ABCMeta):
             return None
 
         if not isinstance(metainfo, dict):
-            raise TypeError(
-                f'metainfo should be a dict, but got {type(metainfo)}')
+            raise TypeError(f"metainfo should be a dict, but got {type(metainfo)}")
 
         metainfo = parse_pose_metainfo(metainfo)
         return metainfo
 
-    def forward(self,
-                inputs: torch.Tensor,
-                data_samples: OptSampleList,
-                mode: str = 'tensor') -> ForwardResults:
+    def forward(self, inputs: torch.Tensor, data_samples: OptSampleList, mode: str = "tensor") -> ForwardResults:
         """The unified entry for a forward process in both training and test.
 
         The method should accept three modes: 'tensor', 'predict' and 'loss':
@@ -151,19 +146,18 @@ class BasePoseEstimator(BaseModel, metaclass=ABCMeta):
         """
         if isinstance(inputs, list):
             inputs = torch.stack(inputs)
-        if mode == 'loss':
+        if mode == "loss":
             return self.loss(inputs, data_samples)
-        elif mode == 'predict':
+        elif mode == "predict":
             # use customed metainfo to override the default metainfo
             if self.metainfo is not None:
                 for data_sample in data_samples:
                     data_sample.set_metainfo(self.metainfo)
             return self.predict(inputs, data_samples)
-        elif mode == 'tensor':
+        elif mode == "tensor":
             return self._forward(inputs)
         else:
-            raise RuntimeError(f'Invalid mode "{mode}". '
-                               'Only supports loss, predict and tensor mode.')
+            raise RuntimeError(f'Invalid mode "{mode}". ' "Only supports loss, predict and tensor mode.")
 
     @abstractmethod
     def loss(self, inputs: Tensor, data_samples: SampleList) -> dict:
@@ -174,10 +168,7 @@ class BasePoseEstimator(BaseModel, metaclass=ABCMeta):
         """Predict results from a batch of inputs and data samples with post-
         processing."""
 
-    def _forward(self,
-                 inputs: Tensor,
-                 data_samples: OptSampleList = None
-                 ) -> Union[Tensor, Tuple[Tensor]]:
+    def _forward(self, inputs: Tensor, data_samples: OptSampleList = None) -> Union[Tensor, Tuple[Tensor]]:
         """Network forward process. Usually includes backbone, neck and head
         forward without any post-processing.
 
@@ -210,8 +201,7 @@ class BasePoseEstimator(BaseModel, metaclass=ABCMeta):
 
         return x
 
-    def _load_state_dict_pre_hook(self, state_dict, prefix, local_meta, *args,
-                                  **kwargs):
+    def _load_state_dict_pre_hook(self, state_dict, prefix, local_meta, *args, **kwargs):
         """A hook function to.
 
         1) convert old-version state dict of
@@ -230,16 +220,16 @@ class BasePoseEstimator(BaseModel, metaclass=ABCMeta):
 
         # remove the keys in data_preprocessor to avoid warning
         for k in keys:
-            if k in ('data_preprocessor.mean', 'data_preprocessor.std'):
+            if k in ("data_preprocessor.mean", "data_preprocessor.std"):
                 del state_dict[k]
 
-        version = local_meta.get('version', None)
+        version = local_meta.get("version", None)
         if version and version >= self._version:
             return
 
         # convert old-version state dict
         for k in keys:
-            if 'keypoint_head' in k:
+            if "keypoint_head" in k:
                 v = state_dict.pop(k)
-                k = k.replace('keypoint_head', 'head')
+                k = k.replace("keypoint_head", "head")
                 state_dict[k] = v

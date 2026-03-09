@@ -1,15 +1,17 @@
-# CITATION.cff file for Detection, Pose Estimation and Segmentation for Multiple Bodies: Closing the Virtuous Circle
+# CITATION.cff file for BBoxMaskPose v2: Expanding Mutual Conditioning to 3D
 # This file provides metadata for the software and its preferred citation format.
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
 - family-names: Purkrabek
   given-names: Miroslav
+- family-names: Kolomiiets
+  given-names: Constantin
 - family-names: Matas
   given-names: Jiri
-title: "Detection, Pose Estimation and Segmentation for Multiple Bodies: Closing the Virtuous Circle"
-version: 1.0.0
-date-released: 2025-06-20
+title: "BBoxMaskPose v2: Expanding Mutual Conditioning to 3D"
+version: 2.0.0
+date-released: 2026-02-20
 preferred-citation:
   type: conference-paper
   authors:

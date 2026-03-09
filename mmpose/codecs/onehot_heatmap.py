@@ -5,9 +5,9 @@ import cv2
 import numpy as np
 
 from mmpose.registry import KEYPOINT_CODECS
+
 from .base import BaseKeypointCodec
-from .utils import (generate_offset_heatmap, generate_onehot_heatmaps,
-                    get_heatmap_maximum, refine_keypoints_dark_udp)
+from .utils import generate_offset_heatmap, generate_onehot_heatmaps, get_heatmap_maximum, refine_keypoints_dark_udp
 
 
 @KEYPOINT_CODECS.register_module()
@@ -57,20 +57,25 @@ class OneHotHeatmap(BaseKeypointCodec):
     Human Pose Estimation`: https://arxiv.org/abs/1911.07524
     """
 
-    label_mapping_table = dict(keypoint_weights='keypoint_weights', )
-    field_mapping_table = dict(heatmaps='heatmaps', )
+    label_mapping_table = dict(
+        keypoint_weights="keypoint_weights",
+    )
+    field_mapping_table = dict(
+        heatmaps="heatmaps",
+    )
 
-    def __init__(self,
-                 input_size: Tuple[int, int],
-                 heatmap_size: Tuple[int, int],
-                 heatmap_type: str = 'gaussian',
-                 sigma: float = 2.,
-                 radius_factor: float = 0.0546875,
-                 blur_kernel_size: int = 11,
-                 increase_sigma_with_padding=False,
-                 amap_scale: float = 1.0,
-                 normalize=None,
-                 ) -> None:
+    def __init__(
+        self,
+        input_size: Tuple[int, int],
+        heatmap_size: Tuple[int, int],
+        heatmap_type: str = "gaussian",
+        sigma: float = 2.0,
+        radius_factor: float = 0.0546875,
+        blur_kernel_size: int = 11,
+        increase_sigma_with_padding=False,
+        amap_scale: float = 1.0,
+        normalize=None,
+    ) -> None:
         super().__init__()
         self.input_size = np.array(input_size)
         self.heatmap_size = np.array(heatmap_size)
@@ -82,16 +87,16 @@ class OneHotHeatmap(BaseKeypointCodec):
         self.normalize = normalize
 
         self.amap_size = self.input_size * amap_scale
-        self.scale_factor = ((self.amap_size - 1) /
-                             (self.heatmap_size - 1)).astype(np.float32)
+        self.scale_factor = ((self.amap_size - 1) / (self.heatmap_size - 1)).astype(np.float32)
         self.input_center = self.input_size / 2
         self.top_left = self.input_center - self.amap_size / 2
-        
-        if self.heatmap_type not in {'gaussian', 'combined'}:
+
+        if self.heatmap_type not in {"gaussian", "combined"}:
             raise ValueError(
-                f'{self.__class__.__name__} got invalid `heatmap_type` value'
-                f'{self.heatmap_type}. Should be one of '
-                '{"gaussian", "combined"}')
+                f"{self.__class__.__name__} got invalid `heatmap_type` value"
+                f"{self.heatmap_type}. Should be one of "
+                '{"gaussian", "combined"}'
+            )
 
     def _kpts_to_activation_pts(self, keypoints: np.ndarray) -> np.ndarray:
         """
@@ -104,7 +109,7 @@ class OneHotHeatmap(BaseKeypointCodec):
         transformed_keypoints = keypoints - self.top_left
         transformed_keypoints = transformed_keypoints / self.scale_factor
         return transformed_keypoints
-    
+
     def _activation_pts_to_kpts(self, keypoints: np.ndarray) -> np.ndarray:
         """
         Transform the points in activation map to the keypoint coordinates.
@@ -118,11 +123,13 @@ class OneHotHeatmap(BaseKeypointCodec):
         transformed_keypoints += self.top_left
         return transformed_keypoints
 
-    def encode(self,
-               keypoints: np.ndarray,
-               keypoints_visible: Optional[np.ndarray] = None,
-               id_similarity: Optional[float] = 0.0,
-               keypoints_visibility: Optional[np.ndarray] = None) -> dict:
+    def encode(
+        self,
+        keypoints: np.ndarray,
+        keypoints_visible: Optional[np.ndarray] = None,
+        id_similarity: Optional[float] = 0.0,
+        keypoints_visibility: Optional[np.ndarray] = None,
+    ) -> dict:
         """Encode keypoints into heatmaps. Note that the original keypoint
         coordinates should be in the input image space.
 
@@ -146,36 +153,37 @@ class OneHotHeatmap(BaseKeypointCodec):
             - keypoint_weights (np.ndarray): The target weights in shape
                 (K,)
         """
-        assert keypoints.shape[0] == 1, (
-            f'{self.__class__.__name__} only support single-instance '
-            'keypoint encoding')
-        
+        assert keypoints.shape[0] == 1, f"{self.__class__.__name__} only support single-instance " "keypoint encoding"
+
         if keypoints_visibility is None:
             keypoints_visibility = np.zeros(keypoints.shape[:2], dtype=np.float32)
 
         if keypoints_visible is None:
             keypoints_visible = np.ones(keypoints.shape[:2], dtype=np.float32)
 
-        if self.heatmap_type == 'gaussian':
+        if self.heatmap_type == "gaussian":
             heatmaps, keypoint_weights = generate_onehot_heatmaps(
                 heatmap_size=self.heatmap_size,
                 keypoints=self._kpts_to_activation_pts(keypoints),
                 keypoints_visible=keypoints_visible,
                 sigma=self.sigma,
                 keypoints_visibility=keypoints_visibility,
-                increase_sigma_with_padding=self.increase_sigma_with_padding)
-        elif self.heatmap_type == 'combined':
+                increase_sigma_with_padding=self.increase_sigma_with_padding,
+            )
+        elif self.heatmap_type == "combined":
             heatmaps, keypoint_weights = generate_offset_heatmap(
                 heatmap_size=self.heatmap_size,
                 keypoints=self._kpts_to_activation_pts(keypoints),
                 keypoints_visible=keypoints_visible,
-                radius_factor=self.radius_factor)
+                radius_factor=self.radius_factor,
+            )
         else:
             raise ValueError(
-                f'{self.__class__.__name__} got invalid `heatmap_type` value'
-                f'{self.heatmap_type}. Should be one of '
-                '{"gaussian", "combined"}')
-        
+                f"{self.__class__.__name__} got invalid `heatmap_type` value"
+                f"{self.heatmap_type}. Should be one of "
+                '{"gaussian", "combined"}'
+            )
+
         if self.normalize is not None:
             heatmaps_sum = np.sum(heatmaps, axis=(1, 2), keepdims=False)
             mask = heatmaps_sum > 0
@@ -183,7 +191,7 @@ class OneHotHeatmap(BaseKeypointCodec):
             heatmaps = heatmaps * self.normalize
 
         annotated = keypoints_visible > 0
-        
+
         heatmap_keypoints = self._kpts_to_activation_pts(keypoints)
         in_image = np.logical_and(
             heatmap_keypoints[:, :, 0] >= 0,
@@ -197,7 +205,7 @@ class OneHotHeatmap(BaseKeypointCodec):
             in_image,
             heatmap_keypoints[:, :, 1] < self.heatmap_size[1],
         )
-        
+
         encoded = dict(
             heatmaps=heatmaps,
             keypoint_weights=keypoint_weights,
@@ -226,16 +234,15 @@ class OneHotHeatmap(BaseKeypointCodec):
         """
         heatmaps = encoded.copy()
 
-        if self.heatmap_type == 'gaussian':
+        if self.heatmap_type == "gaussian":
             keypoints, scores = get_heatmap_maximum(heatmaps)
             # unsqueeze the instance dimension for single-instance results
             keypoints = keypoints[None]
             scores = scores[None]
 
-            keypoints = refine_keypoints_dark_udp(
-                keypoints, heatmaps, blur_kernel_size=self.blur_kernel_size)
+            keypoints = refine_keypoints_dark_udp(keypoints, heatmaps, blur_kernel_size=self.blur_kernel_size)
 
-        elif self.heatmap_type == 'combined':
+        elif self.heatmap_type == "combined":
             _K, H, W = heatmaps.shape
             K = _K // 3
 

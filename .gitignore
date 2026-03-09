@@ -140,3 +140,7 @@ docs/**/modelzoo.md
 *.JPEG
 *.gif
 *.GIF
+
+*.mp4
+
+demos/outputs/

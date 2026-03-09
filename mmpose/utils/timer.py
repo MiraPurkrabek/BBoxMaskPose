@@ -7,7 +7,7 @@ import numpy as np
 from mmengine import Timer
 
 
-class RunningAverage():
+class RunningAverage:
     r"""A helper class to calculate running average in a sliding window.
 
     Args:
@@ -21,7 +21,7 @@ class RunningAverage():
     def update(self, value):
         """Update a new data sample."""
         self._data.append(value)
-        self._data = self._data[-self.window:]
+        self._data = self._data[-self.window :]
 
     def average(self):
         """Get the average value of current window."""
@@ -57,7 +57,7 @@ class StopWatch:
         self._timer_stack = []
 
     @contextmanager
-    def timeit(self, timer_name='_FPS_'):
+    def timeit(self, timer_name="_FPS_"):
         """Timing a code snippet with an assigned name.
 
         Args:
@@ -84,13 +84,10 @@ class StopWatch:
             dict: The key is the timer name and the value is the \
                 corresponding average time consuming.
         """
-        result = {
-            name: r.average() * 1000.
-            for name, r in self._record.items()
-        }
+        result = {name: r.average() * 1000.0 for name, r in self._record.items()}
 
-        if '_FPS_' in result:
-            result['_FPS_'] = 1000. / result.pop('_FPS_')
+        if "_FPS_" in result:
+            result["_FPS_"] = 1000.0 / result.pop("_FPS_")
 
         if key is None:
             return result
@@ -107,9 +104,9 @@ class StopWatch:
         """
         result = self.report()
         strings = []
-        if '_FPS_' in result:
+        if "_FPS_" in result:
             strings.append(f'FPS: {result["_FPS_"]:>5.1f}')
-        strings += [f'{name}: {val:>3.0f}' for name, val in result.items()]
+        strings += [f"{name}: {val:>3.0f}" for name, val in result.items()]
         return strings
 
     def reset(self):

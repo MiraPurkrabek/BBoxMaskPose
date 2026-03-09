@@ -6,10 +6,7 @@ import torch.nn.functional as F
 from torch import Tensor
 
 
-def flip_heatmaps(heatmaps: Tensor,
-                  flip_indices: Optional[List[int]] = None,
-                  flip_mode: str = 'heatmap',
-                  shift_heatmap: bool = True):
+def flip_heatmaps(heatmaps: Tensor, flip_indices: Optional[List[int]] = None, flip_mode: str = "heatmap", shift_heatmap: bool = True):
     """Flip heatmaps for test-time augmentation.
 
     Args:
@@ -33,12 +30,12 @@ def flip_heatmaps(heatmaps: Tensor,
         Tensor: flipped heatmaps in shape [B, C, H, W]
     """
 
-    if flip_mode == 'heatmap':
+    if flip_mode == "heatmap":
         heatmaps = heatmaps.flip(-1)
         if flip_indices is not None:
             assert len(flip_indices) == heatmaps.shape[1]
             heatmaps = heatmaps[:, flip_indices]
-    elif flip_mode == 'udp_combined':
+    elif flip_mode == "udp_combined":
         B, C, H, W = heatmaps.shape
         heatmaps = heatmaps.view(B, C // 3, 3, H, W)
         heatmaps = heatmaps.flip(-1)
@@ -48,7 +45,7 @@ def flip_heatmaps(heatmaps: Tensor,
         heatmaps[:, :, 1] = -heatmaps[:, :, 1]
         heatmaps = heatmaps.view(B, C, H, W)
 
-    elif flip_mode == 'offset':
+    elif flip_mode == "offset":
         B, C, H, W = heatmaps.shape
         heatmaps = heatmaps.view(B, C // 2, -1, H, W)
         heatmaps = heatmaps.flip(-1)
@@ -80,16 +77,14 @@ def flip_vectors(x_labels: Tensor, y_labels: Tensor, flip_indices: List[int]):
             keypoint
     """
     assert x_labels.ndim == 3 and y_labels.ndim == 3
-    assert len(flip_indices) == x_labels.shape[1] and len(
-        flip_indices) == y_labels.shape[1]
+    assert len(flip_indices) == x_labels.shape[1] and len(flip_indices) == y_labels.shape[1]
     x_labels = x_labels[:, flip_indices].flip(-1)
     y_labels = y_labels[:, flip_indices]
 
     return x_labels, y_labels
 
 
-def flip_coordinates(coords: Tensor, flip_indices: List[int],
-                     shift_coords: bool, input_size: Tuple[int, int]):
+def flip_coordinates(coords: Tensor, flip_indices: List[int], shift_coords: bool, input_size: Tuple[int, int]):
     """Flip normalized coordinates for test-time augmentation.
 
     Args:
@@ -129,10 +124,7 @@ def flip_visibility(vis: Tensor, flip_indices: List[int]):
     return vis
 
 
-def aggregate_heatmaps(heatmaps: List[Tensor],
-                       size: Optional[Tuple[int, int]],
-                       align_corners: bool = False,
-                       mode: str = 'average'):
+def aggregate_heatmaps(heatmaps: List[Tensor], size: Optional[Tuple[int, int]], align_corners: bool = False, mode: str = "average"):
     """Aggregate multiple heatmaps.
 
     Args:
@@ -151,8 +143,8 @@ def aggregate_heatmaps(heatmaps: List[Tensor],
             - ``'concat'``: Concate the heatmaps at the channel dim
     """
 
-    if mode not in {'average', 'concat'}:
-        raise ValueError(f'Invalid aggregation mode `{mode}`')
+    if mode not in {"average", "concat"}:
+        raise ValueError(f"Invalid aggregation mode `{mode}`")
 
     if size is None:
         h, w = heatmaps[0].shape[2:4]
@@ -161,21 +153,17 @@ def aggregate_heatmaps(heatmaps: List[Tensor],
 
     for i, _heatmaps in enumerate(heatmaps):
         assert _heatmaps.ndim == 4
-        if mode == 'average':
+        if mode == "average":
             assert _heatmaps.shape[:2] == heatmaps[0].shape[:2]
         else:
             assert _heatmaps.shape[0] == heatmaps[0].shape[0]
 
         if _heatmaps.shape[2:4] != (h, w):
-            heatmaps[i] = F.interpolate(
-                _heatmaps,
-                size=(h, w),
-                mode='bilinear',
-                align_corners=align_corners)
+            heatmaps[i] = F.interpolate(_heatmaps, size=(h, w), mode="bilinear", align_corners=align_corners)
 
-    if mode == 'average':
+    if mode == "average":
         output = sum(heatmaps).div(len(heatmaps))
-    elif mode == 'concat':
+    elif mode == "concat":
         output = torch.cat(heatmaps, dim=1)
     else:
         raise ValueError()

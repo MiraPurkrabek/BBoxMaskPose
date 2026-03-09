@@ -32,9 +32,7 @@ class AssociativeEmbeddingLoss(nn.Module):
             the push loss and the pull loss. Defaults to 0.5
     """
 
-    def __init__(self,
-                 loss_weight: float = 1.0,
-                 push_loss_factor: float = 0.5) -> None:
+    def __init__(self, loss_weight: float = 1.0, push_loss_factor: float = 0.5) -> None:
         super().__init__()
         self.loss_weight = loss_weight
         self.push_loss_factor = push_loss_factor
@@ -72,9 +70,7 @@ class AssociativeEmbeddingLoss(nn.Module):
             pull_loss = tags.new_zeros(size=(), requires_grad=True)
             push_loss = tags.new_zeros(size=(), requires_grad=True)
         else:
-            pull_loss = sum(
-                F.mse_loss(_kpt_tags, _tag.expand_as(_kpt_tags))
-                for (_kpt_tags, _tag) in zip(instance_kpt_tags, instance_tags))
+            pull_loss = sum(F.mse_loss(_kpt_tags, _tag.expand_as(_kpt_tags)) for (_kpt_tags, _tag) in zip(instance_kpt_tags, instance_tags))
 
             if N == 1:
                 push_loss = tags.new_zeros(size=(), requires_grad=True)
@@ -90,8 +86,7 @@ class AssociativeEmbeddingLoss(nn.Module):
 
         return pull_loss, push_loss
 
-    def forward(self, tags: Tensor, keypoint_indices: Union[List[Tensor],
-                                                            Tensor]):
+    def forward(self, tags: Tensor, keypoint_indices: Union[List[Tensor], Tensor]):
         """Compute associative embedding loss on a batch of data.
 
         Args:
@@ -111,12 +106,11 @@ class AssociativeEmbeddingLoss(nn.Module):
 
         assert tags.shape[0] == len(keypoint_indices)
 
-        pull_loss = 0.
-        push_loss = 0.
+        pull_loss = 0.0
+        push_loss = 0.0
 
         for i in range(tags.shape[0]):
-            _pull, _push = self._ae_loss_per_image(tags[i],
-                                                   keypoint_indices[i])
+            _pull, _push = self._ae_loss_per_image(tags[i], keypoint_indices[i])
             pull_loss += _pull * self.loss_weight
             push_loss += _push * self.loss_weight * self.push_loss_factor
 

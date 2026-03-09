@@ -28,12 +28,7 @@ class FeaLoss(nn.Module):
         self.alpha_fea = alpha_fea
 
         if teacher_channels != student_channels:
-            self.align = nn.Conv2d(
-                student_channels,
-                teacher_channels,
-                kernel_size=1,
-                stride=1,
-                padding=0)
+            self.align = nn.Conv2d(student_channels, teacher_channels, kernel_size=1, stride=1, padding=0)
         else:
             self.align = None
 
@@ -55,7 +50,7 @@ class FeaLoss(nn.Module):
         return loss
 
     def get_dis_loss(self, preds_S, preds_T):
-        loss_mse = nn.MSELoss(reduction='sum')
+        loss_mse = nn.MSELoss(reduction="sum")
         N, C, H, W = preds_T.shape
 
         dis_loss = loss_mse(preds_S, preds_T) / N * self.alpha_fea

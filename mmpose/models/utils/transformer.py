@@ -34,7 +34,7 @@ def nlc_to_nchw(x, hw_shape):
     H, W = hw_shape
     assert len(x.shape) == 3
     B, L, C = x.shape
-    assert L == H * W, 'The seq_len does not match H, W'
+    assert L == H * W, "The seq_len does not match H, W"
     return x.transpose(1, 2).reshape(B, C, H, W).contiguous()
 
 
@@ -82,11 +82,11 @@ class AdaptivePadding(nn.Module):
         >>> assert (out.shape[2], out.shape[3]) == (16, 32)
     """
 
-    def __init__(self, kernel_size=1, stride=1, dilation=1, padding='corner'):
+    def __init__(self, kernel_size=1, stride=1, dilation=1, padding="corner"):
 
         super(AdaptivePadding, self).__init__()
 
-        assert padding in ('same', 'corner')
+        assert padding in ("same", "corner")
 
         kernel_size = to_2tuple(kernel_size)
         stride = to_2tuple(stride)
@@ -106,10 +106,8 @@ class AdaptivePadding(nn.Module):
         stride_h, stride_w = self.stride
         output_h = math.ceil(input_h / stride_h)
         output_w = math.ceil(input_w / stride_w)
-        pad_h = max((output_h - 1) * stride_h +
-                    (kernel_h - 1) * self.dilation[0] + 1 - input_h, 0)
-        pad_w = max((output_w - 1) * stride_w +
-                    (kernel_w - 1) * self.dilation[1] + 1 - input_w, 0)
+        pad_h = max((output_h - 1) * stride_h + (kernel_h - 1) * self.dilation[0] + 1 - input_h, 0)
+        pad_w = max((output_w - 1) * stride_w + (kernel_w - 1) * self.dilation[1] + 1 - input_w, 0)
         return pad_h, pad_w
 
     def forward(self, x):
@@ -117,13 +115,10 @@ class AdaptivePadding(nn.Module):
 
         pad_h, pad_w = self.get_pad_shape(x.size()[-2:])
         if pad_h > 0 or pad_w > 0:
-            if self.padding == 'corner':
+            if self.padding == "corner":
                 x = F.pad(x, [0, pad_w, 0, pad_h])
-            elif self.padding == 'same':
-                x = F.pad(x, [
-                    pad_w // 2, pad_w - pad_w // 2, pad_h // 2,
-                    pad_h - pad_h // 2
-                ])
+            elif self.padding == "same":
+                x = F.pad(x, [pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2])
         return x
 
 
@@ -159,10 +154,10 @@ class PatchEmbed(BaseModule):
         self,
         in_channels=3,
         embed_dims=768,
-        conv_type='Conv2d',
+        conv_type="Conv2d",
         kernel_size=16,
         stride=16,
-        padding='corner',
+        padding="corner",
         dilation=1,
         bias=True,
         norm_cfg=None,
@@ -180,11 +175,7 @@ class PatchEmbed(BaseModule):
         dilation = to_2tuple(dilation)
 
         if isinstance(padding, str):
-            self.adap_padding = AdaptivePadding(
-                kernel_size=kernel_size,
-                stride=stride,
-                dilation=dilation,
-                padding=padding)
+            self.adap_padding = AdaptivePadding(kernel_size=kernel_size, stride=stride, dilation=dilation, padding=padding)
             # disable the padding of conv
             padding = 0
         else:
@@ -199,7 +190,8 @@ class PatchEmbed(BaseModule):
             stride=stride,
             padding=padding,
             dilation=dilation,
-            bias=bias)
+            bias=bias,
+        )
 
         if norm_cfg is not None:
             self.norm = build_norm_layer(norm_cfg, embed_dims)[1]
@@ -220,10 +212,8 @@ class PatchEmbed(BaseModule):
                 input_size = (input_h, input_w)
 
             # https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html
-            h_out = (input_size[0] + 2 * padding[0] - dilation[0] *
-                     (kernel_size[0] - 1) - 1) // stride[0] + 1
-            w_out = (input_size[1] + 2 * padding[1] - dilation[1] *
-                     (kernel_size[1] - 1) - 1) // stride[1] + 1
+            h_out = (input_size[0] + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1) // stride[0] + 1
+            w_out = (input_size[1] + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1) // stride[1] + 1
             self.init_out_size = (h_out, w_out)
         else:
             self.init_input_size = None
@@ -284,16 +274,18 @@ class PatchMerging(BaseModule):
             Default: None.
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 kernel_size=2,
-                 stride=None,
-                 padding='corner',
-                 dilation=1,
-                 bias=False,
-                 norm_cfg=dict(type='LN'),
-                 init_cfg=None):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size=2,
+        stride=None,
+        padding="corner",
+        dilation=1,
+        bias=False,
+        norm_cfg=dict(type="LN"),
+        init_cfg=None,
+    ):
         super().__init__(init_cfg=init_cfg)
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -307,22 +299,14 @@ class PatchMerging(BaseModule):
         dilation = to_2tuple(dilation)
 
         if isinstance(padding, str):
-            self.adap_padding = AdaptivePadding(
-                kernel_size=kernel_size,
-                stride=stride,
-                dilation=dilation,
-                padding=padding)
+            self.adap_padding = AdaptivePadding(kernel_size=kernel_size, stride=stride, dilation=dilation, padding=padding)
             # disable the padding of unfold
             padding = 0
         else:
             self.adap_padding = None
 
         padding = to_2tuple(padding)
-        self.sampler = nn.Unfold(
-            kernel_size=kernel_size,
-            dilation=dilation,
-            padding=padding,
-            stride=stride)
+        self.sampler = nn.Unfold(kernel_size=kernel_size, dilation=dilation, padding=padding, stride=stride)
 
         sample_dim = kernel_size[0] * kernel_size[1] * in_channels
 
@@ -348,13 +332,10 @@ class PatchMerging(BaseModule):
                     (Merged_H, Merged_W).
         """
         B, L, C = x.shape
-        assert isinstance(input_size, Sequence), f'Expect ' \
-                                                 f'input_size is ' \
-                                                 f'`Sequence` ' \
-                                                 f'but get {input_size}'
+        assert isinstance(input_size, Sequence), f"Expect " f"input_size is " f"`Sequence` " f"but get {input_size}"
 
         H, W = input_size
-        assert L == H * W, 'input feature has wrong size'
+        assert L == H * W, "input feature has wrong size"
 
         x = x.view(B, H, W, C).permute([0, 3, 1, 2])  # B, C, H, W
         # Use nn.Unfold to merge patch. About 25% faster than original method,
@@ -367,12 +348,12 @@ class PatchMerging(BaseModule):
         x = self.sampler(x)
         # if kernel_size=2 and stride=2, x should has shape (B, 4*C, H/2*W/2)
 
-        out_h = (H + 2 * self.sampler.padding[0] - self.sampler.dilation[0] *
-                 (self.sampler.kernel_size[0] - 1) -
-                 1) // self.sampler.stride[0] + 1
-        out_w = (W + 2 * self.sampler.padding[1] - self.sampler.dilation[1] *
-                 (self.sampler.kernel_size[1] - 1) -
-                 1) // self.sampler.stride[1] + 1
+        out_h = (H + 2 * self.sampler.padding[0] - self.sampler.dilation[0] * (self.sampler.kernel_size[0] - 1) - 1) // self.sampler.stride[
+            0
+        ] + 1
+        out_w = (W + 2 * self.sampler.padding[1] - self.sampler.dilation[1] * (self.sampler.kernel_size[1] - 1) - 1) // self.sampler.stride[
+            1
+        ] + 1
 
         output_size = (out_h, out_w)
         x = x.transpose(1, 2)  # B, H/2*W/2, 4*C
@@ -409,8 +390,7 @@ class ScaleNorm(nn.Module):
             torch.Tensor: The tensor after applying scale norm.
         """
 
-        if torch.onnx.is_in_onnx_export() and \
-                digit_version(TORCH_VERSION) >= digit_version('1.12'):
+        if torch.onnx.is_in_onnx_export() and digit_version(TORCH_VERSION) >= digit_version("1.12"):
 
             norm = torch.linalg.norm(x, dim=-1, keepdim=True)
 
@@ -462,26 +442,24 @@ class SinePositionalEncoding(nn.Module):
 
         pos_dim = out_channels // 2
         dim_t = torch.arange(pos_dim, dtype=torch.float32) / pos_dim
-        dim_t = self.temperature**(dim_t)
+        dim_t = self.temperature ** (dim_t)
 
         if not learnable:
-            self.register_buffer('dim_t', dim_t)
+            self.register_buffer("dim_t", dim_t)
         else:
             self.dim_t = nn.Parameter(dim_t.detach())
 
         # set parameters
         if eval_size:
-            if hasattr(self, f'pos_enc_{eval_size}'):
-                delattr(self, f'pos_enc_{eval_size}')
+            if hasattr(self, f"pos_enc_{eval_size}"):
+                delattr(self, f"pos_enc_{eval_size}")
             pos_enc = self.generate_pos_encoding(size=eval_size)
-            self.register_buffer(f'pos_enc_{eval_size}', pos_enc)
+            self.register_buffer(f"pos_enc_{eval_size}", pos_enc)
 
     def forward(self, *args, **kwargs):
         return self.generate_pos_encoding(*args, **kwargs)
 
-    def generate_pos_encoding(self,
-                              size: Union[int, Sequence[int]] = None,
-                              position: Optional[Tensor] = None):
+    def generate_pos_encoding(self, size: Union[int, Sequence[int]] = None, position: Optional[Tensor] = None):
         """Generate positional encoding for input features.
 
         Args:
@@ -493,19 +471,16 @@ class SinePositionalEncoding(nn.Module):
 
         assert (size is not None) ^ (position is not None)
 
-        if (not (self.learnable
-                 and self.training)) and size is not None and hasattr(
-                     self, f'pos_enc_{size}'):
-            return getattr(self, f'pos_enc_{size}')
+        if (not (self.learnable and self.training)) and size is not None and hasattr(self, f"pos_enc_{size}"):
+            return getattr(self, f"pos_enc_{size}")
 
         if self.spatial_dim == 1:
             if size is not None:
                 if isinstance(size, (tuple, list)):
                     size = size[0]
-                position = torch.arange(
-                    size, dtype=torch.float32, device=self.dim_t.device)
+                position = torch.arange(size, dtype=torch.float32, device=self.dim_t.device)
 
-            dim_t = self.dim_t.reshape(*((1, ) * position.ndim), -1)
+            dim_t = self.dim_t.reshape(*((1,) * position.ndim), -1)
             freq = position.unsqueeze(-1) / dim_t
             pos_enc = torch.cat((freq.cos(), freq.sin()), dim=-1)
 
@@ -516,18 +491,17 @@ class SinePositionalEncoding(nn.Module):
                 elif isinstance(size, (int, float)):
                     h, w = int(size), int(size)
                 else:
-                    raise ValueError(f'got invalid type {type(size)} for size')
+                    raise ValueError(f"got invalid type {type(size)} for size")
                 grid_h, grid_w = torch.meshgrid(
-                    torch.arange(
-                        int(h), dtype=torch.float32, device=self.dim_t.device),
-                    torch.arange(
-                        int(w), dtype=torch.float32, device=self.dim_t.device))
+                    torch.arange(int(h), dtype=torch.float32, device=self.dim_t.device),
+                    torch.arange(int(w), dtype=torch.float32, device=self.dim_t.device),
+                )
                 grid_h, grid_w = grid_h.flatten(), grid_w.flatten()
             else:
                 assert position.size(-1) == 2
                 grid_h, grid_w = torch.unbind(position, dim=-1)
 
-            dim_t = self.dim_t.reshape(*((1, ) * grid_h.ndim), -1)
+            dim_t = self.dim_t.reshape(*((1,) * grid_h.ndim), -1)
             freq_h = grid_h.unsqueeze(-1) / dim_t
             freq_w = grid_w.unsqueeze(-1) / dim_t
             pos_enc_h = torch.cat((freq_h.cos(), freq_h.sin()), dim=-1)
@@ -537,9 +511,7 @@ class SinePositionalEncoding(nn.Module):
         return pos_enc
 
     @staticmethod
-    def apply_additional_pos_enc(feature: Tensor,
-                                 pos_enc: Tensor,
-                                 spatial_dim: int = 1):
+    def apply_additional_pos_enc(feature: Tensor, pos_enc: Tensor, spatial_dim: int = 1):
         """Apply additional positional encoding to input features.
 
         Args:
@@ -548,8 +520,7 @@ class SinePositionalEncoding(nn.Module):
             spatial_dim (int): Spatial dimension of input features.
         """
 
-        assert spatial_dim in (1, 2), f'the argument spatial_dim must be ' \
-            f'either 1 or 2, but got {spatial_dim}'
+        assert spatial_dim in (1, 2), f"the argument spatial_dim must be " f"either 1 or 2, but got {spatial_dim}"
         if spatial_dim == 2:
             pos_enc = pos_enc.flatten(-2)
         for _ in range(feature.ndim - pos_enc.ndim):
@@ -557,9 +528,7 @@ class SinePositionalEncoding(nn.Module):
         return feature + pos_enc
 
     @staticmethod
-    def apply_rotary_pos_enc(feature: Tensor,
-                             pos_enc: Tensor,
-                             spatial_dim: int = 1):
+    def apply_rotary_pos_enc(feature: Tensor, pos_enc: Tensor, spatial_dim: int = 1):
         """Apply rotary positional encoding to input features.
 
         Args:
@@ -568,8 +537,7 @@ class SinePositionalEncoding(nn.Module):
             spatial_dim (int): Spatial dimension of input features.
         """
 
-        assert spatial_dim in (1, 2), f'the argument spatial_dim must be ' \
-            f'either 1 or 2, but got {spatial_dim}'
+        assert spatial_dim in (1, 2), f"the argument spatial_dim must be " f"either 1 or 2, but got {spatial_dim}"
 
         for _ in range(feature.ndim - pos_enc.ndim + spatial_dim - 1):
             pos_enc = pos_enc.unsqueeze(0)
@@ -577,14 +545,12 @@ class SinePositionalEncoding(nn.Module):
         x1, x2 = torch.chunk(feature, 2, dim=-1)
         if spatial_dim == 1:
             cos, sin = torch.chunk(pos_enc, 2, dim=-1)
-            feature = torch.cat((x1 * cos - x2 * sin, x2 * cos + x1 * sin),
-                                dim=-1)
+            feature = torch.cat((x1 * cos - x2 * sin, x2 * cos + x1 * sin), dim=-1)
         elif spatial_dim == 2:
             pos_enc_h, pos_enc_w = torch.unbind(pos_enc, dim=-1)
             cos_h, sin_h = torch.chunk(pos_enc_h, 2, dim=-1)
             cos_w, sin_w = torch.chunk(pos_enc_w, 2, dim=-1)
-            feature = torch.cat(
-                (x1 * cos_h - x2 * sin_h, x1 * cos_w + x2 * sin_w), dim=-1)
+            feature = torch.cat((x1 * cos_h - x2 * sin_h, x1 * cos_w + x2 * sin_w), dim=-1)
 
         return feature
 
@@ -600,10 +566,9 @@ class ChannelWiseScale(nn.Module):
             Defaults to True.
     """
 
-    def __init__(self, dim, init_value=1., trainable=True):
+    def __init__(self, dim, init_value=1.0, trainable=True):
         super().__init__()
-        self.scale = nn.Parameter(
-            init_value * torch.ones(dim), requires_grad=trainable)
+        self.scale = nn.Parameter(init_value * torch.ones(dim), requires_grad=trainable)
 
     def forward(self, x):
         """Forward function."""
@@ -642,18 +607,20 @@ class GAUEncoder(BaseModule):
         <https://arxiv.org/abs/2202.10447>`_
     """
 
-    def __init__(self,
-                 in_token_dims,
-                 out_token_dims,
-                 expansion_factor=2,
-                 s=128,
-                 eps=1e-5,
-                 dropout_rate=0.,
-                 drop_path=0.,
-                 act_fn='SiLU',
-                 bias=False,
-                 pos_enc: str = 'none',
-                 spatial_dim: int = 1):
+    def __init__(
+        self,
+        in_token_dims,
+        out_token_dims,
+        expansion_factor=2,
+        s=128,
+        eps=1e-5,
+        dropout_rate=0.0,
+        drop_path=0.0,
+        act_fn="SiLU",
+        bias=False,
+        pos_enc: str = "none",
+        spatial_dim: int = 1,
+    ):
 
         super(GAUEncoder, self).__init__()
         self.s = s
@@ -661,8 +628,7 @@ class GAUEncoder(BaseModule):
         self.pos_enc = pos_enc
         self.in_token_dims = in_token_dims
         self.spatial_dim = spatial_dim
-        self.drop_path = DropPath(drop_path) \
-            if drop_path > 0. else nn.Identity()
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
         self.e = int(in_token_dims * expansion_factor)
         self.o = nn.Linear(self.e, out_token_dims, bias=bias)
@@ -673,9 +639,8 @@ class GAUEncoder(BaseModule):
 
         nn.init.xavier_uniform_(self.uv.weight)
 
-        if act_fn == 'SiLU':
-            assert digit_version(TORCH_VERSION) >= digit_version('1.7.0'), \
-                'SiLU activation requires PyTorch version >= 1.7'
+        if act_fn == "SiLU":
+            assert digit_version(TORCH_VERSION) >= digit_version("1.7.0"), "SiLU activation requires PyTorch version >= 1.7"
 
             self.act_fn = nn.SiLU(True)
         else:
@@ -690,12 +655,11 @@ class GAUEncoder(BaseModule):
         self.sqrt_s = math.sqrt(s)
         self.dropout_rate = dropout_rate
 
-        if dropout_rate > 0.:
+        if dropout_rate > 0.0:
             self.dropout = nn.Dropout(dropout_rate)
 
     def _build_layers(self):
-        self.uv = nn.Linear(
-            self.in_token_dims, 2 * self.e + self.s, bias=self.bias)
+        self.uv = nn.Linear(self.in_token_dims, 2 * self.e + self.s, bias=self.bias)
         self.gamma = nn.Parameter(torch.rand((2, self.s)))
         self.beta = nn.Parameter(torch.rand((2, self.s)))
 
@@ -712,20 +676,17 @@ class GAUEncoder(BaseModule):
         u, v, base = torch.split(uv, [self.e, self.e, self.s], dim=-1)
         # [B, K, 1, s] * [1, 1, 2, s] + [2, s] -> [B, K, 2, s]
         dim = base.ndim - self.gamma.ndim + 1
-        gamma = self.gamma.view(*((1, ) * dim), *self.gamma.size())
-        beta = self.beta.view(*((1, ) * dim), *self.beta.size())
+        gamma = self.gamma.view(*((1,) * dim), *self.gamma.size())
+        beta = self.beta.view(*((1,) * dim), *self.beta.size())
         base = base.unsqueeze(-2) * gamma + beta
         # [B, K, 2, s] -> [B, K, s], [B, K, s]
         q, k = torch.unbind(base, dim=-2)
 
-        if self.pos_enc == 'rope':
-            q = SinePositionalEncoding.apply_rotary_pos_enc(
-                q, pos_enc, self.spatial_dim)
-            k = SinePositionalEncoding.apply_rotary_pos_enc(
-                k, pos_enc, self.spatial_dim)
-        elif self.pos_enc == 'add':
-            pos_enc = pos_enc.reshape(*((1, ) * (q.ndim - 2)), q.size(-2),
-                                      q.size(-1))
+        if self.pos_enc == "rope":
+            q = SinePositionalEncoding.apply_rotary_pos_enc(q, pos_enc, self.spatial_dim)
+            k = SinePositionalEncoding.apply_rotary_pos_enc(k, pos_enc, self.spatial_dim)
+        elif self.pos_enc == "add":
+            pos_enc = pos_enc.reshape(*((1,) * (q.ndim - 2)), q.size(-2), q.size(-1))
             q = q + pos_enc
             k = k + pos_enc
 
@@ -739,7 +700,7 @@ class GAUEncoder(BaseModule):
         if mask is not None:
             kernel = kernel * mask
 
-        if self.dropout_rate > 0.:
+        if self.dropout_rate > 0.0:
             kernel = self.dropout(kernel)
 
         # [B, K, K] x [B, K, e] -> [B, K, e]
@@ -771,11 +732,7 @@ class DetrTransformerEncoder(BaseModule):
             the initialization. Defaults to None.
     """
 
-    def __init__(self,
-                 num_layers: int,
-                 layer_cfg: ConfigType,
-                 num_cp: int = -1,
-                 init_cfg: OptConfigType = None) -> None:
+    def __init__(self, num_layers: int, layer_cfg: ConfigType, num_cp: int = -1, init_cfg: OptConfigType = None) -> None:
 
         super().__init__(init_cfg=init_cfg)
         self.num_layers = num_layers
@@ -786,24 +743,21 @@ class DetrTransformerEncoder(BaseModule):
 
     def _init_layers(self) -> None:
         """Initialize encoder layers."""
-        self.layers = ModuleList([
-            DetrTransformerEncoderLayer(**self.layer_cfg)
-            for _ in range(self.num_layers)
-        ])
+        self.layers = ModuleList([DetrTransformerEncoderLayer(**self.layer_cfg) for _ in range(self.num_layers)])
 
         if self.num_cp > 0:
             if checkpoint_wrapper is None:
                 raise NotImplementedError(
-                    'If you want to reduce GPU memory usage, \
+                    "If you want to reduce GPU memory usage, \
                     please install fairscale by executing the \
-                    following command: pip install fairscale.')
+                    following command: pip install fairscale."
+                )
             for i in range(self.num_cp):
                 self.layers[i] = checkpoint_wrapper(self.layers[i])
 
         self.embed_dims = self.layers[0].embed_dims
 
-    def forward(self, query: Tensor, query_pos: Tensor,
-                key_padding_mask: Tensor, **kwargs) -> Tensor:
+    def forward(self, query: Tensor, query_pos: Tensor, key_padding_mask: Tensor, **kwargs) -> Tensor:
         """Forward function of encoder.
 
         Args:
@@ -837,27 +791,27 @@ class DetrTransformerEncoderLayer(BaseModule):
             the initialization. Defaults to None.
     """
 
-    def __init__(self,
-                 self_attn_cfg: OptConfigType = dict(
-                     embed_dims=256, num_heads=8, dropout=0.0),
-                 ffn_cfg: OptConfigType = dict(
-                     embed_dims=256,
-                     feedforward_channels=1024,
-                     num_fcs=2,
-                     ffn_drop=0.,
-                     act_cfg=dict(type='ReLU', inplace=True)),
-                 norm_cfg: OptConfigType = dict(type='LN'),
-                 init_cfg: OptConfigType = None) -> None:
+    def __init__(
+        self,
+        self_attn_cfg: OptConfigType = dict(embed_dims=256, num_heads=8, dropout=0.0),
+        ffn_cfg: OptConfigType = dict(
+            embed_dims=256, feedforward_channels=1024, num_fcs=2, ffn_drop=0.0, act_cfg=dict(type="ReLU", inplace=True)
+        ),
+        norm_cfg: OptConfigType = dict(type="LN"),
+        init_cfg: OptConfigType = None,
+    ) -> None:
 
         super().__init__(init_cfg=init_cfg)
 
         self.self_attn_cfg = self_attn_cfg
-        if 'batch_first' not in self.self_attn_cfg:
-            self.self_attn_cfg['batch_first'] = True
+        if "batch_first" not in self.self_attn_cfg:
+            self.self_attn_cfg["batch_first"] = True
         else:
-            assert self.self_attn_cfg['batch_first'] is True, 'First \
+            assert (
+                self.self_attn_cfg["batch_first"] is True
+            ), "First \
             dimension of all DETRs in mmdet is `batch`, \
-            please set `batch_first` flag.'
+            please set `batch_first` flag."
 
         self.ffn_cfg = ffn_cfg
         self.norm_cfg = norm_cfg
@@ -868,14 +822,10 @@ class DetrTransformerEncoderLayer(BaseModule):
         self.self_attn = MultiheadAttention(**self.self_attn_cfg)
         self.embed_dims = self.self_attn.embed_dims
         self.ffn = FFN(**self.ffn_cfg)
-        norms_list = [
-            build_norm_layer(self.norm_cfg, self.embed_dims)[1]
-            for _ in range(2)
-        ]
+        norms_list = [build_norm_layer(self.norm_cfg, self.embed_dims)[1] for _ in range(2)]
         self.norms = ModuleList(norms_list)
 
-    def forward(self, query: Tensor, query_pos: Tensor,
-                key_padding_mask: Tensor, **kwargs) -> Tensor:
+    def forward(self, query: Tensor, query_pos: Tensor, key_padding_mask: Tensor, **kwargs) -> Tensor:
         """Forward function of an encoder layer.
 
         Args:
@@ -888,13 +838,8 @@ class DetrTransformerEncoderLayer(BaseModule):
             Tensor: forwarded results, has shape (bs, num_queries, dim).
         """
         query = self.self_attn(
-            query=query,
-            key=query,
-            value=query,
-            query_pos=query_pos,
-            key_pos=query_pos,
-            key_padding_mask=key_padding_mask,
-            **kwargs)
+            query=query, key=query, value=query, query_pos=query_pos, key_pos=query_pos, key_padding_mask=key_padding_mask, **kwargs
+        )
         query = self.norms[0](query)
         query = self.ffn(query)
         query = self.norms[1](query)

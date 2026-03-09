@@ -43,12 +43,9 @@ class RandomFlipAroundRoot(BaseTransform):
         - camera_param (optional)
     """
 
-    def __init__(self,
-                 keypoints_flip_cfg: dict,
-                 target_flip_cfg: dict,
-                 flip_prob: float = 0.5,
-                 flip_camera: bool = False,
-                 flip_label: bool = False):
+    def __init__(
+        self, keypoints_flip_cfg: dict, target_flip_cfg: dict, flip_prob: float = 0.5, flip_camera: bool = False, flip_label: bool = False
+    ):
         self.keypoints_flip_cfg = keypoints_flip_cfg
         self.target_flip_cfg = target_flip_cfg
         self.flip_prob = flip_prob
@@ -69,72 +66,70 @@ class RandomFlipAroundRoot(BaseTransform):
 
         if np.random.rand() <= self.flip_prob:
             if self.flip_label:
-                assert 'keypoint_labels' in results
-                assert 'lifting_target_label' in results
-                keypoints_key = 'keypoint_labels'
-                keypoints_visible_key = 'keypoint_labels_visible'
-                target_key = 'lifting_target_label'
+                assert "keypoint_labels" in results
+                assert "lifting_target_label" in results
+                keypoints_key = "keypoint_labels"
+                keypoints_visible_key = "keypoint_labels_visible"
+                target_key = "lifting_target_label"
             else:
-                assert 'keypoints' in results
-                assert 'lifting_target' in results
-                keypoints_key = 'keypoints'
-                keypoints_visible_key = 'keypoints_visible'
-                target_key = 'lifting_target'
+                assert "keypoints" in results
+                assert "lifting_target" in results
+                keypoints_key = "keypoints"
+                keypoints_visible_key = "keypoints_visible"
+                target_key = "lifting_target"
 
             keypoints = results[keypoints_key]
             if keypoints_visible_key in results:
                 keypoints_visible = results[keypoints_visible_key]
             else:
-                keypoints_visible = np.ones(
-                    keypoints.shape[:-1], dtype=np.float32)
+                keypoints_visible = np.ones(keypoints.shape[:-1], dtype=np.float32)
 
             lifting_target = results[target_key]
-            if 'lifting_target_visible' in results:
-                lifting_target_visible = results['lifting_target_visible']
+            if "lifting_target_visible" in results:
+                lifting_target_visible = results["lifting_target_visible"]
             else:
-                lifting_target_visible = np.ones(
-                    lifting_target.shape[:-1], dtype=np.float32)
+                lifting_target_visible = np.ones(lifting_target.shape[:-1], dtype=np.float32)
 
-            if 'flip_indices' not in results:
+            if "flip_indices" not in results:
                 flip_indices = list(range(self.num_keypoints))
             else:
-                flip_indices = results['flip_indices']
+                flip_indices = results["flip_indices"]
 
             # flip joint coordinates
-            _camera_param = deepcopy(results['camera_param'])
+            _camera_param = deepcopy(results["camera_param"])
 
             keypoints, keypoints_visible = flip_keypoints_custom_center(
                 keypoints,
                 keypoints_visible,
                 flip_indices,
-                center_mode=self.keypoints_flip_cfg.get(
-                    'center_mode', 'static'),
-                center_x=self.keypoints_flip_cfg.get('center_x', 0.5),
-                center_index=self.keypoints_flip_cfg.get('center_index', 0))
+                center_mode=self.keypoints_flip_cfg.get("center_mode", "static"),
+                center_x=self.keypoints_flip_cfg.get("center_x", 0.5),
+                center_index=self.keypoints_flip_cfg.get("center_index", 0),
+            )
             lifting_target, lifting_target_visible = flip_keypoints_custom_center(  # noqa
                 lifting_target,
                 lifting_target_visible,
                 flip_indices,
-                center_mode=self.target_flip_cfg.get('center_mode', 'static'),
-                center_x=self.target_flip_cfg.get('center_x', 0.5),
-                center_index=self.target_flip_cfg.get('center_index', 0))
+                center_mode=self.target_flip_cfg.get("center_mode", "static"),
+                center_x=self.target_flip_cfg.get("center_x", 0.5),
+                center_index=self.target_flip_cfg.get("center_index", 0),
+            )
 
             results[keypoints_key] = keypoints
             results[keypoints_visible_key] = keypoints_visible
             results[target_key] = lifting_target
-            results['lifting_target_visible'] = lifting_target_visible
+            results["lifting_target_visible"] = lifting_target_visible
 
             # flip horizontal distortion coefficients
             if self.flip_camera:
-                assert 'camera_param' in results, \
-                    'Camera parameters are missing.'
+                assert "camera_param" in results, "Camera parameters are missing."
 
-                assert 'c' in _camera_param
-                _camera_param['c'][0] *= -1
+                assert "c" in _camera_param
+                _camera_param["c"][0] *= -1
 
-                if 'p' in _camera_param:
-                    _camera_param['p'][0] *= -1
+                if "p" in _camera_param:
+                    _camera_param["p"][0] *= -1
 
-                results['camera_param'].update(_camera_param)
+                results["camera_param"].update(_camera_param)
 
         return results

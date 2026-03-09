@@ -2,8 +2,8 @@
 from mmcv.cnn import build_conv_layer, build_norm_layer
 
 from mmpose.registry import MODELS
-from .resnet import Bottleneck as _Bottleneck
-from .resnet import ResLayer, ResNet
+
+from .resnet import Bottleneck as _Bottleneck, ResLayer, ResNet
 
 
 class Bottleneck(_Bottleneck):
@@ -31,13 +31,7 @@ class Bottleneck(_Bottleneck):
             memory while slowing down the training speed.
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 base_channels=64,
-                 groups=32,
-                 width_per_group=4,
-                 **kwargs):
+    def __init__(self, in_channels, out_channels, base_channels=64, groups=32, width_per_group=4, **kwargs):
         super().__init__(in_channels, out_channels, **kwargs)
         self.groups = groups
         self.width_per_group = width_per_group
@@ -47,23 +41,15 @@ class Bottleneck(_Bottleneck):
         # groups and width_per_group and the stage it is located in.
         if groups != 1:
             assert self.mid_channels % base_channels == 0
-            self.mid_channels = (
-                groups * width_per_group * self.mid_channels // base_channels)
+            self.mid_channels = groups * width_per_group * self.mid_channels // base_channels
 
-        self.norm1_name, norm1 = build_norm_layer(
-            self.norm_cfg, self.mid_channels, postfix=1)
-        self.norm2_name, norm2 = build_norm_layer(
-            self.norm_cfg, self.mid_channels, postfix=2)
-        self.norm3_name, norm3 = build_norm_layer(
-            self.norm_cfg, self.out_channels, postfix=3)
+        self.norm1_name, norm1 = build_norm_layer(self.norm_cfg, self.mid_channels, postfix=1)
+        self.norm2_name, norm2 = build_norm_layer(self.norm_cfg, self.mid_channels, postfix=2)
+        self.norm3_name, norm3 = build_norm_layer(self.norm_cfg, self.out_channels, postfix=3)
 
         self.conv1 = build_conv_layer(
-            self.conv_cfg,
-            self.in_channels,
-            self.mid_channels,
-            kernel_size=1,
-            stride=self.conv1_stride,
-            bias=False)
+            self.conv_cfg, self.in_channels, self.mid_channels, kernel_size=1, stride=self.conv1_stride, bias=False
+        )
         self.add_module(self.norm1_name, norm1)
         self.conv2 = build_conv_layer(
             self.conv_cfg,
@@ -74,15 +60,11 @@ class Bottleneck(_Bottleneck):
             padding=self.dilation,
             dilation=self.dilation,
             groups=groups,
-            bias=False)
+            bias=False,
+        )
 
         self.add_module(self.norm2_name, norm2)
-        self.conv3 = build_conv_layer(
-            self.conv_cfg,
-            self.mid_channels,
-            self.out_channels,
-            kernel_size=1,
-            bias=False)
+        self.conv3 = build_conv_layer(self.conv_cfg, self.mid_channels, self.out_channels, kernel_size=1, bias=False)
         self.add_module(self.norm3_name, norm3)
 
 
@@ -152,11 +134,7 @@ class ResNeXt(ResNet):
         (1, 2048, 1, 1)
     """
 
-    arch_settings = {
-        50: (Bottleneck, (3, 4, 6, 3)),
-        101: (Bottleneck, (3, 4, 23, 3)),
-        152: (Bottleneck, (3, 8, 36, 3))
-    }
+    arch_settings = {50: (Bottleneck, (3, 4, 6, 3)), 101: (Bottleneck, (3, 4, 23, 3)), 152: (Bottleneck, (3, 8, 36, 3))}
 
     def __init__(self, depth, groups=32, width_per_group=4, **kwargs):
         self.groups = groups
@@ -164,8 +142,4 @@ class ResNeXt(ResNet):
         super().__init__(depth, **kwargs)
 
     def make_res_layer(self, **kwargs):
-        return ResLayer(
-            groups=self.groups,
-            width_per_group=self.width_per_group,
-            base_channels=self.base_channels,
-            **kwargs)
+        return ResLayer(groups=self.groups, width_per_group=self.width_per_group, base_channels=self.base_channels, **kwargs)
