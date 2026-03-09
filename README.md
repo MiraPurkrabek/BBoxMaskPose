@@ -59,6 +59,7 @@
 
 ## 📑 Table of Contents
 
+- [HuggingFace Demos](#-HuggingFace-demos)
 - [Installation](#-installation)
 - [Demo](#-demo)
 - [API Examples](#api-examples)
@@ -112,6 +113,20 @@ Key contributions:
 
 For more details, please visit our [project website](https://mirapurkrabek.github.io/BBox-Mask-Pose/).
 
+
+## 🎮 HuggingFace Demos
+
+If you want to try our models without any installation, you can try the free HuggingFace demos. 
+
+[BBoxMaskPose Demo](https://huggingface.co/spaces/purkrmir/BBoxMaskPose-demo) showcases the whole loop including 3D pose estimation. You can generate GIFs similar to the one at the top of this README. Due to 3D rendering, this demo runs **approx 30-60 seconds per image**.
+
+[PMPose Demo](https://huggingface.co/spaces/purkrmir/PMPose-demo) showcase our familly of PMPose models. It is not an itterative methods but standard feed-forward top-down 2D pose estimation method. Check it out if you're interested in fast pose estimation.
+
+<p float="left">
+  <img src="data/assets/BMP-demo_screenshot.png" height="150" />
+  &nbsp&nbsp&nbsp
+  <img src="data/assets/PMPose-demo_screenshot.png" height="150" /> 
+</p>
 
 
 ## 🚀 Installation
