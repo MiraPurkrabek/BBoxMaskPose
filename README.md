@@ -37,14 +37,18 @@
 
 </div>
 
-> [!CAUTION] 
-> This branch is a **work in progress**!
->
-> Until merged with <code>main</code>, use on your own discretion. For stable version, please refer to <code>main</code> branch with BMPv1.
+> [!IMPORTANT]
+> The new version of <b>BBox-Mask-Pose (BMPv2)</b> is now available on [<b>arXiv</b>](https://arxiv.org/abs/2601.15200v1).
+> BMPv2 significantly improves performance; see the quantitative results reported in the preprint.
+> One of the key contributions is <b>PMPose</b>, a new top-down pose estimation model, that is already strong on standard benchmarks and in crowded scenes.
+> The code is integrated in the <code>main</code> branch and was released in Release 2.0.0.
+> Due to repository changes, the version 2.0.0 is not backward compatible with previous versions.
+
 
 ## 📢 News
 
-- **Feb 2026**: Version 2.0 with improved (1) pose and (2) SAM and (3) wiring to 3D prediction released. 
+- **Mar 2025**: [HuggingFace Image Demo](https://huggingface.co/spaces/purkrmir/BBoxMaskPose-demo) is up-to-date with BMPv2. Check-out the 3D generation!
+- **Mar 2026**: Version 2.0 with improved (1) pose and (2) SAM and (3) wiring to 3D prediction released. 
 - **Feb 2026**: SAM-pose2seg won a Best Paper Award on CVWW 2026 🎉
 - **Jan 2026**: [BMPv2 paper](https://arxiv.org/abs/2601.15200) is available on arXiv
 - **Aug 2025**: [HuggingFace Image Demo](https://huggingface.co/spaces/purkrmir/BBoxMaskPose-demo) is out! 🎮
@@ -96,11 +100,15 @@ BBoxMaskPose/
 Key contributions:
 1. **MaskPose**: a pose estimation model conditioned by segmentation masks instead of bounding boxes, boosting performance in dense scenes without adding parameters
     - Download pre-trained weights below
+1. **PMPose**: a pose estimation model modelling the full keypoint probability distribution AND conditioned by segmentation masks instead of bounding boxes, boosting performance in dense scenes without adding parameters
+    - Download pre-trained weights below
 2. **BBox-MaskPose (BMP)**: method linking bounding boxes, segmentation masks, and poses to simultaneously address multi-body detection, segmentation and pose estimation
     - Try the demo!
-3. Fine-tuned RTMDet adapted for itterative detection (ignoring 'holes')
+3. **SAM-pose2seg**: fine-tuned SAM2 model for pose-guided instance segmentation
+    - Try the demo!
+4. Fine-tuned RTMDet adapted for itterative detection (ignoring 'holes')
     - Download pre-trained weights below
-4. Support for multi-dataset training of ViTPose, previously implemented in the official ViTPose repository but absent in MMPose.
+5. Support for multi-dataset training of ViTPose, previously implemented in the official ViTPose repository but absent in MMPose.
 
 For more details, please visit our [project website](https://mirapurkrabek.github.io/BBox-Mask-Pose/).
 
@@ -249,12 +257,14 @@ vis_img = bmp_model.visualize(image="demo/data/004806.jpg", result=result)
 ## 📦 Pre-trained Models
 
 Pre-trained models are available on [VRG Hugging Face 🤗](https://huggingface.co/vrg-prague/BBoxMaskPose/).
-To run the demo, you only need do download SAM weights with [enclosed script](models/SAM/download_ckpts.sh).
-Our detector and pose estimator will be downloaded during the runtime.
+To run the demo, don't need to download any weight manually.
+The detector, SAM-pose2seg and pose estimator will be downloaded during the runtime.
 
 If you want to download our weights yourself, here are the links to our HuggingFace:
 - ViTPose-b trained on COCO+MPII+AIC -- [download weights](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/ViTPose-b-multi_mmpose20.pth)
-- MaskPose-b -- [download weights](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose-b.pth)
+- MaskPose-b -- [download weights](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/MaskPose/MaskPose-b-1.0.0.pth)
+- PMPose -- [select model](https://huggingface.co/vrg-prague/BBoxMaskPose/tree/main/PMPose)
+- SAM-pose2seg -- [download weights](https://huggingface.co/vrg-prague/BBoxMaskPose/blob/main/SAM-pose2seg_hiera_b%2B.pt)
 - Fine-tuned RTMDet-L -- [download weights](https://huggingface.co/vrg-prague/BBoxMaskPose/resolve/main/rtmdet-ins-l-mask.pth)
 
 ## 🙏 Acknowledgments
